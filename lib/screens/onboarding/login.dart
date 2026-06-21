@@ -3,9 +3,10 @@ import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/spacing.dart';
 import 'package:muntum/constants/typography.dart';
+import 'package:muntum/screens/onboarding/sign_up.dart';
 
 class LoginScreen extends StatefulWidget {
-  LoginScreen({super.key});
+  const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -121,7 +122,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     onTap: () {
-                      print('Tab');
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => SignUpScreen()),
+                      );
                     },
                   ),
                 ],
