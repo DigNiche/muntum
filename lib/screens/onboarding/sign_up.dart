@@ -3,6 +3,7 @@ import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/spacing.dart';
 import 'package:muntum/constants/typography.dart';
+import 'package:muntum/screens/onboarding/nickname.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -292,7 +293,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       _isEmailValid &&
                           _isPasswordValid &&
                           _isConfirmPasswordValid
-                      ? () {}
+                      ? () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => NicknameScreen(),
+                            ),
+                          );
+                        }
                       : null,
                   child: Text(
                     '다음으로',
