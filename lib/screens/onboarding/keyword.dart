@@ -3,28 +3,23 @@ import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/spacing.dart';
 import 'package:muntum/constants/typography.dart';
-import 'package:muntum/screens/onboarding/keyword.dart';
+import 'package:muntum/screens/onboarding/loading.dart';
 
-class NicknameScreen extends StatefulWidget {
-  const NicknameScreen({super.key});
+class KeywordScreen extends StatefulWidget {
+  const KeywordScreen({super.key});
 
   @override
-  State<NicknameScreen> createState() => _NicknameScreenState();
+  State<KeywordScreen> createState() => _KeywordScreenState();
 }
 
-class _NicknameScreenState extends State<NicknameScreen> {
-  bool get _isNickNameValid {
-    return false;
-  }
-
+class _KeywordScreenState extends State<KeywordScreen> {
   @override
   Widget build(BuildContext context) {
-    final nicknameErrorText = _isNickNameValid ? ' ' : '중복되는 닉네임 입니다.';
     return Scaffold(
       backgroundColor: AppColors.backgroundNormal,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(
+          padding: EdgeInsets.symmetric(
             horizontal: AppSpacing.horizontalMargin,
           ),
           child: Column(
@@ -50,45 +45,12 @@ class _NicknameScreenState extends State<NicknameScreen> {
                     ),
                   ),
                   const SizedBox(height: 32),
-                  Text('닉네임 생성 하기', style: AppTypography.display),
+                  Text('어떤 문화를 즐기시나요?', style: AppTypography.display),
 
                   const SizedBox(height: 16),
                   Text(
-                    '닉네임은 가입 후에도.\n마이페이지에서 수정할 수 있어요',
+                    '3개 이상의 취향 키워드를 선택해 주세요.\n많이 선택할 수록 다양한 추천을 받을 수 있어요.',
                     style: AppTypography.body1,
-                  ),
-                  const SizedBox(height: 28),
-                  Text("닉네임*"),
-                  TextField(
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: InputDecoration(
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.radius_1),
-                        borderSide: BorderSide(
-                          color: AppColors.black,
-                          width: 2,
-                        ),
-                      ),
-                      hintText: '사용하려는 닉네임을 입력해 주세요 ',
-                      prefixIcon: const Icon(Icons.sell_outlined, size: 20),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.radius_1),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    nicknameErrorText,
-                    style: AppTypography.caption1.copyWith(
-                      color: nicknameErrorText.trim().isEmpty
-                          ? Colors.transparent
-                          : AppColors.error,
-                      fontSize: 14,
-                    ),
                   ),
                 ],
               ),
@@ -105,7 +67,7 @@ class _NicknameScreenState extends State<NicknameScreen> {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => KeywordScreen()),
+                      MaterialPageRoute(builder: (context) => LoadingScreen()),
                     );
                   },
                   child: Text(
