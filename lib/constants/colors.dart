@@ -34,7 +34,8 @@ class AppColors {
 
   // Line
   static const lineNormal = Color(0xFFF5F5F3);
-  static const lineAlternative = Color(0xFFFAFAF8);
+  static const lineNormal2 = Color(0xFFFAFAF8);
+  static const lineStrong = Color(0xFFEAEAE9);
 
   // Status
   static const success = Color(0xFF1CB854);
@@ -42,5 +43,7 @@ class AppColors {
   static const error = Color(0xFFF4511E);
 
   // Dim
-  static const dimNormal = Color(0xFF000000);
+  static const dimLight = Color(0x4D000000);
+  static const dimMedium = Color(0x80000000);
+  static const dimStrong = Color(0xB3000000);
 }
