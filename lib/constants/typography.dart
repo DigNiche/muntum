@@ -55,6 +55,21 @@ class AppTypography {
     fontWeight: FontWeight.w700,
   );
 
+  // Headline
+  static final headline1 = _style(
+    fontSize: 16,
+    lineHeight: 1.4,
+    letterSpacingPercent: -1.5,
+    fontWeight: FontWeight.w700,
+  );
+
+  static final headline2 = _style(
+    fontSize: 14,
+    lineHeight: 1.4,
+    letterSpacingPercent: -1.5,
+    fontWeight: FontWeight.w600,
+  );
+
   // Body
   static final body1 = _style(
     fontSize: 16,
@@ -81,28 +96,40 @@ class AppTypography {
   static final caption1 = _style(
     fontSize: 13,
     lineHeight: 1.4,
-    letterSpacingPercent: -2.5,
+    letterSpacingPercent: -1.5,
     fontWeight: FontWeight.w400,
   );
 
   static final caption2 = _style(
     fontSize: 12,
     lineHeight: 1.4,
-    letterSpacingPercent: -2.5,
-    fontWeight: FontWeight.w400,
+    letterSpacingPercent: -1.5,
+    fontWeight: FontWeight.w500,
   );
 
   static final caption3 = _style(
     fontSize: 11,
     lineHeight: 1.4,
-    letterSpacingPercent: -2.5,
-    fontWeight: FontWeight.w400,
+    letterSpacingPercent: -1.5,
+    fontWeight: FontWeight.w500,
   );
 
   // Button
-  static final button = _style(
+  static final button1 = _style(
+    fontSize: 16,
+    lineHeight: 1.3,
+    letterSpacingPercent: -2.5,
+    fontWeight: FontWeight.w700,
+  );
+  static final button2 = _style(
+    fontSize: 15,
+    lineHeight: 1.3,
+    letterSpacingPercent: -2.5,
+    fontWeight: FontWeight.w600,
+  );
+  static final button3 = _style(
     fontSize: 14,
-    lineHeight: 1.4,
+    lineHeight: 1.3,
     letterSpacingPercent: -2.5,
     fontWeight: FontWeight.w600,
   );

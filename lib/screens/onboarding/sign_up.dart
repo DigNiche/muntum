@@ -304,7 +304,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       : null,
                   child: Text(
                     '다음으로',
-                    style: AppTypography.button.copyWith(
+                    style: AppTypography.button1.copyWith(
                       fontSize: 16,
                       fontWeight: FontWeight.w900,
                     ),

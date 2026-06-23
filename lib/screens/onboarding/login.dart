@@ -144,7 +144,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   onPressed: () {},
                   child: Text(
                     '로그인',
-                    style: AppTypography.button.copyWith(
+                    style: AppTypography.button1.copyWith(
                       fontSize: 16,
                       fontWeight: FontWeight.w900,
                     ),
@@ -180,7 +180,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   onPressed: () {},
                   child: Text(
                     '로그인 없이 둘러보기',
-                    style: AppTypography.button.copyWith(
+                    style: AppTypography.button1.copyWith(
                       fontSize: 16,
                       color: AppColors.gray700,
                     ),
