@@ -39,6 +39,28 @@ class SecondCurationCard extends StatelessWidget {
                   ),
                 ),
               ),
+              // 그라데이션
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  height: 200.h,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(
+                      AppBorderRadius.radius_10,
+                    ),
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withOpacity(0.65),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
               Container(
                 padding: EdgeInsets.symmetric(vertical: 18.h, horizontal: 18.w),
                 child: Row(
@@ -178,6 +200,7 @@ class FirstCurationCard extends StatelessWidget {
             "YY.MM.DD-YY.MM.DD",
             style: AppTypography.caption1.copyWith(color: AppColors.gray700),
           ),
+          SizedBox(height: 2.h),
         ],
       ),
     );

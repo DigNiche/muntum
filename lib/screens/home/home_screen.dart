@@ -8,6 +8,9 @@ import 'package:muntum/screens/home/components/banner_carousel.dart';
 import 'package:muntum/screens/home/components/curation_card.dart';
 import 'package:muntum/screens/home/components/filter_list.dart';
 import 'package:muntum/screens/home/components/page_header.dart';
+import 'package:muntum/screens/home/components/section_header.dart';
+import 'package:muntum/screens/home/components/vertical_card.dart';
+import 'package:muntum/screens/home/components/vertical_card_carousel.dart';
 
 enum ScreenTypes { myNiche, entire }
 
@@ -44,39 +47,41 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           child: Scaffold(
             backgroundColor: animatedBackgroundColor,
-            body: Column(
-              children: [
-                SizedBox(height: 50.h),
-                PageHeader(
-                  firstText: '내취향',
-                  firstTextColor: isMyNiche
-                      ? AppColors.white
-                      : AppColors.gray300,
-                  onFirstTextTap: () {
-                    setState(() {
-                      screenType = ScreenTypes.myNiche;
-                    });
-                  },
-                  secondText: '전체',
-                  secondTextColor: isMyNiche
-                      ? AppColors.gray600
-                      : AppColors.black,
-                  onSecondTextTap: () {
-                    setState(() {
-                      screenType = ScreenTypes.entire;
-                    });
-                  },
-                  icon: SvgPicture.asset(
-                    'assets/icons/search.svg',
-                    width: 24.sp,
-                    height: 24.sp,
-                    color: isMyNiche ? AppColors.white : AppColors.gray600,
+            body: SingleChildScrollView(
+              child: Column(
+                children: [
+                  SizedBox(height: 50.h),
+                  PageHeader(
+                    firstText: '내취향',
+                    firstTextColor: isMyNiche
+                        ? AppColors.white
+                        : AppColors.gray300,
+                    onFirstTextTap: () {
+                      setState(() {
+                        screenType = ScreenTypes.myNiche;
+                      });
+                    },
+                    secondText: '전체',
+                    secondTextColor: isMyNiche
+                        ? AppColors.gray600
+                        : AppColors.black,
+                    onSecondTextTap: () {
+                      setState(() {
+                        screenType = ScreenTypes.entire;
+                      });
+                    },
+                    icon: SvgPicture.asset(
+                      'assets/icons/search.svg',
+                      width: 24.sp,
+                      height: 24.sp,
+                      color: isMyNiche ? AppColors.white : AppColors.gray600,
+                    ),
+                    showIndicator: isMyNiche,
                   ),
-                  showIndicator: isMyNiche,
-                ),
-                if (isMyNiche) MyNichePage(),
-                if (!isMyNiche) EntirePage(),
-              ],
+                  if (isMyNiche) MyNichePage(),
+                  if (!isMyNiche) EntirePage(),
+                ],
+              ),
             ),
           ),
         );
@@ -123,6 +128,26 @@ class EntirePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BannerCarousel(banners: [BannerCard(), BannerCard()]);
+    return Column(
+      children: [
+        BannerCarousel(banners: [BannerCard(), BannerCard()]),
+        SizedBox(height: 48.h),
+        SectionHeader1(text: "모아보기", buttonName: '전체보기'),
+        SizedBox(height: 8.h),
+        VerticalCardCarousel(
+          verticalCards: [VerticalCard(), VerticalCard(), VerticalCard()],
+        ),
+        SectionHeader1(text: "요즘뜨는", buttonName: ''),
+        SizedBox(height: 8.h),
+        VerticalCardCarousel(
+          verticalCards: [VerticalCard(), VerticalCard(), VerticalCard()],
+        ),
+        SectionHeader1(text: "이번달에 끝나는", buttonName: '전체보기'),
+        SizedBox(height: 8.h),
+        VerticalCardCarousel(
+          verticalCards: [VerticalCard(), VerticalCard(), VerticalCard()],
+        ),
+      ],
+    );
   }
 }
