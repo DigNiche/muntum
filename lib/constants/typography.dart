@@ -134,4 +134,10 @@ class AppTypography {
     letterSpacingPercent: -2.5,
     fontWeight: FontWeight.w600,
   );
+  static final button4 = _style(
+    fontSize: 13.sp,
+    lineHeight: 1.4,
+    letterSpacingPercent: -1.5,
+    fontWeight: FontWeight.w600,
+  );
 }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
-import 'package:muntum/constants/colors.dart';
-import 'package:muntum/screens/home/my_niche_screen.dart';
+import 'package:muntum/screens/home/home_screen.dart';
 
 void main() {
   runApp(const MuntumApp());
@@ -23,7 +22,7 @@ class MuntumApp extends StatelessWidget {
         home: child,
         debugShowCheckedModeBanner: false,
       ),
-      child: MyNicheScreen(),
+      child: HomeScreen(),
     );
   }
 }
