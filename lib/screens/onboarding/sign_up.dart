@@ -103,7 +103,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       decoration: InputDecoration(
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(
-                            AppRadius.radius_1,
+                            AppBorderRadius.radius_10,
                           ),
                           borderSide: BorderSide(
                             color: AppColors.black,
@@ -118,7 +118,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(
-                            AppRadius.radius_1,
+                            AppBorderRadius.radius_10,
                           ),
                         ),
                       ),
@@ -144,7 +144,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       decoration: InputDecoration(
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(
-                            AppRadius.radius_1,
+                            AppBorderRadius.radius_10,
                           ),
                           borderSide: BorderSide(
                             color: AppColors.black,
@@ -172,7 +172,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(
-                            AppRadius.radius_1,
+                            AppBorderRadius.radius_10,
                           ),
                         ),
                       ),
@@ -198,7 +198,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       decoration: InputDecoration(
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(
-                            AppRadius.radius_1,
+                            AppBorderRadius.radius_10,
                           ),
                           borderSide: BorderSide(
                             color: AppColors.black,
@@ -226,7 +226,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(
-                            AppRadius.radius_1,
+                            AppBorderRadius.radius_10,
                           ),
                         ),
                       ),
@@ -286,7 +286,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     backgroundColor: Colors.black,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.radius_1),
+                      borderRadius: BorderRadius.circular(
+                        AppBorderRadius.radius_10,
+                      ),
                     ),
                   ),
                   onPressed:

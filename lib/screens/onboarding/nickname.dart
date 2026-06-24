@@ -63,7 +63,9 @@ class _NicknameScreenState extends State<NicknameScreen> {
                     keyboardType: TextInputType.emailAddress,
                     decoration: InputDecoration(
                       focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.radius_1),
+                        borderRadius: BorderRadius.circular(
+                          AppBorderRadius.radius_10,
+                        ),
                         borderSide: BorderSide(
                           color: AppColors.black,
                           width: 2,
@@ -76,7 +78,9 @@ class _NicknameScreenState extends State<NicknameScreen> {
                         vertical: 14,
                       ),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.radius_1),
+                        borderRadius: BorderRadius.circular(
+                          AppBorderRadius.radius_10,
+                        ),
                       ),
                     ),
                   ),
@@ -99,7 +103,9 @@ class _NicknameScreenState extends State<NicknameScreen> {
                     backgroundColor: Colors.black,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.radius_1),
+                      borderRadius: BorderRadius.circular(
+                        AppBorderRadius.radius_10,
+                      ),
                     ),
                   ),
                   onPressed: () {

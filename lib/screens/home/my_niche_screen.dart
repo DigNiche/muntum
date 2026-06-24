@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide FilterChip;
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/constants/colors.dart';
+import 'package:muntum/screens/home/components/filter_list.dart';
 import 'package:muntum/screens/home/components/page_header.dart';
 
 enum ScreenTypes { myNiche, entire }
@@ -25,7 +26,7 @@ class _MyNicheScreenState extends State<MyNicheScreen> {
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
       tween: ColorTween(
-        end: isMyNiche ? AppColors.gray900 : AppColors.backgroundNormal,
+        end: isMyNiche ? AppColors.backgroundDark : AppColors.backgroundNormal,
       ),
       builder: (context, animatedBackgroundColor, child) {
         return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -70,6 +71,26 @@ class _MyNicheScreenState extends State<MyNicheScreen> {
                   ),
                   showIndicator: isMyNiche,
                 ),
+                if (isMyNiche)
+                  FilterList(
+                    listOfChip: [
+                      FilterChip(
+                        text: '무료',
+                        textColor: AppColors.gray400,
+                        backgroundColor: Color(0x0fffffff),
+                      ),
+                      FilterChip(
+                        text: '이번주',
+                        textColor: AppColors.gray400,
+                        backgroundColor: Color(0x0fffffff),
+                      ),
+                      FilterChip(
+                        text: '예약없이',
+                        textColor: AppColors.gray400,
+                        backgroundColor: Color(0x0fffffff),
+                      ),
+                    ],
+                  ),
               ],
             ),
           ),

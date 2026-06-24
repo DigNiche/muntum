@@ -50,7 +50,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.radius_1),
+                    borderRadius: BorderRadius.circular(
+                      AppBorderRadius.radius_10,
+                    ),
                     borderSide: BorderSide(color: AppColors.black, width: 2),
                   ),
                   hintText: '이메일을 입력해 주세요',
@@ -60,7 +62,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     vertical: 14,
                   ),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.radius_1),
+                    borderRadius: BorderRadius.circular(
+                      AppBorderRadius.radius_10,
+                    ),
                   ),
                 ),
               ),
@@ -70,7 +74,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 obscureText: _obsecureText,
                 decoration: InputDecoration(
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.radius_1),
+                    borderRadius: BorderRadius.circular(
+                      AppBorderRadius.radius_10,
+                    ),
                     borderSide: BorderSide(color: AppColors.black, width: 2),
                   ),
                   hintText: '비밀번호를 입력해 주세요',
@@ -93,7 +99,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     vertical: 14,
                   ),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.radius_1),
+                    borderRadius: BorderRadius.circular(
+                      AppBorderRadius.radius_10,
+                    ),
                   ),
                 ),
               ),
@@ -138,7 +146,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     backgroundColor: Colors.black,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.radius_1),
+                      borderRadius: BorderRadius.circular(
+                        AppBorderRadius.radius_10,
+                      ),
                     ),
                   ),
                   onPressed: () {},
@@ -174,7 +184,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.black,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.radius_1),
+                      borderRadius: BorderRadius.circular(
+                        AppBorderRadius.radius_10,
+                      ),
                     ),
                   ),
                   onPressed: () {},

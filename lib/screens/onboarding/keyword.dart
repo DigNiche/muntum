@@ -61,7 +61,9 @@ class _KeywordScreenState extends State<KeywordScreen> {
                     backgroundColor: Colors.black,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.radius_1),
+                      borderRadius: BorderRadius.circular(
+                        AppBorderRadius.radius_10,
+                      ),
                     ),
                   ),
                   onPressed: () {

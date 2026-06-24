@@ -31,6 +31,7 @@ class AppColors {
 
   // Background
   static const backgroundNormal = Color(0xFFFAFAF8);
+  static const backgroundDark = Color(0xFF0A0A0A);
 
   // Line
   static const lineNormal = Color(0xFFF5F5F3);
