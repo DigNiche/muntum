@@ -9,7 +9,7 @@ class AppColors {
   static const primary400 = Color(0xFF83FD18);
   static const primary500 = Color(0xFF61FA00);
   static const primary600 = Color(0xFF49E800);
-  static const primary700 = Color(0xFF12D200);
+  static const primary700 = Color(0xFFACCF00);
   static const primary800 = Color(0xFF00BE00);
   static const primary900 = Color(0xFF009900);
 
@@ -34,7 +34,7 @@ class AppColors {
 
   // Line
   static const lineNormal = Color(0xFFF5F5F3);
-  static const lineNormal2 = Color(0xFFFAFAF8);
+  static const lineAlternative = Color(0xFFFAFAF8);
   static const lineStrong = Color(0xFFEAEAE9);
 
   // Status
