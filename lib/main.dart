@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:muntum/constants/colors.dart';
+import 'package:muntum/screens/home/my_keyword.dart';
 import 'package:muntum/screens/onboarding/login.dart';
 
 void main() {
@@ -19,7 +20,7 @@ class MuntumApp extends StatelessWidget {
         ),
       ),
       title: 'Mumtum',
-      home: LoginScreen(),
+      home: MyKeywordScreen(),
       debugShowCheckedModeBanner: false,
     );
   }
