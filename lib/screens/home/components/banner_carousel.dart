@@ -4,7 +4,8 @@ import 'package:muntum/constants/colors.dart';
 import 'package:muntum/screens/home/components/banner.dart';
 
 class BannerCarousel extends StatefulWidget {
-  const BannerCarousel({super.key});
+  final List<BannerCard> banners;
+  const BannerCarousel({super.key, required this.banners});
 
   @override
   State<BannerCarousel> createState() => _BannerCarouselState();
@@ -22,17 +23,18 @@ class _BannerCarouselState extends State<BannerCarousel> {
           height: 292.5.h,
           child: PageView.builder(
             controller: _pageController,
-            itemCount: 5,
+            itemCount: widget.banners.length,
             onPageChanged: (index) {
               setState(() {
                 currentIndex = index;
               });
             },
             itemBuilder: (context, index) {
-              return BannerCard();
+              return widget.banners[index];
             },
           ),
         ),
+        // Progress Bar
         SizedBox(
           height: 2.h,
           child: Stack(
@@ -48,10 +50,10 @@ class _BannerCarouselState extends State<BannerCarousel> {
               // 현재 위치
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 250),
-                left: currentIndex * (390.w / 5),
+                left: currentIndex * (390.w / widget.banners.length),
                 child: Container(
-                  width: 390.w / 5,
-                  height: 4.h,
+                  width: 390.w / widget.banners.length,
+                  height: 2.h,
                   decoration: BoxDecoration(
                     color: AppColors.gray900,
                     borderRadius: BorderRadius.circular(999),

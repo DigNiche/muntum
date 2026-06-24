@@ -123,6 +123,6 @@ class EntirePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BannerCarousel();
+    return BannerCarousel(banners: [BannerCard(), BannerCard()]);
   }
 }
