@@ -15,6 +15,7 @@ class SearchBarWidget extends StatefulWidget {
 class _SearchBarWidgetState extends State<SearchBarWidget> {
   final FocusNode _focusNode = FocusNode();
   bool _isFocused = false;
+  final TextEditingController _textEditingController = TextEditingController();
 
   @override
   void initState() {
@@ -32,6 +33,7 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
   void dispose() {
     _focusNode.removeListener(_onFocusChange);
     _focusNode.dispose();
+    _textEditingController.dispose();
     super.dispose();
   }
 
@@ -63,24 +65,34 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
               ),
               Expanded(
                 child: TextField(
+                  controller: _textEditingController,
+                  maxLines: 1,
                   focusNode: _focusNode,
+                  onTapOutside: (event) {
+                    _focusNode.unfocus();
+                  },
                   cursorColor: AppColors.gray900,
                   decoration: InputDecoration(
-                    suffixIcon: _isFocused
-                        ? SizedBox(
-                            width: 20.w,
-                            height: 20.h,
-                            child: SvgPicture.asset(
-                              'assets/icons/circle_close.svg',
-                              color: AppColors.gray500,
-                              width: 16.67.w,
-                              height: 16.67.h,
-                            ),
-                          )
-                        : null,
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
                     hintText: "새로운 곳을 발견해보세요.",
                     hintStyle: AppTypography.body2.copyWith(
                       color: _isFocused ? AppColors.gray900 : AppColors.gray500,
+                    ),
+                    suffix: GestureDetector(
+                      onTap: () {
+                        _textEditingController.clear();
+                      },
+                      child: SizedBox(
+                        width: 20.w,
+                        height: 20.h,
+                        child: SvgPicture.asset(
+                          'assets/icons/circle_close.svg',
+                          color: AppColors.gray500,
+                          width: 16.67.w,
+                          height: 16.67.h,
+                        ),
+                      ),
                     ),
                     border: InputBorder.none,
                   ),
