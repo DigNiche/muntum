@@ -3,7 +3,7 @@ import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/spacing.dart';
 import 'package:muntum/constants/typography.dart';
-import 'package:muntum/screens/onboarding/keyword.dart';
+import 'package:muntum/screens/onboarding/keyword_screen.dart';
 
 class NicknameScreen extends StatefulWidget {
   const NicknameScreen({super.key});
