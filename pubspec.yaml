@@ -36,6 +36,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   flutter_svg: ^2.3.0
   flutter_screenutil_plus: ^1.5.0
+  google_maps_flutter: ^2.17.1
 
 dev_dependencies:
   flutter_test:

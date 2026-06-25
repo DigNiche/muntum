@@ -1,0 +1,96 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
+import 'package:flutter_svg/svg.dart';
+import 'package:muntum/constants/border_radius.dart';
+import 'package:muntum/constants/colors.dart';
+import 'package:muntum/constants/typography.dart';
+
+class SearchBarWidget extends StatefulWidget {
+  const SearchBarWidget({super.key});
+
+  @override
+  State<SearchBarWidget> createState() => _SearchBarWidgetState();
+}
+
+class _SearchBarWidgetState extends State<SearchBarWidget> {
+  final FocusNode _focusNode = FocusNode();
+  bool _isFocused = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode.addListener(_onFocusChange);
+  }
+
+  void _onFocusChange() {
+    setState(() {
+      _isFocused = _focusNode.hasFocus;
+    });
+  }
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_onFocusChange);
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 48.h,
+      decoration: BoxDecoration(
+        border: BoxBorder.all(color: AppColors.gray200, width: 1.0.w),
+        borderRadius: BorderRadius.circular(AppBorderRadius.radius_10),
+      ),
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+      child: Stack(
+        children: [
+          Row(
+            spacing: 8.w,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: 24.w,
+                height: 24.h,
+                child: SvgPicture.asset(
+                  'assets/icons/search.svg',
+                  color: AppColors.gray500,
+                  width: 18.w,
+                  height: 18.h,
+                ),
+              ),
+              Expanded(
+                child: TextField(
+                  focusNode: _focusNode,
+                  cursorColor: AppColors.gray900,
+                  decoration: InputDecoration(
+                    suffixIcon: _isFocused
+                        ? SizedBox(
+                            width: 20.w,
+                            height: 20.h,
+                            child: SvgPicture.asset(
+                              'assets/icons/circle_close.svg',
+                              color: AppColors.gray500,
+                              width: 16.67.w,
+                              height: 16.67.h,
+                            ),
+                          )
+                        : null,
+                    hintText: "새로운 곳을 발견해보세요.",
+                    hintStyle: AppTypography.body2.copyWith(
+                      color: _isFocused ? AppColors.gray900 : AppColors.gray500,
+                    ),
+                    border: InputBorder.none,
+                  ),
+                  style: AppTypography.body2.copyWith(color: AppColors.gray900),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}

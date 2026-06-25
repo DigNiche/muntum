@@ -58,11 +58,15 @@ class NavTab extends StatelessWidget {
         padding: EdgeInsets.symmetric(vertical: 8.h),
         child: Column(
           children: [
-            SvgPicture.asset(
-              'assets/icons/$icon',
-              height: 24.sp,
-              width: 24.sp,
-              color: isActive ? activeColor : nonActiveColor,
+            SizedBox(
+              width: 24.w,
+              height: 24.h,
+              child: SvgPicture.asset(
+                'assets/icons/$icon',
+                height: 20.sp,
+                width: 20.sp,
+                color: isActive ? activeColor : nonActiveColor,
+              ),
             ),
             SizedBox(height: 2.h),
             Text(

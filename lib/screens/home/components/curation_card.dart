@@ -91,11 +91,15 @@ class SecondCurationCard extends StatelessWidget {
                 '프로그램명',
                 style: AppTypography.title3.copyWith(color: AppColors.white),
               ),
-              SvgPicture.asset(
-                "assets/icons/scrap.svg",
+              SizedBox(
                 width: 24.w,
                 height: 24.h,
-                color: AppColors.white,
+                child: SvgPicture.asset(
+                  "assets/icons/scrap.svg",
+                  width: 14.w,
+                  height: 20.h,
+                  color: AppColors.white,
+                ),
               ),
             ],
           ),
@@ -164,11 +168,15 @@ class FirstCurationCard extends StatelessWidget {
                         Label(isAdmin: false, text: '사진맛집'),
                       ],
                     ),
-                    SvgPicture.asset(
-                      "assets/icons/scrap.svg",
-                      width: 24.w,
+                    SizedBox(
                       height: 24.h,
-                      color: AppColors.white,
+                      width: 24.w,
+                      child: SvgPicture.asset(
+                        "assets/icons/scrap.svg",
+                        width: 14.w,
+                        height: 20.h,
+                        color: AppColors.white,
+                      ),
                     ),
                   ],
                 ),

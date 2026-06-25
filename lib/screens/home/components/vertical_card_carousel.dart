@@ -19,7 +19,6 @@ class _VerticalCardCarouselState extends State<VerticalCardCarousel> {
       height: 343.h,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.symmetric(horizontal: 20.w),
         itemCount: widget.verticalCards.length,
         separatorBuilder: (_, _) => SizedBox(width: 12.w),
         itemBuilder: (context, index) {

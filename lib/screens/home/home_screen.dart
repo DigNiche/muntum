@@ -11,6 +11,7 @@ import 'package:muntum/screens/home/components/page_header.dart';
 import 'package:muntum/screens/home/components/section_header.dart';
 import 'package:muntum/screens/home/components/vertical_card.dart';
 import 'package:muntum/screens/home/components/vertical_card_carousel.dart';
+import 'package:muntum/screens/home/search_screen.dart';
 
 enum ScreenTypes { myNiche, entire }
 
@@ -69,11 +70,23 @@ class _HomeScreenState extends State<HomeScreen> {
                       screenType = ScreenTypes.entire;
                     });
                   },
-                  icon: SvgPicture.asset(
-                    'assets/icons/search.svg',
-                    width: 24.sp,
-                    height: 24.sp,
-                    color: isMyNiche ? AppColors.white : AppColors.gray600,
+                  icon: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => SearchScreen()),
+                      );
+                    },
+                    child: SizedBox(
+                      width: 24.w,
+                      height: 24.h,
+                      child: SvgPicture.asset(
+                        'assets/icons/search.svg',
+                        width: 18.sp,
+                        height: 18.sp,
+                        color: isMyNiche ? AppColors.white : AppColors.gray600,
+                      ),
+                    ),
                   ),
                   showIndicator: isMyNiche,
                 ),
@@ -133,7 +146,7 @@ class EntirePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: EdgeInsets.zero,
+      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 0),
       children: [
         BannerCarousel(banners: [BannerCard(), BannerCard()]),
         SizedBox(height: 48.h),

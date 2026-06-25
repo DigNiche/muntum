@@ -46,11 +46,15 @@ class VerticalCard extends StatelessWidget {
               right: 0,
               child: Container(
                 padding: EdgeInsets.symmetric(vertical: 15.h, horizontal: 15.w),
-                child: SvgPicture.asset(
-                  "assets/icons/scrap.svg",
+                child: SizedBox(
                   width: 24.w,
                   height: 24.h,
-                  color: AppColors.white,
+                  child: SvgPicture.asset(
+                    "assets/icons/scrap.svg",
+                    width: 14.w,
+                    height: 20.h,
+                    color: AppColors.white,
+                  ),
                 ),
               ),
             ),
