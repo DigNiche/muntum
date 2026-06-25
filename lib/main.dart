@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/screens/home/home_screen.dart';
+import 'package:muntum/screens/navigation/main_navigation_screen.dart';
 
 void main() {
   runApp(const MuntumApp());
@@ -22,7 +23,7 @@ class MuntumApp extends StatelessWidget {
         home: child,
         debugShowCheckedModeBanner: false,
       ),
-      child: HomeScreen(),
+      child: MainNavigationScreen(),
     );
   }
 }

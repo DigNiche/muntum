@@ -45,43 +45,40 @@ class _HomeScreenState extends State<HomeScreen> {
             // iOS
             statusBarBrightness: isMyNiche ? Brightness.dark : Brightness.light,
           ),
-          child: Scaffold(
-            backgroundColor: animatedBackgroundColor,
-            body: SingleChildScrollView(
-              child: Column(
-                children: [
-                  SizedBox(height: 50.h),
-                  PageHeader(
-                    firstText: '내취향',
-                    firstTextColor: isMyNiche
-                        ? AppColors.white
-                        : AppColors.gray300,
-                    onFirstTextTap: () {
-                      setState(() {
-                        screenType = ScreenTypes.myNiche;
-                      });
-                    },
-                    secondText: '전체',
-                    secondTextColor: isMyNiche
-                        ? AppColors.gray600
-                        : AppColors.black,
-                    onSecondTextTap: () {
-                      setState(() {
-                        screenType = ScreenTypes.entire;
-                      });
-                    },
-                    icon: SvgPicture.asset(
-                      'assets/icons/search.svg',
-                      width: 24.sp,
-                      height: 24.sp,
-                      color: isMyNiche ? AppColors.white : AppColors.gray600,
-                    ),
-                    showIndicator: isMyNiche,
+          child: ColoredBox(
+            color: animatedBackgroundColor ?? AppColors.backgroundNormal,
+            child: Column(
+              children: [
+                SizedBox(height: 50.h),
+                PageHeader(
+                  firstText: '내취향',
+                  firstTextColor: isMyNiche
+                      ? AppColors.white
+                      : AppColors.gray300,
+                  onFirstTextTap: () {
+                    setState(() {
+                      screenType = ScreenTypes.myNiche;
+                    });
+                  },
+                  secondText: '전체',
+                  secondTextColor: isMyNiche
+                      ? AppColors.gray600
+                      : AppColors.black,
+                  onSecondTextTap: () {
+                    setState(() {
+                      screenType = ScreenTypes.entire;
+                    });
+                  },
+                  icon: SvgPicture.asset(
+                    'assets/icons/search.svg',
+                    width: 24.sp,
+                    height: 24.sp,
+                    color: isMyNiche ? AppColors.white : AppColors.gray600,
                   ),
-                  if (isMyNiche) MyNichePage(),
-                  if (!isMyNiche) EntirePage(),
-                ],
-              ),
+                  showIndicator: isMyNiche,
+                ),
+                Expanded(child: isMyNiche ? MyNichePage() : EntirePage()),
+              ],
             ),
           ),
         );
@@ -95,7 +92,7 @@ class MyNichePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
+    return Column(
       children: [
         FilterList(
           listOfChip: [
@@ -116,8 +113,15 @@ class MyNichePage extends StatelessWidget {
             ),
           ],
         ),
-        CurationCard(isSecondCard: true),
-        CurationCard(isSecondCard: true),
+        Expanded(
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              CurationCard(isSecondCard: true),
+              CurationCard(isSecondCard: true),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -128,7 +132,8 @@ class EntirePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return ListView(
+      padding: EdgeInsets.zero,
       children: [
         BannerCarousel(banners: [BannerCard(), BannerCard()]),
         SizedBox(height: 48.h),
