@@ -6,7 +6,14 @@ import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 
 class SearchBarWidget extends StatefulWidget {
-  const SearchBarWidget({super.key});
+  final TextEditingController controller;
+  final ValueChanged<String>? onSubmitted;
+
+  const SearchBarWidget({
+    super.key,
+    required this.controller,
+    this.onSubmitted,
+  });
 
   @override
   State<SearchBarWidget> createState() => _SearchBarWidgetState();
@@ -15,7 +22,6 @@ class SearchBarWidget extends StatefulWidget {
 class _SearchBarWidgetState extends State<SearchBarWidget> {
   final FocusNode _focusNode = FocusNode();
   bool _isFocused = false;
-  final TextEditingController _textEditingController = TextEditingController();
 
   @override
   void initState() {
@@ -33,7 +39,6 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
   void dispose() {
     _focusNode.removeListener(_onFocusChange);
     _focusNode.dispose();
-    _textEditingController.dispose();
     super.dispose();
   }
 
@@ -65,7 +70,7 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
               ),
               Expanded(
                 child: TextField(
-                  controller: _textEditingController,
+                  controller: widget.controller,
                   maxLines: 1,
                   focusNode: _focusNode,
                   onTapOutside: (event) {
@@ -81,7 +86,7 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
                     ),
                     suffix: GestureDetector(
                       onTap: () {
-                        _textEditingController.clear();
+                        widget.controller.clear();
                       },
                       child: SizedBox(
                         width: 20.w,
@@ -97,6 +102,7 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
                     border: InputBorder.none,
                   ),
                   style: AppTypography.body2.copyWith(color: AppColors.gray900),
+                  onSubmitted: widget.onSubmitted,
                 ),
               ),
             ],

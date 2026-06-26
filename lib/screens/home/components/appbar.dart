@@ -13,6 +13,8 @@ class AppBarWidget extends StatefulWidget {
   final AppBarCenterType centerType;
   final String center;
   final VoidCallback? onLeadingTap;
+  final TextEditingController? searchController;
+  final ValueChanged<String>? onSearchSubmitted;
   const AppBarWidget({
     super.key,
     this.trailing,
@@ -20,6 +22,8 @@ class AppBarWidget extends StatefulWidget {
     required this.leadingIcon,
     this.center = '',
     this.onLeadingTap,
+    this.searchController,
+    this.onSearchSubmitted,
   });
 
   @override
@@ -59,7 +63,12 @@ class _AppBarWidgetState extends State<AppBarWidget> {
   Widget _buildCenter() {
     switch (widget.centerType) {
       case AppBarCenterType.searchbar:
-        return Expanded(child: SearchBarWidget());
+        return Expanded(
+          child: SearchBarWidget(
+            controller: widget.searchController!,
+            onSubmitted: widget.onSearchSubmitted,
+          ),
+        );
       case AppBarCenterType.text:
         return Expanded(
           child: Text(
