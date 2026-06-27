@@ -12,6 +12,7 @@ class SearchBarWidget extends StatefulWidget {
   final VoidCallback? onClear;
   final List<String> selectedKeywords;
   final ValueChanged<String>? onKeywordDeleted;
+  final Color? backgroundColor;
 
   const SearchBarWidget({
     super.key,
@@ -20,6 +21,7 @@ class SearchBarWidget extends StatefulWidget {
     this.onClear,
     this.selectedKeywords = const [],
     this.onKeywordDeleted,
+    this.backgroundColor,
   });
 
   @override
@@ -56,6 +58,7 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
       decoration: BoxDecoration(
         border: BoxBorder.all(color: AppColors.gray200, width: 1.0.w),
         borderRadius: BorderRadius.circular(AppBorderRadius.radius_10),
+        color: widget.backgroundColor,
       ),
       padding: widget.selectedKeywords.isEmpty
           ? EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h)

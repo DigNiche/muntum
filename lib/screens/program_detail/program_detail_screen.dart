@@ -6,10 +6,8 @@ import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/screens/home/components/appbar.dart';
 import 'package:muntum/screens/home/components/cards/horizontal.dart';
-import 'package:muntum/screens/home/components/cards/vertical_card.dart';
 import 'package:muntum/screens/home/components/label.dart';
 import 'package:muntum/screens/home/components/section_header.dart';
-import 'package:muntum/screens/home/components/vertical_card_carousel.dart';
 
 class ProgramDetailScreen extends StatefulWidget {
   const ProgramDetailScreen({super.key});

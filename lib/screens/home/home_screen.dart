@@ -8,6 +8,7 @@ import 'package:muntum/screens/home/components/banner_carousel.dart';
 import 'package:muntum/screens/home/components/cards/banner.dart';
 import 'package:muntum/screens/home/components/cards/curation_card.dart';
 import 'package:muntum/screens/home/components/cards/vertical_card.dart';
+import 'package:muntum/screens/home/components/filter_chip.dart';
 import 'package:muntum/screens/home/components/filter_list.dart';
 import 'package:muntum/screens/home/components/page_header.dart';
 import 'package:muntum/screens/home/components/section_header.dart';
@@ -126,7 +127,7 @@ class _MyNichePageState extends State<MyNichePage> {
       onTap: () {
         _onFilterTap(text);
       },
-      child: FilterChip(
+      child: FilterChipWidget(
         text: text,
         textColor: isSelected ? AppColors.black : AppColors.gray400,
         backgroundColor: isSelected
