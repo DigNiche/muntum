@@ -187,7 +187,7 @@ class EntirePage extends StatelessWidget {
         VerticalCardCarousel(
           verticalCards: const [VerticalCard(), VerticalCard(), VerticalCard()],
         ),
-        const SectionHeader1(text: '요즘뜨는', buttonName: ''),
+        const SectionHeader1(text: '지금 주목 받는', buttonName: ''),
         SizedBox(height: 8.h),
         VerticalCardCarousel(
           verticalCards: const [VerticalCard(), VerticalCard(), VerticalCard()],
