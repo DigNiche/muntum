@@ -399,14 +399,21 @@ class _SearchScreenState extends State<SearchScreen> {
               physics: const NeverScrollableScrollPhysics(),
               padding: EdgeInsets.zero,
               itemBuilder: (context, index) {
-                return RecentSearchWidget(
-                  text: _recentSearches[index],
-                  onDelete: () {
-                    setState(() {
-                      _recentSearches.removeAt(index);
-                    });
-                    _saveRecentSearches();
+                return GestureDetector(
+                  onTap: () {
+                    _searchController.text = _recentSearches[index];
+                    searchText = _recentSearches[index];
+                    setState(() {});
                   },
+                  child: RecentSearchWidget(
+                    text: _recentSearches[index],
+                    onDelete: () {
+                      setState(() {
+                        _recentSearches.removeAt(index);
+                      });
+                      _saveRecentSearches();
+                    },
+                  ),
                 );
               },
               separatorBuilder: (_, __) => SizedBox(height: 8.h),

@@ -3,13 +3,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/constants/colors.dart';
-import 'package:muntum/screens/home/components/cards/banner.dart';
+import 'package:muntum/constants/typography.dart';
 import 'package:muntum/screens/home/components/banner_carousel.dart';
+import 'package:muntum/screens/home/components/cards/banner.dart';
 import 'package:muntum/screens/home/components/cards/curation_card.dart';
+import 'package:muntum/screens/home/components/cards/vertical_card.dart';
 import 'package:muntum/screens/home/components/filter_list.dart';
 import 'package:muntum/screens/home/components/page_header.dart';
 import 'package:muntum/screens/home/components/section_header.dart';
-import 'package:muntum/screens/home/components/cards/vertical_card.dart';
 import 'package:muntum/screens/home/components/vertical_card_carousel.dart';
 import 'package:muntum/screens/home/search_screen.dart';
 
@@ -39,11 +40,9 @@ class _HomeScreenState extends State<HomeScreen> {
         return AnnotatedRegion<SystemUiOverlayStyle>(
           value: SystemUiOverlayStyle(
             statusBarColor: Colors.transparent,
-            // Android
             statusBarIconBrightness: isMyNiche
                 ? Brightness.light
                 : Brightness.dark,
-            // iOS
             statusBarBrightness: isMyNiche ? Brightness.dark : Brightness.light,
           ),
           child: ColoredBox(
@@ -74,7 +73,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => SearchScreen()),
+                        MaterialPageRoute(
+                          builder: (context) => const SearchScreen(),
+                        ),
                       );
                     },
                     child: SizedBox(
@@ -90,7 +91,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   showIndicator: isMyNiche,
                 ),
-                Expanded(child: isMyNiche ? MyNichePage() : EntirePage()),
+                Expanded(
+                  child: isMyNiche ? const MyNichePage() : const EntirePage(),
+                ),
               ],
             ),
           ),
@@ -100,40 +103,69 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class MyNichePage extends StatelessWidget {
+class MyNichePage extends StatefulWidget {
   const MyNichePage({super.key});
 
   @override
+  State<MyNichePage> createState() => _MyNichePageState();
+}
+
+class _MyNichePageState extends State<MyNichePage> {
+  String? selectedFilter;
+
+  void _onFilterTap(String filter) {
+    setState(() {
+      selectedFilter = (selectedFilter == filter ? null : filter);
+    });
+  }
+
+  Widget _buildFilterChip(String text) {
+    final isSelected = (selectedFilter == text);
+
+    return GestureDetector(
+      onTap: () {
+        _onFilterTap(text);
+      },
+      child: FilterChip(
+        text: text,
+        textColor: isSelected ? AppColors.black : AppColors.gray400,
+        backgroundColor: isSelected
+            ? AppColors.primary400
+            : const Color(0x0fffffff),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final hasSelectedFilter = selectedFilter != null;
+
     return Column(
       children: [
         FilterList(
           listOfChip: [
-            FilterChip(
-              text: '무료',
-              textColor: AppColors.gray400,
-              backgroundColor: Color(0x0fffffff),
-            ),
-            FilterChip(
-              text: '이번주',
-              textColor: AppColors.gray400,
-              backgroundColor: Color(0x0fffffff),
-            ),
-            FilterChip(
-              text: '예약없이',
-              textColor: AppColors.gray400,
-              backgroundColor: Color(0x0fffffff),
-            ),
+            _buildFilterChip('무료'),
+            _buildFilterChip('이번주'),
+            _buildFilterChip('예약없이'),
           ],
         ),
         Expanded(
-          child: ListView(
-            padding: EdgeInsets.zero,
-            children: [
-              CurationCard(isSecondCard: true),
-              CurationCard(isSecondCard: true),
-            ],
-          ),
+          child: hasSelectedFilter
+              ? Center(
+                  child: Text(
+                    '조건에 맞는 프로그램이 없어요.',
+                    style: AppTypography.body2.copyWith(
+                      color: AppColors.gray500,
+                    ),
+                  ),
+                )
+              : ListView(
+                  padding: EdgeInsets.zero,
+                  children: const [
+                    CurationCard(isSecondCard: true),
+                    CurationCard(isSecondCard: true),
+                  ],
+                ),
         ),
       ],
     );
@@ -146,24 +178,24 @@ class EntirePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 0),
+      padding: EdgeInsets.symmetric(horizontal: 20.w),
       children: [
-        BannerCarousel(banners: [BannerCard(), BannerCard()]),
+        BannerCarousel(banners: const [BannerCard(), BannerCard()]),
         SizedBox(height: 48.h),
-        SectionHeader1(text: "모아보기", buttonName: '전체보기'),
+        const SectionHeader1(text: '모아보기', buttonName: '전체보기'),
         SizedBox(height: 8.h),
         VerticalCardCarousel(
-          verticalCards: [VerticalCard(), VerticalCard(), VerticalCard()],
+          verticalCards: const [VerticalCard(), VerticalCard(), VerticalCard()],
         ),
-        SectionHeader1(text: "요즘뜨는", buttonName: ''),
+        const SectionHeader1(text: '요즘뜨는', buttonName: ''),
         SizedBox(height: 8.h),
         VerticalCardCarousel(
-          verticalCards: [VerticalCard(), VerticalCard(), VerticalCard()],
+          verticalCards: const [VerticalCard(), VerticalCard(), VerticalCard()],
         ),
-        SectionHeader1(text: "이번달에 끝나는", buttonName: '전체보기'),
+        const SectionHeader1(text: '이번달에 끝나는', buttonName: '전체보기'),
         SizedBox(height: 8.h),
         VerticalCardCarousel(
-          verticalCards: [VerticalCard(), VerticalCard(), VerticalCard()],
+          verticalCards: const [VerticalCard(), VerticalCard(), VerticalCard()],
         ),
       ],
     );
