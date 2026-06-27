@@ -77,9 +77,9 @@ class SecondCurationCard extends StatelessWidget {
                   child: Row(
                     spacing: 6.w,
                     children: [
-                      Label(isAdmin: false, text: '그_순간에_몰입'),
-                      Label(isAdmin: false, text: '생생한_감각'),
-                      Label(isAdmin: false, text: '사진맛집'),
+                      Label(labelType: LabelType.keyword, text: '그_순간에_몰입'),
+                      Label(labelType: LabelType.keyword, text: '생생한_감각'),
+                      Label(labelType: LabelType.keyword, text: '사진맛집'),
                     ],
                   ),
                 ),
@@ -177,9 +177,9 @@ class FirstCurationCard extends StatelessWidget {
                     Row(
                       spacing: 6.w,
                       children: [
-                        Label(isAdmin: false, text: '그_순간에_몰입'),
-                        Label(isAdmin: false, text: '생생한_감각'),
-                        Label(isAdmin: false, text: '사진맛집'),
+                        Label(labelType: LabelType.keyword, text: '그_순간에_몰입'),
+                        Label(labelType: LabelType.keyword, text: '생생한_감각'),
+                        Label(labelType: LabelType.keyword, text: '사진맛집'),
                       ],
                     ),
                     SizedBox(
