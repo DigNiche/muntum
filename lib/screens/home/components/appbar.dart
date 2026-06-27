@@ -16,6 +16,8 @@ class AppBarWidget extends StatefulWidget {
   final TextEditingController? searchController;
   final ValueChanged<String>? onSearchSubmitted;
   final VoidCallback? onClear;
+  final List<String> selectedKeywords;
+  final ValueChanged<String>? onKeywordDeleted;
   const AppBarWidget({
     super.key,
     this.trailing,
@@ -26,6 +28,8 @@ class AppBarWidget extends StatefulWidget {
     this.searchController,
     this.onSearchSubmitted,
     this.onClear,
+    this.selectedKeywords = const [],
+    this.onKeywordDeleted,
   });
 
   @override
@@ -70,6 +74,8 @@ class _AppBarWidgetState extends State<AppBarWidget> {
             controller: widget.searchController!,
             onSubmitted: widget.onSearchSubmitted,
             onClear: widget.onClear,
+            selectedKeywords: widget.selectedKeywords,
+            onKeywordDeleted: widget.onKeywordDeleted,
           ),
         );
       case AppBarCenterType.text:
