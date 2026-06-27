@@ -3,13 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/constants/colors.dart';
-import 'package:muntum/screens/home/components/banner.dart';
+import 'package:muntum/screens/home/components/cards/banner.dart';
 import 'package:muntum/screens/home/components/banner_carousel.dart';
-import 'package:muntum/screens/home/components/curation_card.dart';
+import 'package:muntum/screens/home/components/cards/curation_card.dart';
 import 'package:muntum/screens/home/components/filter_list.dart';
 import 'package:muntum/screens/home/components/page_header.dart';
 import 'package:muntum/screens/home/components/section_header.dart';
-import 'package:muntum/screens/home/components/vertical_card.dart';
+import 'package:muntum/screens/home/components/cards/vertical_card.dart';
 import 'package:muntum/screens/home/components/vertical_card_carousel.dart';
 import 'package:muntum/screens/home/search_screen.dart';
 

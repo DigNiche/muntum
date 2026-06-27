@@ -75,3 +75,40 @@ class SectionHeader2 extends StatelessWidget {
     );
   }
 }
+
+class SectionHeader3 extends StatelessWidget {
+  final String text;
+  final String buttonName;
+  final VoidCallback? onButtonTap;
+  const SectionHeader3({
+    super.key,
+    required this.text,
+    required this.buttonName,
+    this.onButtonTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.transparent,
+      padding: EdgeInsets.symmetric(vertical: 4.h),
+      height: 28.h,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            text,
+            style: AppTypography.headline2.copyWith(color: AppColors.gray900),
+          ),
+          GestureDetector(
+            onTap: onButtonTap,
+            child: Text(
+              buttonName,
+              style: AppTypography.button3.copyWith(color: AppColors.gray500),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

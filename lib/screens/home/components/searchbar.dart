@@ -8,11 +8,13 @@ import 'package:muntum/constants/typography.dart';
 class SearchBarWidget extends StatefulWidget {
   final TextEditingController controller;
   final ValueChanged<String>? onSubmitted;
+  final VoidCallback? onClear;
 
   const SearchBarWidget({
     super.key,
     required this.controller,
     this.onSubmitted,
+    this.onClear,
   });
 
   @override
@@ -87,6 +89,8 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
                     suffix: GestureDetector(
                       onTap: () {
                         widget.controller.clear();
+                        widget.onClear?.call();
+                        _focusNode.unfocus();
                       },
                       child: SizedBox(
                         width: 20.w,

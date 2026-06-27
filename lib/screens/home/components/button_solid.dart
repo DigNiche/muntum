@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/constants/border_radius.dart';
-import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 
 class ButtonSolid extends StatelessWidget {

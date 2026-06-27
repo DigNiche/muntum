@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/constants/colors.dart';
+import 'package:muntum/constants/typography.dart';
 import 'package:muntum/screens/home/components/appbar.dart';
+import 'package:muntum/screens/home/components/cards/horizontal.dart';
 import 'package:muntum/screens/home/components/keyword_chip.dart';
 import 'package:muntum/screens/home/components/popup_widget.dart';
 import 'package:muntum/screens/home/components/recent_search_widget.dart';
@@ -27,16 +29,15 @@ class _SearchScreenState extends State<SearchScreen> {
   };
 
   static const String _recentSearchesKey = 'recent_searches';
-
   final List<String> _defaultRecentSearches = [
     '큐비스트: 시각의 혁신가들',
     '우아한',
     '서울시립미술관',
     '국립현대미술관',
   ];
-
   List<String> _recentSearches = [];
   final TextEditingController _searchController = TextEditingController();
+  String searchText = '';
 
   @override
   void initState() {
@@ -59,12 +60,21 @@ class _SearchScreenState extends State<SearchScreen> {
     await prefs.setStringList(_recentSearchesKey, _recentSearches);
   }
 
-  void _addRecentSearch(String text) {
+  void _onSearchSubmitted(String text) {
     final trimmedText = text.trim();
 
     if (trimmedText.isEmpty) {
       return;
     }
+    _addRecentSearch(trimmedText);
+    setState(() {
+      searchText = trimmedText;
+    });
+  }
+
+  void _addRecentSearch(String text) {
+    final trimmedText = text.trim();
+
     setState(() {
       _recentSearches.remove(trimmedText);
       _recentSearches.insert(0, trimmedText);
@@ -74,7 +84,6 @@ class _SearchScreenState extends State<SearchScreen> {
       }
     });
     _saveRecentSearches();
-    _searchController.clear();
   }
 
   @override
@@ -99,79 +108,135 @@ class _SearchScreenState extends State<SearchScreen> {
             leadingIcon: "arrow_left.svg",
             centerType: AppBarCenterType.searchbar,
             searchController: _searchController,
-            onSearchSubmitted: _addRecentSearch,
+            onSearchSubmitted: _onSearchSubmitted,
+            onClear: () {
+              setState(() {
+                searchText = '';
+              });
+            },
           ),
-          SizedBox(height: 20.h),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SectionHeader2(text: '인기키워드', buttonName: '여러 키워드로 검색'),
-                  SizedBox(height: 12.h),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20.w),
-                    child: Wrap(
-                      spacing: 8.w,
-                      runSpacing: 8.h,
-                      children: popularKeywords.take(6).map((keyword) {
-                        return KeywordChip(
-                          text: keyword,
-                          textColor: AppColors.gray800,
-                          outlineColor: AppColors.lineStrong,
-                        );
-                      }).toList(),
+
+          searchText.isEmpty
+              ? Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(height: 20.h),
+                        SectionHeader2(text: '인기키워드', buttonName: '여러 키워드로 검색'),
+                        SizedBox(height: 12.h),
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 20.w),
+                          child: Wrap(
+                            spacing: 8.w,
+                            runSpacing: 8.h,
+                            children: popularKeywords.take(6).map((keyword) {
+                              return KeywordChip(
+                                text: keyword,
+                                textColor: AppColors.gray800,
+                                outlineColor: AppColors.lineStrong,
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                        SizedBox(height: 32.h),
+                        SectionHeader2(
+                          text: '최근 검색어',
+                          buttonName: '전체 삭제',
+                          onButtonTap: () {
+                            showPopupWidget(
+                              context: context,
+                              title: '최근 검색어를 모두 삭제할까요?',
+                              description: '검색 내역이 전부 삭제됩니다.',
+                              text1: '취소',
+                              text2: '삭제하기',
+                              onText1Tap: () {
+                                Navigator.pop(context);
+                              },
+                              onText2Tap: () {
+                                setState(() {
+                                  _recentSearches.clear();
+                                });
+                                _saveRecentSearches();
+                                Navigator.pop(context);
+                              },
+                            );
+                          },
+                        ),
+                        SizedBox(height: 12.h),
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: NeverScrollableScrollPhysics(),
+                          padding: EdgeInsets.zero,
+                          itemBuilder: (context, index) {
+                            return RecentSearchWidget(
+                              text: _recentSearches[index],
+                              onDelete: () {
+                                setState(() {
+                                  _recentSearches.removeAt(index);
+                                });
+                                _saveRecentSearches();
+                              },
+                            );
+                          },
+                          separatorBuilder: (_, __) => SizedBox(height: 8.h),
+                          itemCount: _recentSearches.length,
+                        ),
+                      ],
                     ),
                   ),
-                  SizedBox(height: 32.h),
-                  SectionHeader2(
-                    text: '최근 검색어',
-                    buttonName: '전체 삭제',
-                    onButtonTap: () {
-                      showPopupWidget(
-                        context: context,
-                        title: '최근 검색어를 모두 삭제할까요?',
-                        description: '검색 내역이 전부 삭제됩니다.',
-                        text1: '취소',
-                        text2: '삭제하기',
-                        onText1Tap: () {
-                          Navigator.pop(context);
-                        },
-                        onText2Tap: () {
-                          setState(() {
-                            _recentSearches.clear();
-                          });
-                          _saveRecentSearches();
-                          Navigator.pop(context);
-                        },
-                      );
-                    },
+                )
+              : _searchSubmitScreen(),
+        ],
+      ),
+    );
+  }
+
+  final List<String> searchResult = [
+    '프로그램1',
+    '프로그램2',
+    '프로그램3',
+    '프로그램4',
+    '프로그램5',
+    '프로그램6',
+    '프로그램7',
+    '프로그램8',
+  ];
+
+  Widget _searchSubmitScreen() {
+    return searchResult.isEmpty
+        ? Expanded(
+            child: Center(
+              child: Text(
+                "검색 결과가 없어요.",
+                style: AppTypography.body2.copyWith(color: AppColors.gray500),
+              ),
+            ),
+          )
+        : Expanded(
+            child: Container(
+              padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 20.w),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                spacing: 12.h,
+                children: [
+                  SectionHeader3(
+                    text: '프로그램 ${searchResult.length}개',
+                    buttonName: '',
                   ),
-                  SizedBox(height: 12.h),
-                  ListView.separated(
-                    shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(),
-                    padding: EdgeInsets.zero,
-                    itemBuilder: (context, index) {
-                      return RecentSearchWidget(
-                        text: _recentSearches[index],
-                        onDelete: () {
-                          setState(() {
-                            _recentSearches.removeAt(index);
-                          });
-                          _saveRecentSearches();
-                        },
-                      );
-                    },
-                    separatorBuilder: (_, __) => SizedBox(height: 8.h),
-                    itemCount: _recentSearches.length,
+                  Expanded(
+                    child: ListView.separated(
+                      padding: EdgeInsets.zero,
+                      shrinkWrap: true,
+                      itemBuilder: (context, index) =>
+                          HorizontalCard(programName: searchResult[index]),
+                      separatorBuilder: (_, _) => SizedBox(height: 12.h),
+                      itemCount: searchResult.length,
+                    ),
                   ),
                 ],
               ),
             ),
-          ),
-        ],
-      ),
-    );
+          );
   }
 }

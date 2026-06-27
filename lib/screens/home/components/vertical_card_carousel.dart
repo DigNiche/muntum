@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
-import 'package:muntum/screens/home/components/vertical_card.dart';
+import 'package:muntum/screens/home/components/cards/vertical_card.dart';
 
 class VerticalCardCarousel extends StatefulWidget {
   final List<VerticalCard> verticalCards;

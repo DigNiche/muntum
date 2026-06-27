@@ -15,6 +15,7 @@ class AppBarWidget extends StatefulWidget {
   final VoidCallback? onLeadingTap;
   final TextEditingController? searchController;
   final ValueChanged<String>? onSearchSubmitted;
+  final VoidCallback? onClear;
   const AppBarWidget({
     super.key,
     this.trailing,
@@ -24,6 +25,7 @@ class AppBarWidget extends StatefulWidget {
     this.onLeadingTap,
     this.searchController,
     this.onSearchSubmitted,
+    this.onClear,
   });
 
   @override
@@ -67,6 +69,7 @@ class _AppBarWidgetState extends State<AppBarWidget> {
           child: SearchBarWidget(
             controller: widget.searchController!,
             onSubmitted: widget.onSearchSubmitted,
+            onClear: widget.onClear,
           ),
         );
       case AppBarCenterType.text:
