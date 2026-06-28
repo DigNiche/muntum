@@ -4,12 +4,15 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
+import 'package:muntum/data/mock_program_data.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/cards/horizontal.dart';
 import 'package:muntum/components/keyword_chip.dart';
 import 'package:muntum/components/popup_widget.dart';
+import 'package:muntum/models/program_model.dart';
 import 'package:muntum/screens/home/components/recent_search_widget.dart';
 import 'package:muntum/screens/home/components/section_header.dart';
+import 'package:muntum/utils/program_query.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -425,16 +428,13 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  final List<String> searchResult = [
-    '프로그램1',
-    '프로그램2',
-    '프로그램3',
-    '프로그램4',
-    '프로그램5',
-    '프로그램6',
-    '프로그램7',
-    '프로그램8',
-  ];
+  List<ProgramModel> get searchResult {
+    return queryPrograms(
+      mockPrograms,
+      query: _selectedKeywords.isEmpty ? searchText : '',
+      keywords: _selectedKeywords,
+    );
+  }
 
   Widget _searchSubmitScreen() {
     return searchResult.isEmpty
@@ -460,7 +460,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     child: ListView.separated(
                       padding: EdgeInsets.zero,
                       itemBuilder: (context, index) =>
-                          HorizontalCard(programName: searchResult[index]),
+                          HorizontalCard(program: searchResult[index]),
                       separatorBuilder: (_, _) => SizedBox(height: 12.h),
                       itemCount: searchResult.length,
                     ),

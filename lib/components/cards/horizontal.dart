@@ -4,11 +4,13 @@ import 'package:flutter_svg/svg.dart';
 import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
+import 'package:muntum/models/program_model.dart';
 import 'package:muntum/screens/program_detail/program_detail_screen.dart';
 
 class HorizontalCard extends StatelessWidget {
-  final String programName;
-  const HorizontalCard({super.key, required this.programName});
+  final ProgramModel program;
+
+  const HorizontalCard({super.key, required this.program});
 
   @override
   Widget build(BuildContext context) {
@@ -16,19 +18,23 @@ class HorizontalCard extends StatelessWidget {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => ProgramDetailScreen()),
+          MaterialPageRoute(
+            builder: (context) => ProgramDetailScreen(program: program),
+          ),
         );
       },
       child: Row(
         spacing: 16.w,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            height: 107.h,
-            width: 80.w,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppBorderRadius.radius_8),
-              color: Color(0xffD2F2FD),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(AppBorderRadius.radius_8),
+            child: SizedBox(
+              height: 107.h,
+              width: 80.w,
+              child: program.images.isEmpty
+                  ? const ColoredBox(color: Color(0xffD2F2FD))
+                  : program.images.first,
             ),
           ),
           Expanded(
@@ -39,7 +45,7 @@ class HorizontalCard extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        programName,
+                        program.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: AppTypography.headline1.copyWith(
@@ -56,14 +62,14 @@ class HorizontalCard extends StatelessWidget {
                 ),
                 SizedBox(height: 4.h),
                 Text(
-                  '장소명',
+                  program.locationName,
                   style: AppTypography.caption1.copyWith(
                     color: AppColors.gray700,
                   ),
                 ),
                 SizedBox(height: 2.h),
                 Text(
-                  'YY.MM.DD-YY.MM.DD',
+                  program.startEndDates,
                   style: AppTypography.caption1.copyWith(
                     color: AppColors.gray700,
                   ),

@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
+import 'package:muntum/models/program_model.dart';
 import 'package:muntum/screens/program_detail/program_detail_screen.dart';
 
 class BannerCard extends StatelessWidget {
-  const BannerCard({super.key});
+  final ProgramModel program;
+
+  const BannerCard({super.key, required this.program});
 
   @override
   Widget build(BuildContext context) {
@@ -13,7 +16,9 @@ class BannerCard extends StatelessWidget {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => ProgramDetailScreen()),
+          MaterialPageRoute(
+            builder: (context) => ProgramDetailScreen(program: program),
+          ),
         );
       },
       child: Column(
@@ -21,10 +26,12 @@ class BannerCard extends StatelessWidget {
         children: [
           Stack(
             children: [
-              Container(
+              SizedBox(
                 height: 292.5.h,
                 width: 390.w,
-                decoration: BoxDecoration(color: Color(0xff9DB6BE)),
+                child: program.images.isEmpty
+                    ? const ColoredBox(color: Color(0xff9DB6BE))
+                    : program.images.first,
               ),
               // 그라데이션
               Positioned(
@@ -50,7 +57,7 @@ class BannerCard extends StatelessWidget {
                 left: 20.w,
                 bottom: 48.h,
                 child: Text(
-                  '프로그램명',
+                  program.title,
                   style: AppTypography.title3.copyWith(color: AppColors.white),
                 ),
               ),
@@ -62,7 +69,7 @@ class BannerCard extends StatelessWidget {
                   spacing: 2.w,
                   children: [
                     Text(
-                      '장소명',
+                      program.locationName,
                       style: AppTypography.caption1.copyWith(
                         color: AppColors.white,
                       ),
@@ -74,7 +81,7 @@ class BannerCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'YY.MM.DD-YY.MM.DD',
+                      program.startEndDates,
                       style: AppTypography.caption1.copyWith(
                         color: AppColors.white,
                       ),

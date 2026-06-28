@@ -5,21 +5,25 @@ import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/components/label.dart';
+import 'package:muntum/models/program_model.dart';
 import 'package:muntum/screens/program_detail/program_detail_screen.dart';
 
 class CurationCard extends StatelessWidget {
-  final bool isSecondCard;
-  const CurationCard({super.key, required this.isSecondCard});
+  final ProgramModel program;
+
+  const CurationCard({super.key, required this.program});
 
   @override
   Widget build(BuildContext context) {
-    return isSecondCard ? SecondCurationCard() : FirstCurationCard();
+    return SecondCurationCard(program: program);
   }
 }
 
 // My Niche Page
 class SecondCurationCard extends StatelessWidget {
-  const SecondCurationCard({super.key});
+  final ProgramModel program;
+
+  const SecondCurationCard({super.key, required this.program});
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +31,9 @@ class SecondCurationCard extends StatelessWidget {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => ProgramDetailScreen()),
+          MaterialPageRoute(
+            builder: (context) => ProgramDetailScreen(program: program),
+          ),
         );
       },
       child: Padding(
@@ -37,14 +43,16 @@ class SecondCurationCard extends StatelessWidget {
           children: [
             Stack(
               children: [
-                Container(
-                  height: 467.h,
-                  width: 350.w,
-                  decoration: BoxDecoration(
-                    color: Color(0xff9DB6BE),
-                    borderRadius: BorderRadius.circular(
-                      AppBorderRadius.radius_10,
-                    ),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(
+                    AppBorderRadius.radius_10,
+                  ),
+                  child: SizedBox(
+                    height: 467.h,
+                    width: 350.w,
+                    child: program.images.isEmpty
+                        ? const ColoredBox(color: Color(0xff9DB6BE))
+                        : program.images.first,
                   ),
                 ),
                 // 그라데이션
@@ -74,13 +82,18 @@ class SecondCurationCard extends StatelessWidget {
                     vertical: 18.h,
                     horizontal: 18.w,
                   ),
-                  child: Row(
+                  child: Wrap(
+                    runSpacing: 6.h,
                     spacing: 6.w,
-                    children: [
-                      Label(labelType: LabelType.keyword, text: '그_순간에_몰입'),
-                      Label(labelType: LabelType.keyword, text: '생생한_감각'),
-                      Label(labelType: LabelType.keyword, text: '사진맛집'),
-                    ],
+                    children: program.keywords
+                        .take(3)
+                        .map(
+                          (keyword) => Label(
+                            labelType: LabelType.keyword,
+                            text: keyword.replaceAll(' ', '_'),
+                          ),
+                        )
+                        .toList(),
                   ),
                 ),
                 Positioned(
@@ -88,7 +101,7 @@ class SecondCurationCard extends StatelessWidget {
                   right: 24.w,
                   bottom: 42.h,
                   child: Text(
-                    '"한 줄 소개 내용입니다. 한 줄 소개 내용입니다."',
+                    '"${program.oneLineDescription}"',
                     style: AppTypography.title3.copyWith(
                       color: AppColors.white,
                     ),
@@ -101,7 +114,7 @@ class SecondCurationCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '프로그램명',
+                  program.title,
                   style: AppTypography.title3.copyWith(color: AppColors.white),
                 ),
                 SizedBox(
@@ -120,7 +133,7 @@ class SecondCurationCard extends StatelessWidget {
               spacing: 2.w,
               children: [
                 Text(
-                  "장소명",
+                  program.locationName,
                   style: AppTypography.caption1.copyWith(
                     color: AppColors.gray500,
                   ),
@@ -132,7 +145,7 @@ class SecondCurationCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  "YY.MM.DD-YY.MM.DD",
+                  program.startEndDates,
                   style: AppTypography.caption1.copyWith(
                     color: AppColors.gray500,
                   ),
@@ -141,89 +154,6 @@ class SecondCurationCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-// Entire Page
-class FirstCurationCard extends StatelessWidget {
-  const FirstCurationCard({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsetsGeometry.symmetric(horizontal: 20.w, vertical: 8.h),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Stack(
-            children: [
-              Container(
-                height: 467.h,
-                width: 350.w,
-                decoration: BoxDecoration(
-                  color: Color(0xff9DB6BE),
-                  borderRadius: BorderRadius.circular(
-                    AppBorderRadius.radius_10,
-                  ),
-                ),
-              ),
-              Container(
-                padding: EdgeInsets.symmetric(vertical: 18.h, horizontal: 18.w),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      spacing: 6.w,
-                      children: [
-                        Label(labelType: LabelType.keyword, text: '그_순간에_몰입'),
-                        Label(labelType: LabelType.keyword, text: '생생한_감각'),
-                        Label(labelType: LabelType.keyword, text: '사진맛집'),
-                      ],
-                    ),
-                    SizedBox(
-                      height: 24.h,
-                      width: 24.w,
-                      child: SvgPicture.asset(
-                        "assets/icons/scrap.svg",
-                        width: 14.w,
-                        height: 20.h,
-                        color: AppColors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Positioned(
-                left: 24.w,
-                right: 24.w,
-                bottom: 42.h,
-                child: Text(
-                  '"한 줄 소개 내용입니다. 한 줄 소개 내용입니다."',
-                  style: AppTypography.title3.copyWith(color: AppColors.white),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 16.h),
-          Text(
-            '프로그램명',
-            style: AppTypography.title3.copyWith(color: AppColors.gray900),
-          ),
-
-          SizedBox(height: 6.h),
-          Text(
-            "장소명",
-            style: AppTypography.caption1.copyWith(color: AppColors.gray700),
-          ),
-          SizedBox(height: 2.h),
-          Text(
-            "YY.MM.DD-YY.MM.DD",
-            style: AppTypography.caption1.copyWith(color: AppColors.gray700),
-          ),
-          SizedBox(height: 2.h),
-        ],
       ),
     );
   }

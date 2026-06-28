@@ -4,20 +4,21 @@ import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/components/cards/horizontal.dart';
+import 'package:muntum/models/program_model.dart';
 
 class MapProgramBottomPanel extends StatelessWidget {
   final ScrollController scrollController;
   final DraggableScrollableController sheetController;
   final double minChildSize;
   final double maxChildSize;
-  final List<String> programList;
+  final List<ProgramModel> programs;
 
   const MapProgramBottomPanel({
     required this.scrollController,
     required this.sheetController,
     required this.minChildSize,
     required this.maxChildSize,
-    required this.programList,
+    required this.programs,
   });
 
   @override
@@ -85,13 +86,13 @@ class MapProgramBottomPanel extends StatelessWidget {
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 20.w),
             child: Text(
-              '프로그램 ${programList.length}개',
+              '프로그램 ${programs.length}개',
               style: AppTypography.headline2.copyWith(color: AppColors.gray900),
             ),
           ),
           SizedBox(height: 12.h),
           Expanded(
-            child: programList.isEmpty
+            child: programs.isEmpty
                 ? Center(
                     child: Text(
                       textAlign: TextAlign.center,
@@ -105,11 +106,11 @@ class MapProgramBottomPanel extends StatelessWidget {
                     controller: scrollController,
                     padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 20.h),
                     itemBuilder: (context, index) {
-                      return HorizontalCard(programName: programList[index]);
+                      return HorizontalCard(program: programs[index]);
                     },
                     separatorBuilder: (context, index) =>
                         SizedBox(height: 12.h),
-                    itemCount: programList.length,
+                    itemCount: programs.length,
                   ),
           ),
         ],

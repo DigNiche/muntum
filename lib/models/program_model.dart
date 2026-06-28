@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+enum Filter { nowHot, free, thisWeek, noReservation }
+
 class ProgramModel {
   // 제목
   final String title;
@@ -27,6 +29,12 @@ class ProgramModel {
   final String phoneNumber;
   // 링크
   final String link;
+  // 필터링
+  final List<Filter> filters;
+  // 지금 주목받는지
+  final bool isSpotlight;
+  // 이번달에 끝나는지
+  final bool isOverThisMonth;
 
   ProgramModel({
     required this.title,
@@ -42,5 +50,8 @@ class ProgramModel {
     required this.isReservationNeeded,
     required this.phoneNumber,
     required this.link,
+    required this.filters,
+    required this.isSpotlight,
+    required this.isOverThisMonth,
   });
 }

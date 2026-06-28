@@ -4,10 +4,13 @@ import 'package:flutter_svg/svg.dart';
 import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
+import 'package:muntum/models/program_model.dart';
 import 'package:muntum/screens/program_detail/program_detail_screen.dart';
 
 class VerticalCard extends StatelessWidget {
-  const VerticalCard({super.key});
+  final ProgramModel program;
+
+  const VerticalCard({super.key, required this.program});
 
   @override
   Widget build(BuildContext context) {
@@ -15,7 +18,9 @@ class VerticalCard extends StatelessWidget {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => ProgramDetailScreen()),
+          MaterialPageRoute(
+            builder: (context) => ProgramDetailScreen(program: program),
+          ),
         );
       },
       child: Column(
@@ -23,12 +28,14 @@ class VerticalCard extends StatelessWidget {
         children: [
           Stack(
             children: [
-              Container(
-                height: 213.h,
-                width: 160.w,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(AppBorderRadius.radius_8),
-                  color: Color(0xffD1F3FD),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(AppBorderRadius.radius_8),
+                child: SizedBox(
+                  height: 213.h,
+                  width: 160.w,
+                  child: program.images.isEmpty
+                      ? const ColoredBox(color: Color(0xffD1F3FD))
+                      : program.images.first,
                 ),
               ),
               // 그라데이션
@@ -77,18 +84,20 @@ class VerticalCard extends StatelessWidget {
           Padding(
             padding: EdgeInsets.all(4.0.r),
             child: Text(
-              "프로그램명",
+              program.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: AppTypography.headline1.copyWith(color: AppColors.gray900),
             ),
           ),
           SizedBox(height: 6.h),
           Text(
-            "장소명",
+            program.locationName,
             style: AppTypography.caption1.copyWith(color: AppColors.gray700),
           ),
           SizedBox(height: 2.h),
           Text(
-            "YY.MM.DD-YY.MM.DD",
+            program.startEndDates,
             style: AppTypography.caption1.copyWith(color: AppColors.gray700),
           ),
           SizedBox(height: 2.0.h),

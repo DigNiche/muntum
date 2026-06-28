@@ -10,11 +10,14 @@ import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/components/filter_chip.dart';
 import 'package:muntum/components/popup_widget.dart';
+import 'package:muntum/data/mock_program_data.dart';
+import 'package:muntum/models/program_model.dart';
 import 'package:muntum/screens/home/components/searchbar.dart';
 import 'package:muntum/screens/map/components/findin_current_location.dart';
 import 'package:muntum/screens/map/components/map_bottom_sheet.dart';
 import 'package:muntum/screens/map/components/program_marker_icon.dart';
 import 'package:muntum/screens/map/map_radius.dart';
+import 'package:muntum/utils/program_query.dart';
 
 class MapScreen extends StatefulWidget {
   final bool isActive;
@@ -30,62 +33,19 @@ class _MapScreenState extends State<MapScreen> {
   final DraggableScrollableController _sheetController =
       DraggableScrollableController();
 
-  final List<MapProgramData> _mapPrograms = const [
-    MapProgramData(
-      id: 'program_1',
-      name: '원주 문화공간 체험',
-      latitude: 37.3422,
-      longitude: 127.9202,
-      color: Color(0xFFB9EDF2),
-    ),
-    MapProgramData(
-      id: 'program_2',
-      name: '무실동 전시 클래스',
-      latitude: 37.34225,
-      longitude: 127.92025,
-      color: Color(0xFFFBD4CC),
-    ),
-    MapProgramData(
-      id: 'program_3',
-      name: '단계동 원데이 체험',
-      latitude: 37.3423,
-      longitude: 127.92035,
-      color: Color(0xFFE6F5C9),
-    ),
-    MapProgramData(
-      id: 'program_4',
-      name: '원주 중앙시장 투어',
-      latitude: 37.3494,
-      longitude: 127.9490,
-      color: Color(0xFFFFE8A3),
-    ),
-    MapProgramData(
-      id: 'program_5',
-      name: '행구동 힐링 프로그램',
-      latitude: 37.3435,
-      longitude: 127.9845,
-      color: Color(0xFFD7D4FF),
-    ),
-    MapProgramData(
-      id: 'program_6',
-      name: '원주 혁신도시 산책',
-      latitude: 37.3221,
-      longitude: 127.9774,
-      color: Color(0xFFCDE7FF),
-    ),
-    MapProgramData(
-      id: 'program_7',
-      name: '원주 미술 워크숍',
-      latitude: 37.3332,
-      longitude: 127.9482,
-      color: Color(0xFFFFD6E8),
-    ),
-  ];
+  late final List<MapProgramData> _mapPrograms = mockPrograms.indexed
+      .map(
+        (entry) =>
+            MapProgramData.fromProgram(index: entry.$1, program: entry.$2),
+      )
+      .toList();
 
   // 검색 중심에서 5km 안에 있는 동일한 프로그램 집합으로
   // 지도 마커와 바텀시트를 함께 갱신한다.
   List<MapProgramData> _visiblePrograms = [];
-  String? _selectedProgramName;
+  final Set<Filter> _activeFilters = {};
+  ProgramModel? _selectedProgram;
+  String _mapSearchQuery = '';
   NaverMapController? _mapController;
   NLatLng? _currentLocation;
   NLatLng? _initialMapCenter;
@@ -247,14 +207,20 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   List<MapProgramData> _getProgramsWithinRadius(NLatLng center) {
+    final matchingPrograms = queryPrograms(
+      mockPrograms,
+      query: _mapSearchQuery,
+      filters: _activeFilters,
+    ).toSet();
     final programs = _mapPrograms.where((program) {
-      return isWithinRadius(
-        centerLatitude: center.latitude,
-        centerLongitude: center.longitude,
-        targetLatitude: program.latitude,
-        targetLongitude: program.longitude,
-        radiusMeters: _searchRadiusMeters,
-      );
+      return matchingPrograms.contains(program.program) &&
+          isWithinRadius(
+            centerLatitude: center.latitude,
+            centerLongitude: center.longitude,
+            targetLatitude: program.latitude,
+            targetLongitude: program.longitude,
+            radiusMeters: _searchRadiusMeters,
+          );
     }).toList();
 
     programs.sort((a, b) {
@@ -273,6 +239,77 @@ class _MapScreenState extends State<MapScreen> {
       return aDistance.compareTo(bDistance);
     });
     return programs;
+  }
+
+  Future<void> _submitMapSearch(String value) async {
+    final query = value.trim();
+    setState(() {
+      _mapSearchQuery = query;
+    });
+
+    final controller = _mapController;
+    if (controller == null) {
+      return;
+    }
+
+    final matchedPrograms = queryPrograms(
+      mockPrograms,
+      query: query,
+      filters: _activeFilters,
+    );
+    if (query.isNotEmpty && matchedPrograms.isNotEmpty) {
+      final firstMatch = matchedPrograms.first;
+      final mapProgram = _mapPrograms.firstWhere(
+        (candidate) => identical(candidate.program, firstMatch),
+      );
+      await _focusOnSearchRadiusAndRefresh(
+        controller,
+        NLatLng(mapProgram.latitude, mapProgram.longitude),
+        animated: true,
+      );
+      return;
+    }
+
+    await _refreshAtCurrentMapCenter();
+  }
+
+  Future<void> _clearMapSearch() async {
+    setState(() {
+      _mapSearchQuery = '';
+    });
+    await _refreshAtCurrentMapCenter();
+  }
+
+  Future<void> _toggleMapFilter(Filter filter) async {
+    setState(() {
+      if (!_activeFilters.add(filter)) {
+        _activeFilters.remove(filter);
+      }
+    });
+    await _refreshAtCurrentMapCenter();
+  }
+
+  Future<void> _refreshAtCurrentMapCenter() async {
+    final controller = _mapController;
+    if (controller == null) {
+      return;
+    }
+    final cameraPosition = await controller.getCameraPosition();
+    await _refreshVisibleProgramsAndMarkers(controller, cameraPosition.target);
+  }
+
+  Widget _buildMapFilterChip(Filter filter, String text) {
+    final isSelected = _activeFilters.contains(filter);
+    return GestureDetector(
+      onTap: () => _toggleMapFilter(filter),
+      child: FilterChipWidget(
+        hasShadow: true,
+        text: text,
+        textColor: isSelected ? AppColors.white : AppColors.gray800,
+        backgroundColor: isSelected ? AppColors.gray900 : AppColors.white,
+        outlineColor: isSelected ? AppColors.gray900 : AppColors.lineNormal,
+      ),
+    );
   }
 
   List<MapProgramCluster> _clusterPrograms(
@@ -482,7 +519,7 @@ class _MapScreenState extends State<MapScreen> {
           return;
         }
         setState(() {
-          _selectedProgramName = isCluster ? null : cluster.programs.first.name;
+          _selectedProgram = isCluster ? null : cluster.programs.first.program;
           _visiblePrograms = cluster.programs;
           _showSearchHereButton = false;
         });
@@ -510,7 +547,7 @@ class _MapScreenState extends State<MapScreen> {
     }
 
     setState(() {
-      _selectedProgramName = null;
+      _selectedProgram = null;
       _visiblePrograms = visiblePrograms;
       _showSearchHereButton = false;
     });
@@ -588,6 +625,8 @@ class _MapScreenState extends State<MapScreen> {
               child: SearchBarWidget(
                 controller: _searchbarController,
                 backgroundColor: AppColors.white,
+                onSubmitted: _submitMapSearch,
+                onClear: _clearMapSearch,
               ),
             ),
             Padding(
@@ -595,34 +634,10 @@ class _MapScreenState extends State<MapScreen> {
               child: Row(
                 spacing: 8.w,
                 children: [
-                  FilterChipWidget(
-                    hasShadow: true,
-                    text: '🔥지금핫한',
-                    textColor: AppColors.gray800,
-                    backgroundColor: AppColors.white,
-                    outlineColor: AppColors.lineNormal,
-                  ),
-                  FilterChipWidget(
-                    hasShadow: true,
-                    text: '무료',
-                    textColor: AppColors.gray800,
-                    backgroundColor: AppColors.white,
-                    outlineColor: AppColors.lineNormal,
-                  ),
-                  FilterChipWidget(
-                    hasShadow: true,
-                    text: '이번주',
-                    textColor: AppColors.gray800,
-                    backgroundColor: AppColors.white,
-                    outlineColor: AppColors.lineNormal,
-                  ),
-                  FilterChipWidget(
-                    hasShadow: true,
-                    text: '예약없이',
-                    textColor: AppColors.gray800,
-                    backgroundColor: AppColors.white,
-                    outlineColor: AppColors.lineNormal,
-                  ),
+                  _buildMapFilterChip(Filter.nowHot, '🔥지금핫한'),
+                  _buildMapFilterChip(Filter.free, '무료'),
+                  _buildMapFilterChip(Filter.thisWeek, '이번주'),
+                  _buildMapFilterChip(Filter.noReservation, '예약없이'),
                 ],
               ),
             ),
@@ -689,11 +704,11 @@ class _MapScreenState extends State<MapScreen> {
             snapSizes: const [_sheetMinSize, _sheetMaxSize],
             expand: false,
             builder: (context, scrollController) {
-              final visiblePrograms = _selectedProgramName == null
-                  ? _visiblePrograms.map((program) => program.name).toList()
-                  : [_selectedProgramName!];
+              final visiblePrograms = _selectedProgram == null
+                  ? _visiblePrograms.map((program) => program.program).toList()
+                  : [_selectedProgram!];
               return MapProgramBottomPanel(
-                programList: visiblePrograms,
+                programs: visiblePrograms,
                 scrollController: scrollController,
                 sheetController: _sheetController,
                 minChildSize: _sheetMinSize,
@@ -731,22 +746,43 @@ class _ClusterMarkerIcon extends StatelessWidget {
   }
 }
 
-// TODO: 나중에 프로그램 데이터 모델이 생기면 이 임시 클래스는 모델 파일로 분리 추천.
-// 예: lib/screens/map/models/map_program_data.dart
 class MapProgramData {
   final String id;
-  final String name;
+  final ProgramModel program;
   final double latitude;
   final double longitude;
   final Color color;
 
   const MapProgramData({
     required this.id,
-    required this.name,
+    required this.program,
     required this.latitude,
     required this.longitude,
     required this.color,
   });
+
+  factory MapProgramData.fromProgram({
+    required int index,
+    required ProgramModel program,
+  }) {
+    const markerColors = [
+      Color(0xFFB9EDF2),
+      Color(0xFFFBD4CC),
+      Color(0xFFE6F5C9),
+      Color(0xFFFFE8A3),
+      Color(0xFFD7D4FF),
+      Color(0xFFCDE7FF),
+      Color(0xFFFFD6E8),
+    ];
+
+    return MapProgramData(
+      id: 'program_${index + 1}',
+      program: program,
+      latitude: double.parse(program.location['latitude']!),
+      longitude: double.parse(program.location['longitude']!),
+      color: markerColors[index % markerColors.length],
+    );
+  }
 }
 
 // 클러스터 모델

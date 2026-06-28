@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/components/cards/banner.dart';
+import 'package:muntum/models/program_model.dart';
 
 class BannerCarousel extends StatefulWidget {
-  final List<BannerCard> banners;
-  const BannerCarousel({super.key, required this.banners});
+  final List<ProgramModel> programs;
+
+  const BannerCarousel({super.key, required this.programs});
 
   @override
   State<BannerCarousel> createState() => _BannerCarouselState();
@@ -23,14 +25,14 @@ class _BannerCarouselState extends State<BannerCarousel> {
           height: 292.5.h,
           child: PageView.builder(
             controller: _pageController,
-            itemCount: widget.banners.length,
+            itemCount: widget.programs.length,
             onPageChanged: (index) {
               setState(() {
                 currentIndex = index;
               });
             },
             itemBuilder: (context, index) {
-              return widget.banners[index];
+              return BannerCard(program: widget.programs[index]);
             },
           ),
         ),
@@ -50,9 +52,9 @@ class _BannerCarouselState extends State<BannerCarousel> {
               // 현재 위치
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 250),
-                left: currentIndex * (390.w / widget.banners.length),
+                left: currentIndex * (390.w / widget.programs.length),
                 child: Container(
-                  width: 390.w / widget.banners.length,
+                  width: 390.w / widget.programs.length,
                   height: 2.h,
                   decoration: BoxDecoration(
                     color: AppColors.gray900,
