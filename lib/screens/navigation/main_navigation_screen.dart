@@ -18,13 +18,6 @@ class MainNavigationScreen extends StatefulWidget {
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _selectedIndex = 0;
 
-  final List<Widget> _screens = const [
-    HomeScreen(),
-    MapScreen(),
-    BookmarkScreen(),
-    ProfileScreen(),
-  ];
-
   void _onTabTap(int index) {
     setState(() {
       _selectedIndex = index;
@@ -34,7 +27,15 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: _selectedIndex, children: _screens),
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: [
+          const HomeScreen(),
+          MapScreen(isActive: _selectedIndex == 1),
+          const BookmarkScreen(),
+          const ProfileScreen(),
+        ],
+      ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           border: BoxBorder.all(color: AppColors.lineNormal, width: 1.0.sp),
@@ -108,7 +109,10 @@ class NavTab extends StatelessWidget {
                   'assets/icons/$icon',
                   height: 20.sp,
                   width: 20.sp,
-                  color: isActive ? activeColor : nonActiveColor,
+                  colorFilter: ColorFilter.mode(
+                    isActive ? activeColor : nonActiveColor,
+                    BlendMode.srcIn,
+                  ),
                 ),
               ),
               SizedBox(height: 2.h),

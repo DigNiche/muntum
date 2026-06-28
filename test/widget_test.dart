@@ -1,30 +1,35 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:muntum/main.dart';
+import 'package:muntum/screens/map/map_radius.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MuntumApp());
+  group('map search radius', () {
+    const centerLatitude = 37.3422;
+    const centerLongitude = 127.9202;
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    test('includes a program inside 5km', () {
+      expect(
+        isWithinRadius(
+          centerLatitude: centerLatitude,
+          centerLongitude: centerLongitude,
+          targetLatitude: 37.3494,
+          targetLongitude: 127.9490,
+          radiusMeters: 5000,
+        ),
+        isTrue,
+      );
+    });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    test('excludes a program outside 5km', () {
+      expect(
+        isWithinRadius(
+          centerLatitude: centerLatitude,
+          centerLongitude: centerLongitude,
+          targetLatitude: 37.3435,
+          targetLongitude: 127.9845,
+          radiusMeters: 5000,
+        ),
+        isFalse,
+      );
+    });
   });
 }

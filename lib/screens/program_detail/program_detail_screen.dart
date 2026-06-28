@@ -4,9 +4,9 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
-import 'package:muntum/screens/home/components/appbar.dart';
-import 'package:muntum/screens/home/components/cards/horizontal.dart';
-import 'package:muntum/screens/home/components/label.dart';
+import 'package:muntum/components/appbar.dart';
+import 'package:muntum/components/cards/horizontal.dart';
+import 'package:muntum/components/label.dart';
 import 'package:muntum/screens/home/components/section_header.dart';
 
 class ProgramDetailScreen extends StatefulWidget {

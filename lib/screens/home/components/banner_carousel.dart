@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/constants/colors.dart';
-import 'package:muntum/screens/home/components/cards/banner.dart';
+import 'package:muntum/components/cards/banner.dart';
 
 class BannerCarousel extends StatefulWidget {
   final List<BannerCard> banners;

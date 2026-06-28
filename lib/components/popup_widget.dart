@@ -5,7 +5,7 @@ import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/screens/home/components/button_solid.dart';
 
-void showPopupWidget({
+Future<void> showPopupWidget({
   required BuildContext context,
   required String title,
   required String description,
@@ -14,13 +14,13 @@ void showPopupWidget({
   required VoidCallback? onText1Tap,
   required VoidCallback? onText2Tap,
 }) {
-  showDialog(
+  return showDialog<void>(
     barrierDismissible: false,
     context: context,
     builder: (BuildContext context) {
       return Dialog(
         child: Container(
-          height: description.contains('/n') ? 186.h : 164.h,
+          height: description.contains('\n') ? 186.h : 164.h,
           padding: EdgeInsets.fromLTRB(16.w, 24.h, 16.w, 16.h),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppBorderRadius.radius_10),
@@ -33,6 +33,7 @@ void showPopupWidget({
               Text(
                 description,
                 style: AppTypography.body3.copyWith(color: AppColors.gray700),
+                textAlign: TextAlign.center,
                 maxLines: 2,
               ),
               SizedBox(height: 20.h),
@@ -45,6 +46,7 @@ void showPopupWidget({
                       textColor: AppColors.gray700,
                       boxColor: AppColors.gray100,
                       onTap: onText1Tap,
+                      padding: EdgeInsets.fromLTRB(0, 14.h, 0, 13.h),
                     ),
                   ),
                   Expanded(
@@ -53,6 +55,7 @@ void showPopupWidget({
                       textColor: AppColors.white,
                       boxColor: AppColors.black,
                       onTap: onText2Tap,
+                      padding: EdgeInsets.fromLTRB(0, 14.h, 0, 13.h),
                     ),
                   ),
                 ],

@@ -4,7 +4,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
-import 'package:muntum/screens/home/components/keyword_chip.dart';
+import 'package:muntum/components/keyword_chip.dart';
 
 class SearchBarWidget extends StatefulWidget {
   final TextEditingController controller;

@@ -4,7 +4,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
-import 'package:muntum/screens/home/components/label.dart';
+import 'package:muntum/components/label.dart';
 import 'package:muntum/screens/program_detail/program_detail_screen.dart';
 
 class CurationCard extends StatelessWidget {

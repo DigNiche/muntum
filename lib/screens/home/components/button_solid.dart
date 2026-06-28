@@ -8,12 +8,14 @@ class ButtonSolid extends StatelessWidget {
   final Color textColor;
   final Color boxColor;
   final VoidCallback? onTap;
+  final EdgeInsetsGeometry? padding;
   const ButtonSolid({
     super.key,
     required this.text,
     required this.textColor,
     required this.boxColor,
     this.onTap,
+    this.padding,
   });
 
   @override
@@ -21,7 +23,7 @@ class ButtonSolid extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.fromLTRB(26.w, 14.h, 26.w, 13.h),
+        padding: padding ?? EdgeInsets.fromLTRB(26.w, 14.h, 26.w, 13.h),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppBorderRadius.radius_8),
           color: boxColor,
@@ -30,6 +32,7 @@ class ButtonSolid extends StatelessWidget {
           child: Text(
             text,
             style: AppTypography.button1.copyWith(color: textColor),
+            maxLines: 1,
           ),
         ),
       ),
