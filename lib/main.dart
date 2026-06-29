@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_naver_map/flutter_naver_map.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
-import 'package:muntum/screens/navigation/main_navigation_screen.dart';
+import 'package:muntum/gates/auth_gate.dart';
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   await dotenv.load(fileName: ".env");
   final clientId = dotenv.env['NAVER_MAP_CLIENT_ID'] ?? '';
 
@@ -43,7 +45,7 @@ class MuntumApp extends StatelessWidget {
         home: child,
         debugShowCheckedModeBanner: false,
       ),
-      child: MainNavigationScreen(),
+      child: AuthGate(),
     );
   }
 }

@@ -36,7 +36,7 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
 
   void _setPrograms() {
     _bookmarkedPrograms = List.of(widget.programs ?? mockPrograms.take(4));
-    _bookmarkedPrograms = [];
+    //_bookmarkedPrograms = [];
   }
 
   @override

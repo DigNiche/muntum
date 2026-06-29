@@ -11,6 +11,7 @@ Future<void> showPopupWidget({
   required String description,
   required String text1,
   required String text2,
+  Color? text2Color,
   required VoidCallback? onText1Tap,
   required VoidCallback? onText2Tap,
 }) {
@@ -20,7 +21,11 @@ Future<void> showPopupWidget({
     builder: (BuildContext context) {
       return Dialog(
         child: Container(
-          height: description.contains('\n') ? 186.h : 164.h,
+          height: description.isEmpty
+              ? 130.h
+              : description.contains('\n')
+              ? 186.h
+              : 164.h,
           padding: EdgeInsets.fromLTRB(16.w, 24.h, 16.w, 16.h),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppBorderRadius.radius_10),
@@ -29,13 +34,20 @@ Future<void> showPopupWidget({
           child: Column(
             children: [
               Text(title, style: AppTypography.headline1),
-              SizedBox(height: 12.h),
-              Text(
-                description,
-                style: AppTypography.body3.copyWith(color: AppColors.gray700),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-              ),
+              if (description.isNotEmpty)
+                Column(
+                  children: [
+                    SizedBox(height: 12.h),
+                    Text(
+                      description,
+                      style: AppTypography.body3.copyWith(
+                        color: AppColors.gray700,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                    ),
+                  ],
+                ),
               SizedBox(height: 20.h),
               Row(
                 spacing: 8.w,
@@ -53,7 +65,7 @@ Future<void> showPopupWidget({
                     child: ButtonSolid(
                       text: text2,
                       textColor: AppColors.white,
-                      boxColor: AppColors.black,
+                      boxColor: text2Color ?? AppColors.black,
                       onTap: onText2Tap,
                       padding: EdgeInsets.fromLTRB(0, 14.h, 0, 13.h),
                     ),

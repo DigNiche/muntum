@@ -60,7 +60,10 @@ class _AppBarWidgetState extends State<AppBarWidget> {
             ),
           ),
           _buildCenter(),
-          if (widget.trailing != null) widget.trailing!,
+          SizedBox(
+            width: (widget.trailing == null) ? 24.w : null,
+            child: (widget.trailing != null) ? widget.trailing! : null,
+          ),
         ],
       ),
     );
@@ -80,9 +83,11 @@ class _AppBarWidgetState extends State<AppBarWidget> {
         );
       case AppBarCenterType.text:
         return Expanded(
-          child: Text(
-            widget.center,
-            style: AppTypography.title4.copyWith(color: AppColors.gray900),
+          child: Center(
+            child: Text(
+              widget.center,
+              style: AppTypography.title4.copyWith(color: AppColors.gray900),
+            ),
           ),
         );
       case AppBarCenterType.none:

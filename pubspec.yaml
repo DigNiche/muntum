@@ -41,6 +41,7 @@ dependencies:
   flutter_naver_map: ^1.4.4
   geolocator: ^14.0.3
   url_launcher: ^6.3.2
+  flutter_native_splash: ^2.4.8
 
 dev_dependencies:
   flutter_test:
@@ -52,6 +53,15 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+
+flutter_native_splash:
+  android: true
+  ios: true
+  color: "#0A0A0A"
+  image: assets/splash.png
+  android_12:
+    color: "#0A0A0A"
+    image: assets/splash.png
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
