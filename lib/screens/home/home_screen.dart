@@ -35,7 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
       tween: ColorTween(
-        end: isMyNiche ? AppColors.backgroundDark : AppColors.backgroundNormal,
+        end: isMyNiche ? AppColors.backgroundDark : AppColors.white,
       ),
       builder: (context, animatedBackgroundColor, child) {
         return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -47,7 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
             statusBarBrightness: isMyNiche ? Brightness.dark : Brightness.light,
           ),
           child: ColoredBox(
-            color: animatedBackgroundColor ?? AppColors.backgroundNormal,
+            color: animatedBackgroundColor ?? AppColors.white,
             child: Column(
               children: [
                 SizedBox(height: 50.h),

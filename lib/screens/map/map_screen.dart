@@ -33,16 +33,11 @@ class _MapScreenState extends State<MapScreen> {
   final DraggableScrollableController _sheetController =
       DraggableScrollableController();
 
-  late final List<MapProgramData> _mapPrograms = mockPrograms.indexed
-      .map(
-        (entry) =>
-            MapProgramData.fromProgram(index: entry.$1, program: entry.$2),
-      )
-      .toList();
+  final List<ProgramModel> _mapPrograms = mockPrograms;
 
   // 검색 중심에서 5km 안에 있는 동일한 프로그램 집합으로
   // 지도 마커와 바텀시트를 함께 갱신한다.
-  List<MapProgramData> _visiblePrograms = [];
+  List<ProgramModel> _visiblePrograms = [];
   final Set<Filter> _activeFilters = {};
   ProgramModel? _selectedProgram;
   String _mapSearchQuery = '';
@@ -61,6 +56,15 @@ class _MapScreenState extends State<MapScreen> {
   static const double _sheetMaxSize = 0.78;
   static const double _searchRadiusMeters = 5000;
   static const double _initialZoom = 12.2;
+  static const List<Color> _markerColors = [
+    Color(0xFFB9EDF2),
+    Color(0xFFFBD4CC),
+    Color(0xFFE6F5C9),
+    Color(0xFFFFE8A3),
+    Color(0xFFD7D4FF),
+    Color(0xFFCDE7FF),
+    Color(0xFFFFD6E8),
+  ];
 
   static const NLatLng _wonjuInitialTarget = NLatLng(37.3422, 127.9202);
 
@@ -206,14 +210,14 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  List<MapProgramData> _getProgramsWithinRadius(NLatLng center) {
+  List<ProgramModel> _getProgramsWithinRadius(NLatLng center) {
     final matchingPrograms = queryPrograms(
       mockPrograms,
       query: _mapSearchQuery,
       filters: _activeFilters,
     ).toSet();
     final programs = _mapPrograms.where((program) {
-      return matchingPrograms.contains(program.program) &&
+      return matchingPrograms.contains(program) &&
           isWithinRadius(
             centerLatitude: center.latitude,
             centerLongitude: center.longitude,
@@ -259,12 +263,9 @@ class _MapScreenState extends State<MapScreen> {
     );
     if (query.isNotEmpty && matchedPrograms.isNotEmpty) {
       final firstMatch = matchedPrograms.first;
-      final mapProgram = _mapPrograms.firstWhere(
-        (candidate) => identical(candidate.program, firstMatch),
-      );
       await _focusOnSearchRadiusAndRefresh(
         controller,
-        NLatLng(mapProgram.latitude, mapProgram.longitude),
+        NLatLng(firstMatch.latitude, firstMatch.longitude),
         animated: true,
       );
       return;
@@ -312,15 +313,24 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  List<MapProgramCluster> _clusterPrograms(
-    List<MapProgramData> programs,
+  String _markerIdFor(ProgramModel program) {
+    return 'program_${_mapPrograms.indexOf(program) + 1}';
+  }
+
+  Color _markerColorFor(ProgramModel program) {
+    final index = _mapPrograms.indexOf(program);
+    return _markerColors[index % _markerColors.length];
+  }
+
+  List<_ProgramCluster> _clusterPrograms(
+    List<ProgramModel> programs,
     double zoom,
   ) {
-    final clusters = <MapProgramCluster>[];
+    final clusters = <_ProgramCluster>[];
     final thresholdMeters = _clusterThresholdMeters(zoom);
 
     for (final program in programs) {
-      MapProgramCluster? targetCluster;
+      _ProgramCluster? targetCluster;
 
       for (final cluster in clusters) {
         final distance = _distanceInMeters(
@@ -337,7 +347,7 @@ class _MapScreenState extends State<MapScreen> {
       }
 
       if (targetCluster == null) {
-        clusters.add(MapProgramCluster(programs: [program]));
+        clusters.add(_ProgramCluster(programs: [program]));
       } else {
         targetCluster.programs.add(program);
       }
@@ -499,8 +509,8 @@ class _MapScreenState extends State<MapScreen> {
       }
       final isCluster = cluster.programs.length > 1;
       final markerId = isCluster
-          ? 'cluster_${cluster.programs.map((program) => program.id).join('_')}'
-          : cluster.programs.first.id;
+          ? 'cluster_${cluster.programs.map(_markerIdFor).join('_')}'
+          : _markerIdFor(cluster.programs.first);
 
       final marker = NMarker(
         id: markerId,
@@ -510,7 +520,9 @@ class _MapScreenState extends State<MapScreen> {
           size: Size(48.w, 48.w),
           widget: isCluster
               ? _ClusterMarkerIcon(count: cluster.programs.length)
-              : ProgramMarkerIcon(color: cluster.programs.first.color),
+              : ProgramMarkerIcon(
+                  color: _markerColorFor(cluster.programs.first),
+                ),
         ),
       );
 
@@ -519,7 +531,7 @@ class _MapScreenState extends State<MapScreen> {
           return;
         }
         setState(() {
-          _selectedProgram = isCluster ? null : cluster.programs.first.program;
+          _selectedProgram = isCluster ? null : cluster.programs.first;
           _visiblePrograms = cluster.programs;
           _showSearchHereButton = false;
         });
@@ -572,7 +584,7 @@ class _MapScreenState extends State<MapScreen> {
   Widget build(BuildContext context) {
     if (!_initialLocationResolved || _initialMapCenter == null) {
       return const ColoredBox(
-        color: AppColors.backgroundNormal,
+        color: AppColors.white,
         child: Center(
           child: CircularProgressIndicator(color: AppColors.gray900),
         ),
@@ -705,7 +717,7 @@ class _MapScreenState extends State<MapScreen> {
             expand: false,
             builder: (context, scrollController) {
               final visiblePrograms = _selectedProgram == null
-                  ? _visiblePrograms.map((program) => program.program).toList()
+                  ? _visiblePrograms
                   : [_selectedProgram!];
               return MapProgramBottomPanel(
                 programs: visiblePrograms,
@@ -746,50 +758,10 @@ class _ClusterMarkerIcon extends StatelessWidget {
   }
 }
 
-class MapProgramData {
-  final String id;
-  final ProgramModel program;
-  final double latitude;
-  final double longitude;
-  final Color color;
+class _ProgramCluster {
+  final List<ProgramModel> programs;
 
-  const MapProgramData({
-    required this.id,
-    required this.program,
-    required this.latitude,
-    required this.longitude,
-    required this.color,
-  });
-
-  factory MapProgramData.fromProgram({
-    required int index,
-    required ProgramModel program,
-  }) {
-    const markerColors = [
-      Color(0xFFB9EDF2),
-      Color(0xFFFBD4CC),
-      Color(0xFFE6F5C9),
-      Color(0xFFFFE8A3),
-      Color(0xFFD7D4FF),
-      Color(0xFFCDE7FF),
-      Color(0xFFFFD6E8),
-    ];
-
-    return MapProgramData(
-      id: 'program_${index + 1}',
-      program: program,
-      latitude: double.parse(program.location['latitude']!),
-      longitude: double.parse(program.location['longitude']!),
-      color: markerColors[index % markerColors.length],
-    );
-  }
-}
-
-// 클러스터 모델
-class MapProgramCluster {
-  final List<MapProgramData> programs;
-
-  MapProgramCluster({required this.programs});
+  _ProgramCluster({required this.programs});
 
   double get latitude {
     final total = programs.fold<double>(
@@ -806,4 +778,10 @@ class MapProgramCluster {
     );
     return total / programs.length;
   }
+}
+
+extension _ProgramMapCoordinates on ProgramModel {
+  double get latitude => double.parse(location['latitude']!);
+
+  double get longitude => double.parse(location['longitude']!);
 }

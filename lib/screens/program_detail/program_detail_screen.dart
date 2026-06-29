@@ -259,7 +259,7 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                         borderRadius: BorderRadius.circular(
                           AppBorderRadius.radius_8,
                         ),
-                        color: AppColors.backgroundNormal,
+                        color: AppColors.white,
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,

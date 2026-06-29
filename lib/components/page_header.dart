@@ -80,7 +80,7 @@ class PageHeader extends StatelessWidget {
               if (!showIndicator)
                 HeaderTabItem(
                   text: firstText,
-                  textColor: AppColors.gray300,
+                  textColor: firstTextColor,
                   onTap: onFirstTextTap,
                 ),
               if (secondText != null) SizedBox(width: 20.w),

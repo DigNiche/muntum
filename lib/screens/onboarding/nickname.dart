@@ -21,7 +21,7 @@ class _NicknameScreenState extends State<NicknameScreen> {
   Widget build(BuildContext context) {
     final nicknameErrorText = _isNickNameValid ? ' ' : '중복되는 닉네임 입니다.';
     return Scaffold(
-      backgroundColor: AppColors.backgroundNormal,
+      backgroundColor: AppColors.white,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(

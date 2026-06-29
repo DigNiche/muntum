@@ -9,8 +9,9 @@ import 'package:muntum/screens/program_detail/program_detail_screen.dart';
 
 class VerticalCard extends StatelessWidget {
   final ProgramModel program;
+  final double? width;
 
-  const VerticalCard({super.key, required this.program});
+  const VerticalCard({super.key, required this.program, this.width});
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +33,7 @@ class VerticalCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppBorderRadius.radius_8),
                 child: SizedBox(
                   height: 213.h,
-                  width: 160.w,
+                  width: width ?? 160.w,
                   child: program.images.isEmpty
                       ? const ColoredBox(color: Color(0xffD1F3FD))
                       : program.images.first,
@@ -82,7 +83,7 @@ class VerticalCard extends StatelessWidget {
           ),
           SizedBox(height: 12.h),
           Padding(
-            padding: EdgeInsets.all(4.0.r),
+            padding: EdgeInsets.symmetric(vertical: 4.0.r),
             child: Text(
               program.title,
               maxLines: 1,

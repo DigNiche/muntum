@@ -30,7 +30,7 @@ class AppColors {
   static const black = Color(0xFF000000);
 
   // Background
-  static const backgroundNormal = Color(0xFFFAFAF8);
+  //static const backgroundNormal = Color(0xFFFAFAF8);
   static const backgroundDark = Color(0xFF0A0A0A);
 
   // Line

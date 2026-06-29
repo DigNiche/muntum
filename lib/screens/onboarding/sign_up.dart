@@ -57,7 +57,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final emailErrorText = _isEmailValid ? ' ' : '올바른 이메일 형식이 아닙니다.';
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundNormal,
+      backgroundColor: AppColors.white,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(
