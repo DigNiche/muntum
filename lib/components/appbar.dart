@@ -18,6 +18,7 @@ class AppBarWidget extends StatefulWidget {
   final VoidCallback? onClear;
   final List<String> selectedKeywords;
   final ValueChanged<String>? onKeywordDeleted;
+  final Color? leadingColor;
   const AppBarWidget({
     super.key,
     this.trailing,
@@ -30,6 +31,7 @@ class AppBarWidget extends StatefulWidget {
     this.onClear,
     this.selectedKeywords = const [],
     this.onKeywordDeleted,
+    this.leadingColor,
   });
 
   @override
@@ -55,7 +57,7 @@ class _AppBarWidgetState extends State<AppBarWidget> {
                 'assets/icons/${widget.leadingIcon}',
                 width: 10.w,
                 height: 18.h,
-                color: AppColors.gray900,
+                color: widget.leadingColor ?? AppColors.gray900,
               ),
             ),
           ),

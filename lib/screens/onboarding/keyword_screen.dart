@@ -3,7 +3,7 @@ import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/spacing.dart';
 import 'package:muntum/constants/typography.dart';
-import 'package:muntum/screens/onboarding/loading.dart';
+import 'package:muntum/screens/onboarding/loadingpage_screen.dart';
 
 class KeywordScreen extends StatefulWidget {
   const KeywordScreen({super.key});

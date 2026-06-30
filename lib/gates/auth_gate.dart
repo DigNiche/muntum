@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:muntum/gates/role_gate.dart';
-import 'package:muntum/screens/onboarding/login.dart';
+import 'package:muntum/screens/onboarding/login_screen.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
@@ -16,15 +16,9 @@ class _AuthGateState extends State<AuthGate> {
     super.initState();
   }
 
-  Future<void> _initialize() async {
-    // 로그인 체크
-    // 토큰 체크
-    FlutterNativeSplash.remove();
-  }
-
   @override
   Widget build(BuildContext context) {
-    final isLoggedIn = true;
+    final isLoggedIn = false;
     if (!isLoggedIn) {
       return LoginScreen();
     }

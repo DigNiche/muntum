@@ -3,7 +3,7 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
-import 'package:muntum/screens/home/components/button_solid.dart';
+import 'package:muntum/components/button_solid.dart';
 
 Future<void> showPopupWidget({
   required BuildContext context,
@@ -21,17 +21,13 @@ Future<void> showPopupWidget({
     builder: (BuildContext context) {
       return Dialog(
         child: Container(
-          height: description.isEmpty
-              ? 130.h
-              : description.contains('\n')
-              ? 186.h
-              : 164.h,
           padding: EdgeInsets.fromLTRB(16.w, 24.h, 16.w, 16.h),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppBorderRadius.radius_10),
             color: AppColors.white,
           ),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               Text(title, style: AppTypography.headline1),
               if (description.isNotEmpty)

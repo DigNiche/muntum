@@ -185,10 +185,10 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                       spacing: 10.h,
                       children: [
                         Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Container(
                               width: 70.w,
-                              height: 50.h,
                               padding: EdgeInsets.only(top: 4.h, bottom: 4.h),
                               child: Text(
                                 "위치",
@@ -198,36 +198,44 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                               ),
                             ),
                             SizedBox(width: 20.w),
-                            SizedBox(
-                              width: 260.w,
-                              height: 50.h,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                spacing: 2.0.h,
-                                children: [
-                                  Text(
-                                    program.locationName,
-                                    style: AppTypography.body1.copyWith(
-                                      color: AppColors.gray900,
-                                    ),
-                                  ),
-                                  Row(
-                                    spacing: 2.0.w,
-                                    children: [
-                                      SvgPicture.asset(
-                                        'assets/icons/location-filled.svg',
-                                        width: 16.w,
-                                        color: AppColors.gray400,
+                            Expanded(
+                              child: Padding(
+                                padding: EdgeInsets.only(top: 4.h, bottom: 4.h),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      program.locationName,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: AppTypography.body1.copyWith(
+                                        color: AppColors.gray900,
                                       ),
-                                      Text(
-                                        program.location['address'] ?? '',
-                                        style: AppTypography.body3.copyWith(
+                                    ),
+                                    SizedBox(height: 2.h),
+                                    Row(
+                                      children: [
+                                        SvgPicture.asset(
+                                          'assets/icons/location-filled.svg',
+                                          width: 16.w,
                                           color: AppColors.gray400,
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                        SizedBox(width: 2.w),
+                                        Expanded(
+                                          child: Text(
+                                            program.location['address'] ?? '',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: AppTypography.body3.copyWith(
+                                              color: AppColors.gray400,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ],

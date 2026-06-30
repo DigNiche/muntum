@@ -185,7 +185,6 @@ class _MapScreenState extends State<MapScreen> {
     if (!mounted || _isLocationPermissionPopupVisible) {
       return;
     }
-
     _isLocationPermissionPopupVisible = true;
     try {
       await showPopupWidget(

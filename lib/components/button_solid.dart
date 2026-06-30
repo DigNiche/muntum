@@ -9,6 +9,7 @@ class ButtonSolid extends StatelessWidget {
   final Color boxColor;
   final VoidCallback? onTap;
   final EdgeInsetsGeometry? padding;
+  final BoxBorder? border;
   const ButtonSolid({
     super.key,
     required this.text,
@@ -16,6 +17,7 @@ class ButtonSolid extends StatelessWidget {
     required this.boxColor,
     this.onTap,
     this.padding,
+    this.border,
   });
 
   @override
@@ -27,6 +29,7 @@ class ButtonSolid extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppBorderRadius.radius_8),
           color: boxColor,
+          border: border,
         ),
         child: Center(
           child: Text(

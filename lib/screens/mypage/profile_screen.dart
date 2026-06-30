@@ -84,7 +84,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       AppBorderRadius.radius_10,
                     ),
                   ),
-                  height: 67.h,
                   child: Row(
                     children: [
                       StatCard(
