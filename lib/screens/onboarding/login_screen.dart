@@ -7,8 +7,9 @@ import 'package:muntum/constants/typography.dart';
 import 'package:muntum/components/button_solid.dart';
 import 'package:muntum/screens/mypage/profile_screen.dart';
 import 'package:muntum/screens/navigation/main_navigation_screen.dart';
-import 'package:muntum/screens/onboarding/find_password_screen.dart';
-import 'package:muntum/screens/onboarding/text_field_widget.dart';
+import 'package:muntum/screens/onboarding/find_password_screens/find_password_screen.dart';
+import 'package:muntum/screens/onboarding/components/text_field_widget.dart';
+import 'package:muntum/screens/onboarding/sign_up_screens/sign_up.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -156,6 +157,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         text: '회원가입',
                         textColor: AppColors.primary400,
                         boxColor: Colors.transparent,
+                        onTap: () {
+                          pushToScreen(context, SignUpScreen());
+                        },
                       ),
                       SizedBox(height: 24.h),
                       GestureDetector(
@@ -165,7 +169,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             color: AppColors.gray700,
                             decoration: TextDecoration.underline,
                             decorationColor: AppColors.gray700,
-                            fontSize: 14,
                           ),
                         ),
                         onTap: () {
