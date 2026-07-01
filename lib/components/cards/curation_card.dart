@@ -41,93 +41,110 @@ class SecondCurationCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Stack(
+            Row(
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(
-                    AppBorderRadius.radius_10,
-                  ),
-                  child: SizedBox(
-                    height: 467.h,
-                    width: 350.w,
-                    child: program.images.isEmpty
-                        ? const ColoredBox(color: Color(0xff9DB6BE))
-                        : program.images.first,
-                  ),
-                ),
-                // 그라데이션
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: Container(
-                    height: 200.h,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(
-                        AppBorderRadius.radius_10,
-                      ),
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Colors.black.withOpacity(0.65),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    vertical: 18.h,
-                    horizontal: 18.w,
-                  ),
-                  child: Wrap(
-                    runSpacing: 6.h,
-                    spacing: 6.w,
-                    children: program.keywords
-                        .take(3)
-                        .map(
-                          (keyword) => Label(
-                            labelType: LabelType.keyword,
-                            text: keyword.replaceAll(' ', '_'),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(
+                            AppBorderRadius.radius_10,
                           ),
-                        )
-                        .toList(),
-                  ),
-                ),
-                Positioned(
-                  left: 24.w,
-                  right: 24.w,
-                  bottom: 42.h,
-                  child: Text(
-                    '"${program.oneLineDescription}"',
-                    style: AppTypography.title3.copyWith(
-                      color: AppColors.white,
+                          child: SizedBox(
+                            height: 386.67.h,
+                            width: 290.w,
+                            child: program.images.isEmpty
+                                ? const ColoredBox(color: Color(0xff9DB6BE))
+                                : program.images.first,
+                          ),
+                        ),
+                        // 그라데이션
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          child: Container(
+                            height: 200.h,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(
+                                AppBorderRadius.radius_10,
+                              ),
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.transparent,
+                                  Colors.black.withOpacity(0.65),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          left: 24.w,
+                          right: 24.w,
+                          bottom: 42.h,
+                          child: Text(
+                            '"${program.oneLineDescription}"',
+                            style: AppTypography.title3.copyWith(
+                              color: AppColors.white,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
+                    SizedBox(width: 8.w),
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      spacing: 4.h,
+                      children: [
+                        Container(
+                          width: 4.w,
+                          height: 20.h,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(99),
+                            color: AppColors.primary400,
+                          ),
+                        ),
+                        Container(
+                          width: 4.w,
+                          height: 20.h,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(99),
+                            color: AppColors.primary400,
+                          ),
+                        ),
+                        Container(
+                          width: 4.w,
+                          height: 20.h,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(99),
+                            color: AppColors.primary400.withValues(alpha: 0.2),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                SizedBox(
+                  width: 48.w,
+                  height: 48.h,
+                  child: SvgPicture.asset(
+                    "assets/icons/scrap.svg",
+                    width: 24.w,
+                    height: 24.h,
+                    fit: BoxFit.scaleDown,
+                    color: AppColors.white.withValues(alpha: 0.8),
                   ),
                 ),
               ],
             ),
             SizedBox(height: 16.h),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  program.title,
-                  style: AppTypography.title3.copyWith(color: AppColors.white),
-                ),
-                SizedBox(
-                  width: 24.w,
-                  height: 24.h,
-                  child: SvgPicture.asset(
-                    "assets/icons/scrap.svg",
-                    width: 14.w,
-                    height: 20.h,
-                    color: AppColors.white,
-                  ),
-                ),
-              ],
+            Text(
+              program.title,
+              style: AppTypography.title3.copyWith(color: AppColors.white),
             ),
             Row(
               spacing: 2.w,

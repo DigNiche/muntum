@@ -5,7 +5,6 @@ import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/button_solid.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
-import 'package:muntum/screens/mypage/keyword_change_screen.dart';
 import 'package:muntum/screens/mypage/profile_screen.dart';
 import 'package:muntum/screens/onboarding/components/text_field_widget.dart';
 import 'package:muntum/screens/onboarding/sign_up_screens/keyword_screen.dart';
@@ -18,7 +17,7 @@ class NicknameScreen extends StatefulWidget {
 }
 
 class _NicknameScreenState extends State<NicknameScreen> {
-  TextEditingController _controller = TextEditingController();
+  final TextEditingController _controller = TextEditingController();
 
   @override
   void initState() {

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:muntum/gates/role_gate.dart';
 import 'package:muntum/screens/onboarding/login_screen.dart';
 
