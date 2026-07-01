@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -36,39 +37,46 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           const ProfileScreen(),
         ],
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          border: BoxBorder.all(color: AppColors.lineNormal, width: 1.0.sp),
-          color: AppColors.white,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            NavTab(
-              icon: 'explore-filled.svg',
-              text: '발견',
-              isActive: _selectedIndex == 0,
-              onTap: () => _onTabTap(0),
+      bottomNavigationBar: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border(
+                top: BorderSide(color: AppColors.lineNormal, width: 1.sp),
+              ),
+              color: AppColors.white.withValues(alpha: 0.93),
             ),
-            NavTab(
-              icon: 'location-filled.svg',
-              text: '지도',
-              isActive: _selectedIndex == 1,
-              onTap: () => _onTabTap(1),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                NavTab(
+                  icon: 'explore-filled.svg',
+                  text: '발견',
+                  isActive: _selectedIndex == 0,
+                  onTap: () => _onTabTap(0),
+                ),
+                NavTab(
+                  icon: 'location-filled.svg',
+                  text: '지도',
+                  isActive: _selectedIndex == 1,
+                  onTap: () => _onTabTap(1),
+                ),
+                NavTab(
+                  icon: 'scrap-filled.svg',
+                  text: '스크랩',
+                  isActive: _selectedIndex == 2,
+                  onTap: () => _onTabTap(2),
+                ),
+                NavTab(
+                  icon: 'profile-filled.svg',
+                  text: '프로필',
+                  isActive: _selectedIndex == 3,
+                  onTap: () => _onTabTap(3),
+                ),
+              ],
             ),
-            NavTab(
-              icon: 'scrap-filled.svg',
-              text: '스크랩',
-              isActive: _selectedIndex == 2,
-              onTap: () => _onTabTap(2),
-            ),
-            NavTab(
-              icon: 'profile-filled.svg',
-              text: '프로필',
-              isActive: _selectedIndex == 3,
-              onTap: () => _onTabTap(3),
-            ),
-          ],
+          ),
         ),
       ),
     );
