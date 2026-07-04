@@ -1,6 +1,10 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:muntum/data/mock_program_data.dart';
 import 'package:muntum/models/program_model.dart';
+import 'package:muntum/screens/home/home_screen.dart';
+import 'package:muntum/screens/home/see_more_screen.dart';
 import 'package:muntum/screens/map/map_radius.dart';
 import 'package:muntum/utils/program_query.dart';
 
@@ -55,6 +59,20 @@ void main() {
         expect(double.tryParse(program.location['longitude'] ?? ''), isNotNull);
       }
     });
+
+    test('covers every program category', () {
+      for (final category in const {
+        Filter.exhibition,
+        Filter.show,
+        Filter.experience,
+        Filter.festival,
+      }) {
+        expect(
+          mockPrograms.where((program) => program.filters.contains(category)),
+          isNotEmpty,
+        );
+      }
+    });
   });
 
   group('program query', () {
@@ -97,5 +115,73 @@ void main() {
         '뮤지엄 나이트',
       );
     });
+  });
+
+  testWidgets('my niche scroll-to-top button returns the list to the top', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ScreenUtilPlusInit(
+        designSize: const Size(390, 844),
+        builder: (context, child) => MaterialApp(home: child),
+        child: const MyNichePage(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    const scrollToTopKey = ValueKey('my_niche_scroll_to_top');
+    expect(find.byKey(scrollToTopKey), findsNothing);
+    await tester.drag(find.byType(ListView), const Offset(0, -600));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(scrollToTopKey), findsOneWidget);
+    await tester.tap(find.byKey(scrollToTopKey));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(scrollToTopKey), findsNothing);
+  });
+
+  testWidgets('see more uses one filter at a time', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(390, 844);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(
+      ScreenUtilPlusInit(
+        designSize: const Size(390, 844),
+        builder: (context, child) => MaterialApp(home: child),
+        child: const SeeMoreScreen(type: SeeMoreType.allPrograms),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('프로그램 12개'), findsOneWidget);
+    await tester.tap(find.text('무료'));
+    await tester.pumpAndSettle();
+    expect(find.text('프로그램 5개'), findsOneWidget);
+
+    await tester.tap(find.text('이번주'));
+    await tester.pumpAndSettle();
+    expect(find.text('프로그램 6개'), findsOneWidget);
+  });
+
+  testWidgets('see more supports programs ending this month', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(390, 844);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(
+      ScreenUtilPlusInit(
+        designSize: const Size(390, 844),
+        builder: (context, child) => MaterialApp(home: child),
+        child: const SeeMoreScreen(type: SeeMoreType.endingThisMonth),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('이번달에 끝나는'), findsOneWidget);
+    expect(find.text('프로그램 4개'), findsOneWidget);
   });
 }

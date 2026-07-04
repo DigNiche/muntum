@@ -71,10 +71,14 @@ class VerticalCard extends StatelessWidget {
                     width: 24.w,
                     height: 24.h,
                     child: SvgPicture.asset(
-                      "assets/icons/scrap.svg",
+                      program.isBookmark
+                          ? 'assets/icons/scrap-filled.svg'
+                          : "assets/icons/scrap.svg",
                       width: 14.w,
                       height: 20.h,
-                      color: AppColors.white,
+                      color: program.isBookmark
+                          ? AppColors.primary400
+                          : AppColors.white,
                     ),
                   ),
                 ),

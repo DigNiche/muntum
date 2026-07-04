@@ -38,7 +38,7 @@ class _MapScreenState extends State<MapScreen> {
   // 검색 중심에서 5km 안에 있는 동일한 프로그램 집합으로
   // 지도 마커와 바텀시트를 함께 갱신한다.
   List<ProgramModel> _visiblePrograms = [];
-  final Set<Filter> _activeFilters = {};
+  Filter? _selectedFilter;
   ProgramModel? _selectedProgram;
   String _mapSearchQuery = '';
   NaverMapController? _mapController;
@@ -213,7 +213,7 @@ class _MapScreenState extends State<MapScreen> {
     final matchingPrograms = queryPrograms(
       mockPrograms,
       query: _mapSearchQuery,
-      filters: _activeFilters,
+      filters: _selectedFilter == null ? const {} : {_selectedFilter!},
     ).toSet();
     final programs = _mapPrograms.where((program) {
       return matchingPrograms.contains(program) &&
@@ -258,7 +258,7 @@ class _MapScreenState extends State<MapScreen> {
     final matchedPrograms = queryPrograms(
       mockPrograms,
       query: query,
-      filters: _activeFilters,
+      filters: _selectedFilter == null ? const {} : {_selectedFilter!},
     );
     if (query.isNotEmpty && matchedPrograms.isNotEmpty) {
       final firstMatch = matchedPrograms.first;
@@ -282,9 +282,7 @@ class _MapScreenState extends State<MapScreen> {
 
   Future<void> _toggleMapFilter(Filter filter) async {
     setState(() {
-      if (!_activeFilters.add(filter)) {
-        _activeFilters.remove(filter);
-      }
+      _selectedFilter = _selectedFilter == filter ? null : filter;
     });
     await _refreshAtCurrentMapCenter();
   }
@@ -299,7 +297,7 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Widget _buildMapFilterChip(Filter filter, String text) {
-    final isSelected = _activeFilters.contains(filter);
+    final isSelected = _selectedFilter == filter;
     return GestureDetector(
       onTap: () => _toggleMapFilter(filter),
       child: FilterChipWidget(
@@ -640,7 +638,8 @@ class _MapScreenState extends State<MapScreen> {
                 onClear: _clearMapSearch,
               ),
             ),
-            Padding(
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
               padding: EdgeInsets.symmetric(horizontal: 20.w),
               child: Row(
                 spacing: 8.w,
@@ -649,6 +648,10 @@ class _MapScreenState extends State<MapScreen> {
                   _buildMapFilterChip(Filter.free, '무료'),
                   _buildMapFilterChip(Filter.thisWeek, '이번주'),
                   _buildMapFilterChip(Filter.noReservation, '예약없이'),
+                  _buildMapFilterChip(Filter.exhibition, '전시'),
+                  _buildMapFilterChip(Filter.show, '공연'),
+                  _buildMapFilterChip(Filter.experience, '체험'),
+                  _buildMapFilterChip(Filter.festival, '축제'),
                 ],
               ),
             ),

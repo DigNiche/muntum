@@ -1,6 +1,15 @@
 import 'package:flutter/material.dart';
 
-enum Filter { nowHot, free, thisWeek, noReservation }
+enum Filter {
+  nowHot,
+  free,
+  thisWeek,
+  noReservation,
+  exhibition,
+  show,
+  experience,
+  festival,
+}
 
 class ProgramModel {
   // 제목
@@ -35,6 +44,8 @@ class ProgramModel {
   final bool isSpotlight;
   // 이번달에 끝나는지
   final bool isOverThisMonth;
+  // 스크랩
+  final bool isBookmark;
 
   ProgramModel({
     required this.title,
@@ -53,5 +64,6 @@ class ProgramModel {
     required this.filters,
     required this.isSpotlight,
     required this.isOverThisMonth,
+    required this.isBookmark,
   });
 }

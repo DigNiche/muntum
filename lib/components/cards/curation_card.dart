@@ -4,7 +4,6 @@ import 'package:flutter_svg/svg.dart';
 import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
-import 'package:muntum/components/label.dart';
 import 'package:muntum/models/program_model.dart';
 import 'package:muntum/screens/program_detail/program_detail_screen.dart';
 
@@ -128,15 +127,23 @@ class SecondCurationCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                SizedBox(
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(999),
+                    color: AppColors.white.withValues(alpha: 0.08),
+                  ),
                   width: 48.w,
                   height: 48.h,
                   child: SvgPicture.asset(
-                    "assets/icons/scrap.svg",
+                    program.isBookmark
+                        ? 'assets/icons/scrap-filled.svg'
+                        : "assets/icons/scrap.svg",
                     width: 24.w,
                     height: 24.h,
                     fit: BoxFit.scaleDown,
-                    color: AppColors.white.withValues(alpha: 0.8),
+                    color: program.isBookmark
+                        ? AppColors.primary400
+                        : AppColors.white.withValues(alpha: 0.8),
                   ),
                 ),
               ],
@@ -144,30 +151,15 @@ class SecondCurationCard extends StatelessWidget {
             SizedBox(height: 16.h),
             Text(
               program.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: AppTypography.title3.copyWith(color: AppColors.white),
             ),
-            Row(
-              spacing: 2.w,
-              children: [
-                Text(
-                  program.locationName,
-                  style: AppTypography.caption1.copyWith(
-                    color: AppColors.gray500,
-                  ),
-                ),
-                Text(
-                  "·",
-                  style: AppTypography.caption1.copyWith(
-                    color: AppColors.gray500,
-                  ),
-                ),
-                Text(
-                  program.startEndDates,
-                  style: AppTypography.caption1.copyWith(
-                    color: AppColors.gray500,
-                  ),
-                ),
-              ],
+            Text(
+              '${program.locationName} · ${program.startEndDates}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTypography.caption1.copyWith(color: AppColors.gray500),
             ),
           ],
         ),

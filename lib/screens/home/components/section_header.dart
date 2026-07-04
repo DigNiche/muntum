@@ -6,10 +6,12 @@ import 'package:muntum/constants/typography.dart';
 class SectionHeader1 extends StatelessWidget {
   final String text;
   final String buttonName;
+  final VoidCallback onButtonTap;
   const SectionHeader1({
     super.key,
     required this.text,
     required this.buttonName,
+    required this.onButtonTap,
   });
 
   @override
@@ -26,9 +28,12 @@ class SectionHeader1 extends StatelessWidget {
             text,
             style: AppTypography.title3.copyWith(color: AppColors.gray900),
           ),
-          Text(
-            buttonName,
-            style: AppTypography.caption1.copyWith(color: AppColors.gray500),
+          GestureDetector(
+            onTap: onButtonTap,
+            child: Text(
+              buttonName,
+              style: AppTypography.caption1.copyWith(color: AppColors.gray500),
+            ),
           ),
         ],
       ),

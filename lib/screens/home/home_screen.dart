@@ -14,6 +14,7 @@ import 'package:muntum/components/page_header.dart';
 import 'package:muntum/screens/home/components/section_header.dart';
 import 'package:muntum/screens/home/components/vertical_card_carousel.dart';
 import 'package:muntum/screens/home/search_screen.dart';
+import 'package:muntum/screens/home/see_more_screen.dart';
 
 enum ScreenTypes { myNiche, entire }
 
@@ -86,7 +87,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         'assets/icons/search.svg',
                         width: 18.sp,
                         height: 18.sp,
-                        color: isMyNiche ? AppColors.white : AppColors.gray600,
+                        colorFilter: ColorFilter.mode(
+                          isMyNiche ? AppColors.white : AppColors.gray600,
+                          BlendMode.srcIn,
+                        ),
                       ),
                     ),
                   ),
@@ -112,12 +116,52 @@ class MyNichePage extends StatefulWidget {
 }
 
 class _MyNichePageState extends State<MyNichePage> {
+  final ScrollController _scrollController = ScrollController();
   String? selectedFilter;
+  bool _showScrollToTopButton = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_handleScroll);
+  }
+
+  void _handleScroll() {
+    final shouldShow = _scrollController.offset > 200.h;
+    if (shouldShow != _showScrollToTopButton) {
+      setState(() {
+        _showScrollToTopButton = shouldShow;
+      });
+    }
+  }
+
+  Future<void> _scrollToTop() async {
+    if (!_scrollController.hasClients) {
+      return;
+    }
+    await _scrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 450),
+      curve: Curves.easeOutCubic,
+    );
+  }
 
   void _onFilterTap(String filter) {
     setState(() {
       selectedFilter = (selectedFilter == filter ? null : filter);
+      _showScrollToTopButton = false;
     });
+    if (_scrollController.hasClients) {
+      _scrollController.jumpTo(0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController
+      ..removeListener(_handleScroll)
+      ..dispose();
+    super.dispose();
   }
 
   Widget _buildFilterChip(String text) {
@@ -144,6 +188,10 @@ class _MyNichePageState extends State<MyNichePage> {
       '무료' => Filter.free,
       '이번주' => Filter.thisWeek,
       '예약없이' => Filter.noReservation,
+      '전시' => Filter.exhibition,
+      '공연' => Filter.show,
+      '체험' => Filter.experience,
+      '축제' => Filter.festival,
       _ => null,
     };
     final programs = selectedFilterValue == null
@@ -159,24 +207,62 @@ class _MyNichePageState extends State<MyNichePage> {
             _buildFilterChip('무료'),
             _buildFilterChip('이번주'),
             _buildFilterChip('예약없이'),
+            _buildFilterChip('전시'),
+            _buildFilterChip('공연'),
+            _buildFilterChip('체험'),
+            _buildFilterChip('축제'),
           ],
         ),
         Expanded(
-          child: hasSelectedFilter && programs.isEmpty
-              ? Center(
-                  child: Text(
-                    '조건에 맞는 프로그램이 없어요.',
-                    style: AppTypography.body2.copyWith(
-                      color: AppColors.gray500,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: hasSelectedFilter && programs.isEmpty
+                    ? Center(
+                        child: Text(
+                          '조건에 맞는 프로그램이 없어요.',
+                          style: AppTypography.body2.copyWith(
+                            color: AppColors.gray500,
+                          ),
+                        ),
+                      )
+                    : ListView.builder(
+                        controller: _scrollController,
+                        padding: EdgeInsets.zero,
+                        itemCount: programs.length,
+                        itemBuilder: (context, index) =>
+                            CurationCard(program: programs[index]),
+                      ),
+              ),
+              if (_showScrollToTopButton)
+                Positioned(
+                  right: 20.w,
+                  bottom: 20.h,
+                  child: GestureDetector(
+                    key: const ValueKey('my_niche_scroll_to_top'),
+                    onTap: _scrollToTop,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(999),
+                        color: AppColors.white.withValues(alpha: 0.85),
+                      ),
+                      width: 48.w,
+                      height: 48.h,
+                      child: SvgPicture.asset(
+                        'assets/icons/arrow_up_2.svg',
+                        width: 24.w,
+                        height: 24.w,
+                        fit: BoxFit.scaleDown,
+                        colorFilter: const ColorFilter.mode(
+                          AppColors.gray900,
+                          BlendMode.srcIn,
+                        ),
+                      ),
                     ),
                   ),
-                )
-              : ListView.builder(
-                  padding: EdgeInsets.zero,
-                  itemCount: programs.length,
-                  itemBuilder: (context, index) =>
-                      CurationCard(program: programs[index]),
                 ),
+            ],
+          ),
         ),
       ],
     );
@@ -193,21 +279,47 @@ class EntirePage extends StatelessWidget {
       children: [
         BannerCarousel(programs: mockPrograms.take(3).toList()),
         SizedBox(height: 48.h),
-        const SectionHeader1(text: '모아보기', buttonName: '전체보기'),
+        SectionHeader1(
+          text: '모아보기',
+          buttonName: '전체보기',
+          onButtonTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) =>
+                    const SeeMoreScreen(type: SeeMoreType.allPrograms),
+              ),
+            );
+          },
+        ),
         SizedBox(height: 8.h),
-        VerticalCardCarousel(programs: mockPrograms.take(5).toList()),
-        const SectionHeader1(text: '지금 주목 받는', buttonName: ''),
+        VerticalCardCarousel(programs: mockPrograms.take(8).toList()),
+        SectionHeader1(text: '지금 주목받는', buttonName: '', onButtonTap: () {}),
         SizedBox(height: 8.h),
         VerticalCardCarousel(
           programs: mockPrograms
               .where((program) => program.isSpotlight)
+              .take(8)
               .toList(),
         ),
-        const SectionHeader1(text: '이번달에 끝나는', buttonName: '전체보기'),
+        SectionHeader1(
+          text: '이번달에 끝나는',
+          buttonName: '전체보기',
+          onButtonTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) =>
+                    const SeeMoreScreen(type: SeeMoreType.endingThisMonth),
+              ),
+            );
+          },
+        ),
         SizedBox(height: 8.h),
         VerticalCardCarousel(
           programs: mockPrograms
               .where((program) => program.isOverThisMonth)
+              .take(8)
               .toList(),
         ),
       ],

@@ -68,6 +68,10 @@ String _filterLabel(Filter filter) {
     Filter.free => '무료',
     Filter.thisWeek => '이번주 이번 주',
     Filter.noReservation => '예약없이 예약 없이',
+    Filter.exhibition => '전시',
+    Filter.show => '공연',
+    Filter.experience => '체험',
+    Filter.festival => '축제',
   };
 }
 

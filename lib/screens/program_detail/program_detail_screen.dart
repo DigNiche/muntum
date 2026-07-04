@@ -34,11 +34,8 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
   Widget build(BuildContext context) {
     final program = widget.program;
     final recommendedPrograms = mockPrograms
-        .where(
-          (candidate) =>
-              candidate.isSpotlight && candidate.title != program.title,
-        )
-        .take(5)
+        .where((program) => program.isSpotlight)
+        .take(8)
         .toList();
 
     return Scaffold(
@@ -296,7 +293,11 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                       ),
                     ),
                     SizedBox(height: 40.h),
-                    SectionHeader1(text: '지금 주목 받는', buttonName: ''),
+                    SectionHeader1(
+                      text: '지금 주목받는',
+                      buttonName: '',
+                      onButtonTap: () {},
+                    ),
                     SizedBox(height: 8.h),
                     ListView.separated(
                       shrinkWrap: true,

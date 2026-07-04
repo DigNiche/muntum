@@ -6,6 +6,7 @@ import 'package:muntum/components/button_solid.dart';
 import 'package:muntum/components/keyword_chip.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
+import 'package:muntum/models/user_keyword.dart';
 import 'package:muntum/screens/mypage/profile_screen.dart';
 import 'package:muntum/screens/onboarding/sign_up_screens/loading_screen.dart';
 
@@ -19,39 +20,6 @@ class KeywordScreen extends StatefulWidget {
 class _KeywordScreenState extends State<KeywordScreen> {
   static const int _minimumSelectionCount = 3;
   static const int _maximumSelectionCount = 30;
-
-  static const List<String> _keywords = [
-    '가만히 못 있는 편',
-    '사색하고 생각하는',
-    '감성 낭만 충전',
-    '갓생살기',
-    '그 순간에 몰입',
-    '내 손으로 만드는',
-    '눈을 사로잡는',
-    '느긋하게 힐링하는',
-    '도파민 디톡스',
-    '미식 탐험가',
-    '복작복작 핫플',
-    '사람들과 도란도란',
-    '사진맛집',
-    '새로운 것 배우기',
-    '색다르게 즐기는',
-    '생생한 감각',
-    '쉽게 해석되지 않는',
-    '압도감을 느끼는',
-    '야외에서 즐기는',
-    '여러 작품을 한 번에',
-    '여운이 남는',
-    '음악에 집중하는',
-    '전통문화 역사 덕후',
-    '조용하고 차분한',
-    '직접 참여하는',
-    '깊은 대화 나누는',
-    '명상과 가까운',
-    '퇴근하고 슬쩍',
-    '짧게 즐기는',
-    '이번달 끝나는',
-  ];
 
   final Set<String> _selectedKeywords = {};
 
@@ -162,7 +130,7 @@ class _KeywordScreenState extends State<KeywordScreen> {
                             alignment: WrapAlignment.center,
                             spacing: 8.w,
                             runSpacing: 10.h,
-                            children: _keywords.map((keyword) {
+                            children: entireKeywords.map((keyword) {
                               final isSelected = _selectedKeywords.contains(
                                 keyword,
                               );
@@ -219,6 +187,8 @@ class _KeywordScreenState extends State<KeywordScreen> {
                     : AppColors.gray800,
                 onTap: () {
                   if (_canContinue) {
+                    userKeywords.addAll(_selectedKeywords);
+                    print(userKeywords);
                     pushToScreen(context, LoadingScreen());
                   }
                 },

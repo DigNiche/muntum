@@ -54,9 +54,13 @@ class HorizontalCard extends StatelessWidget {
                       ),
                     ),
                     SvgPicture.asset(
-                      'assets/icons/scrap.svg',
+                      program.isBookmark
+                          ? 'assets/icons/scrap-filled.svg'
+                          : 'assets/icons/scrap.svg',
                       width: 24.w,
-                      color: AppColors.gray400,
+                      color: program.isBookmark
+                          ? AppColors.primary400
+                          : AppColors.gray400,
                     ),
                   ],
                 ),
