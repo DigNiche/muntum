@@ -4,11 +4,14 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/button_solid.dart';
+import 'package:muntum/api/api_config.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/screens/mypage/profile_screen.dart';
 import 'package:muntum/screens/onboarding/components/text_field_widget.dart';
 import 'package:muntum/screens/onboarding/find_password_screens/verification_code_screen.dart';
+import 'package:muntum/services/auth_service.dart';
+import 'package:muntum/utils/app_toast.dart';
 
 class FindPasswordScreen extends StatefulWidget {
   const FindPasswordScreen({super.key});
@@ -21,6 +24,7 @@ class _FindPasswordScreenState extends State<FindPasswordScreen> {
   TextEditingController _controller = TextEditingController();
   FocusNode _focusNode = FocusNode();
   bool _isError = false;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -117,11 +121,7 @@ class _FindPasswordScreenState extends State<FindPasswordScreen> {
                 boxColor: _controller.text != ''
                     ? AppColors.primary400
                     : Color(0x1AF5F5F3),
-                onTap: () {
-                  if (_controller.text != '') {
-                    pushToScreen(context, VerificationCodeScreen());
-                  }
-                },
+                onTap: _requestCode,
               ),
             ),
             SizedBox(height: 80.h),
@@ -129,5 +129,29 @@ class _FindPasswordScreenState extends State<FindPasswordScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _requestCode() async {
+    final email = _controller.text.trim();
+    if (email.isEmpty || _isLoading) return;
+    setState(() {
+      _isLoading = true;
+      _isError = false;
+    });
+    try {
+      if (ApiConfig.hasBaseUrl) {
+        await AuthService().requestPasswordCode(email);
+      }
+      if (!mounted) return;
+      pushToScreen(context, VerificationCodeScreen(email: email));
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isError = true);
+      showAppToast(context, '$error');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 }

@@ -4,11 +4,16 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/button_solid.dart';
 import 'package:muntum/components/keyword_chip.dart';
+import 'package:muntum/api/api_config.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
+import 'package:muntum/data/mock_user_data.dart';
 import 'package:muntum/models/user_keyword.dart';
 import 'package:muntum/screens/mypage/profile_screen.dart';
 import 'package:muntum/screens/onboarding/sign_up_screens/loading_screen.dart';
+import 'package:muntum/services/keyword_service.dart';
+import 'package:muntum/services/taste_service.dart';
+import 'package:muntum/utils/app_toast.dart';
 
 class KeywordScreen extends StatefulWidget {
   const KeywordScreen({super.key});
@@ -22,6 +27,9 @@ class _KeywordScreenState extends State<KeywordScreen> {
   static const int _maximumSelectionCount = 30;
 
   final Set<String> _selectedKeywords = {};
+  List<String> _availableKeywords = List.of(entireKeywords);
+  bool _isLoading = false;
+  bool _isKeywordLoading = true;
 
   bool get _canContinue => _selectedKeywords.length >= _minimumSelectionCount;
 
@@ -34,6 +42,36 @@ class _KeywordScreenState extends State<KeywordScreen> {
         _selectedKeywords.remove(keyword);
       }
     });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAvailableKeywords();
+  }
+
+  Future<void> _loadAvailableKeywords() async {
+    setState(() => _isKeywordLoading = true);
+    try {
+      if (ApiConfig.hasBaseUrl) {
+        final keywords = await KeywordService().fetchTaggedKeywords();
+        if (!mounted) return;
+        setState(() {
+          _availableKeywords = keywords
+              .map((keyword) => keyword.name)
+              .where((name) => name.isNotEmpty)
+              .toList();
+          if (_availableKeywords.isEmpty) {
+            _availableKeywords = List.of(entireKeywords);
+          }
+        });
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _availableKeywords = List.of(entireKeywords));
+    } finally {
+      if (mounted) setState(() => _isKeywordLoading = false);
+    }
   }
 
   @override
@@ -123,55 +161,64 @@ class _KeywordScreenState extends State<KeywordScreen> {
                     ),
                     SizedBox(height: 20.h),
                     Expanded(
-                      child: SingleChildScrollView(
-                        padding: EdgeInsets.only(bottom: 20.h),
-                        child: Center(
-                          child: Wrap(
-                            alignment: WrapAlignment.center,
-                            spacing: 8.w,
-                            runSpacing: 10.h,
-                            children: entireKeywords.map((keyword) {
-                              final isSelected = _selectedKeywords.contains(
-                                keyword,
-                              );
-                              return GestureDetector(
-                                onTap: () => _toggleKeyword(keyword),
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 140),
-                                  curve: Curves.easeInOut,
-                                  decoration: BoxDecoration(
-                                    color: isSelected
-                                        ? Colors.transparent
-                                        : AppColors.white.withValues(
-                                            alpha: 0.05,
+                      child: _isKeywordLoading
+                          ? const Center(
+                              child: CircularProgressIndicator(
+                                color: AppColors.gray900,
+                              ),
+                            )
+                          : SingleChildScrollView(
+                              padding: EdgeInsets.only(bottom: 20.h),
+                              child: Center(
+                                child: Wrap(
+                                  alignment: WrapAlignment.center,
+                                  spacing: 8.w,
+                                  runSpacing: 10.h,
+                                  children: _availableKeywords.map((keyword) {
+                                    final isSelected = _selectedKeywords
+                                        .contains(keyword);
+                                    return GestureDetector(
+                                      onTap: () => _toggleKeyword(keyword),
+                                      child: AnimatedContainer(
+                                        duration: const Duration(
+                                          milliseconds: 140,
+                                        ),
+                                        curve: Curves.easeInOut,
+                                        decoration: BoxDecoration(
+                                          color: isSelected
+                                              ? Colors.transparent
+                                              : AppColors.white.withValues(
+                                                  alpha: 0.05,
+                                                ),
+                                          borderRadius: BorderRadius.circular(
+                                            999,
                                           ),
-                                    borderRadius: BorderRadius.circular(999),
-                                    border: Border.all(
-                                      color: isSelected
-                                          ? AppColors.primary400
-                                          : Colors.transparent,
-                                      width: 1.w,
-                                    ),
-                                  ),
-                                  child: KeywordChip(
-                                    text: keyword,
-                                    textColor: isSelected
-                                        ? AppColors.primary400
-                                        : AppColors.gray400,
-                                    outlineColor: Colors.transparent,
-                                    boxColor: Colors.transparent,
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 14.w,
-                                      vertical: 8.h,
-                                    ),
-                                    textStyle: AppTypography.caption2,
-                                  ),
+                                          border: Border.all(
+                                            color: isSelected
+                                                ? AppColors.primary400
+                                                : Colors.transparent,
+                                            width: 1.w,
+                                          ),
+                                        ),
+                                        child: KeywordChip(
+                                          text: keyword,
+                                          textColor: isSelected
+                                              ? AppColors.primary400
+                                              : AppColors.gray400,
+                                          outlineColor: Colors.transparent,
+                                          boxColor: Colors.transparent,
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: 14.w,
+                                            vertical: 8.h,
+                                          ),
+                                          textStyle: AppTypography.caption2,
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
                                 ),
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                      ),
+                              ),
+                            ),
                     ),
                   ],
                 ),
@@ -185,18 +232,32 @@ class _KeywordScreenState extends State<KeywordScreen> {
                 boxColor: _canContinue
                     ? AppColors.primary400
                     : AppColors.gray800,
-                onTap: () {
-                  if (_canContinue) {
-                    userKeywords.addAll(_selectedKeywords);
-                    print(userKeywords);
-                    pushToScreen(context, LoadingScreen());
-                  }
-                },
+                onTap: _saveKeywords,
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _saveKeywords() async {
+    if (!_canContinue || _isLoading) return;
+    setState(() => _isLoading = true);
+    try {
+      if (ApiConfig.hasBaseUrl) {
+        await TasteService().saveMyKeywords(_selectedKeywords.toList());
+      }
+      MockUserSession.instance.updateKeywords(_selectedKeywords);
+      if (!mounted) return;
+      pushToScreen(context, LoadingScreen());
+    } catch (error) {
+      if (!mounted) return;
+      showAppToast(context, '$error');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 }

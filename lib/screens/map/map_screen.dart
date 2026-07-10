@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'package:muntum/utils/app_toast.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_naver_map/flutter_naver_map.dart';
@@ -10,14 +11,14 @@ import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/components/filter_chip.dart';
 import 'package:muntum/components/popup_widget.dart';
-import 'package:muntum/data/mock_program_data.dart';
 import 'package:muntum/models/program_model.dart';
 import 'package:muntum/screens/home/components/searchbar.dart';
 import 'package:muntum/screens/map/components/findin_current_location.dart';
 import 'package:muntum/screens/map/components/map_bottom_sheet.dart';
 import 'package:muntum/screens/map/components/program_marker_icon.dart';
 import 'package:muntum/screens/map/map_radius.dart';
-import 'package:muntum/utils/program_query.dart';
+import 'package:muntum/services/program_service.dart';
+import 'package:muntum/services/user_service.dart';
 
 class MapScreen extends StatefulWidget {
   final bool isActive;
@@ -29,11 +30,12 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
+  // TODO: Can't search at same time with filter chip
   final _searchbarController = TextEditingController();
   final DraggableScrollableController _sheetController =
       DraggableScrollableController();
 
-  final List<ProgramModel> _mapPrograms = mockPrograms;
+  List<ProgramModel> _mapPrograms = [];
 
   // 검색 중심에서 5km 안에 있는 동일한 프로그램 집합으로
   // 지도 마커와 바텀시트를 함께 갱신한다.
@@ -56,16 +58,6 @@ class _MapScreenState extends State<MapScreen> {
   static const double _sheetMaxSize = 0.78;
   static const double _searchRadiusMeters = 5000;
   static const double _initialZoom = 12.2;
-  static const List<Color> _markerColors = [
-    Color(0xFFB9EDF2),
-    Color(0xFFFBD4CC),
-    Color(0xFFE6F5C9),
-    Color(0xFFFFE8A3),
-    Color(0xFFD7D4FF),
-    Color(0xFFCDE7FF),
-    Color(0xFFFFD6E8),
-  ];
-
   static const NLatLng _wonjuInitialTarget = NLatLng(37.3422, 127.9202);
 
   bool _showSearchHereButton = false;
@@ -147,8 +139,11 @@ class _MapScreenState extends State<MapScreen> {
 
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
+      await _syncLocationTermsConsent(false);
       throw const PermissionDeniedException('Location permission denied');
     }
+
+    await _syncLocationTermsConsent(true);
 
     try {
       return await Geolocator.getCurrentPosition(
@@ -166,6 +161,14 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
+  Future<void> _syncLocationTermsConsent(bool agreed) async {
+    try {
+      await UserService().updateLocationTermsConsent(agreed);
+    } catch (_) {
+      // 로그인 전이거나 네트워크 오류가 있어도 지도 사용 흐름은 막지 않는다.
+    }
+  }
+
   void _setLocating(bool value) {
     if (!mounted || _isLocating == value) {
       return;
@@ -176,11 +179,10 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   void _showLocationMessage(String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+    showAppToast(context, message);
   }
 
+  // TODO: Add Listener to listen for permission
   Future<void> _showLocationPermissionPopup() async {
     if (!mounted || _isLocationPermissionPopupVisible) {
       return;
@@ -209,45 +211,67 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  List<ProgramModel> _getProgramsWithinRadius(NLatLng center) {
-    final matchingPrograms = queryPrograms(
-      mockPrograms,
-      query: _mapSearchQuery,
-      filters: _selectedFilter == null ? const {} : {_selectedFilter!},
-    ).toSet();
-    final programs = _mapPrograms.where((program) {
-      return matchingPrograms.contains(program) &&
-          isWithinRadius(
-            centerLatitude: center.latitude,
-            centerLongitude: center.longitude,
-            targetLatitude: program.latitude,
-            targetLongitude: program.longitude,
-            radiusMeters: _searchRadiusMeters,
-          );
+  Future<List<ProgramModel>> _getProgramsWithinRadius(NLatLng center) async {
+    final programs = await _fetchMapCandidatePrograms();
+    _mapPrograms = programs;
+
+    final visiblePrograms = programs.where((program) {
+      final latitude = program.latitude;
+      final longitude = program.longitude;
+      if (latitude == null || longitude == null) return false;
+      return isWithinRadius(
+        centerLatitude: center.latitude,
+        centerLongitude: center.longitude,
+        targetLatitude: latitude,
+        targetLongitude: longitude,
+        radiusMeters: _searchRadiusMeters,
+      );
     }).toList();
 
-    programs.sort((a, b) {
+    visiblePrograms.sort((a, b) {
       final aDistance = _distanceInMeters(
         center.latitude,
         center.longitude,
-        a.latitude,
-        a.longitude,
+        a.latitude!,
+        a.longitude!,
       );
       final bDistance = _distanceInMeters(
         center.latitude,
         center.longitude,
-        b.latitude,
-        b.longitude,
+        b.latitude!,
+        b.longitude!,
       );
       return aDistance.compareTo(bDistance);
     });
-    return programs;
+    return visiblePrograms;
+  }
+
+  Future<List<ProgramModel>> _fetchMapCandidatePrograms() async {
+    final service = ProgramService();
+    try {
+      if (_selectedFilter == Filter.nowHot) {
+        return (await service.fetchHotPrograms(size: 100)).content;
+      }
+      return (await service.fetchPrograms(
+        search: _mapSearchQuery.isEmpty ? null : _mapSearchQuery,
+        chip: _selectedFilter,
+        size: 100,
+      )).content;
+    } catch (error) {
+      if (mounted) {
+        showAppToast(context, '$error');
+      }
+      return const <ProgramModel>[];
+    }
   }
 
   Future<void> _submitMapSearch(String value) async {
     final query = value.trim();
     setState(() {
       _mapSearchQuery = query;
+      if (query.isNotEmpty) {
+        _selectedFilter = null;
+      }
     });
 
     final controller = _mapController;
@@ -255,16 +279,19 @@ class _MapScreenState extends State<MapScreen> {
       return;
     }
 
-    final matchedPrograms = queryPrograms(
-      mockPrograms,
-      query: query,
-      filters: _selectedFilter == null ? const {} : {_selectedFilter!},
-    );
+    final matchedPrograms = await _fetchMapCandidatePrograms();
     if (query.isNotEmpty && matchedPrograms.isNotEmpty) {
-      final firstMatch = matchedPrograms.first;
+      final firstMatch = matchedPrograms.firstWhere(
+        (program) => program.latitude != null && program.longitude != null,
+        orElse: () => matchedPrograms.first,
+      );
+      if (firstMatch.latitude == null || firstMatch.longitude == null) {
+        await _refreshAtCurrentMapCenter();
+        return;
+      }
       await _focusOnSearchRadiusAndRefresh(
         controller,
-        NLatLng(firstMatch.latitude, firstMatch.longitude),
+        NLatLng(firstMatch.latitude!, firstMatch.longitude!),
         animated: true,
       );
       return;
@@ -283,6 +310,8 @@ class _MapScreenState extends State<MapScreen> {
   Future<void> _toggleMapFilter(Filter filter) async {
     setState(() {
       _selectedFilter = _selectedFilter == filter ? null : filter;
+      _mapSearchQuery = '';
+      _searchbarController.clear();
     });
     await _refreshAtCurrentMapCenter();
   }
@@ -314,11 +343,6 @@ class _MapScreenState extends State<MapScreen> {
     return 'program_${_mapPrograms.indexOf(program) + 1}';
   }
 
-  Color _markerColorFor(ProgramModel program) {
-    final index = _mapPrograms.indexOf(program);
-    return _markerColors[index % _markerColors.length];
-  }
-
   List<_ProgramCluster> _clusterPrograms(
     List<ProgramModel> programs,
     double zoom,
@@ -331,8 +355,8 @@ class _MapScreenState extends State<MapScreen> {
 
       for (final cluster in clusters) {
         final distance = _distanceInMeters(
-          program.latitude,
-          program.longitude,
+          program.latitude!,
+          program.longitude!,
           cluster.latitude,
           cluster.longitude,
         );
@@ -496,7 +520,7 @@ class _MapScreenState extends State<MapScreen> {
     NLatLng center,
   ) async {
     final cameraPosition = await controller.getCameraPosition();
-    final visiblePrograms = _getProgramsWithinRadius(center);
+    final visiblePrograms = await _getProgramsWithinRadius(center);
     final clusters = _clusterPrograms(visiblePrograms, cameraPosition.zoom);
     final markers = <NMarker>{};
 
@@ -509,6 +533,13 @@ class _MapScreenState extends State<MapScreen> {
           ? 'cluster_${cluster.programs.map(_markerIdFor).join('_')}'
           : _markerIdFor(cluster.programs.first);
 
+      if (!isCluster) {
+        await _precacheMarkerImage(cluster.programs.first);
+        if (!mounted) {
+          return;
+        }
+      }
+
       final marker = NMarker(
         id: markerId,
         position: NLatLng(cluster.latitude, cluster.longitude),
@@ -517,9 +548,7 @@ class _MapScreenState extends State<MapScreen> {
           size: Size(48.w, 48.w),
           widget: isCluster
               ? _ClusterMarkerIcon(count: cluster.programs.length)
-              : ProgramMarkerIcon(
-                  color: _markerColorFor(cluster.programs.first),
-                ),
+              : ProgramMarkerIcon(program: cluster.programs.first),
         ),
       );
 
@@ -567,6 +596,21 @@ class _MapScreenState extends State<MapScreen> {
         duration: const Duration(milliseconds: 220),
         curve: Curves.easeOut,
       );
+    }
+  }
+
+  Future<void> _precacheMarkerImage(ProgramModel program) async {
+    if (!mounted || program.imageUrls.isEmpty) {
+      return;
+    }
+
+    try {
+      await precacheImage(
+        NetworkImage(program.imageUrls.first),
+        context,
+      ).timeout(const Duration(milliseconds: 1500));
+    } catch (_) {
+      // 이미지가 늦거나 실패해도 마커 자체는 fallback으로 표시한다.
     }
   }
 
@@ -768,7 +812,7 @@ class _ProgramCluster {
   double get latitude {
     final total = programs.fold<double>(
       0,
-      (sum, program) => sum + program.latitude,
+      (sum, program) => sum + (program.latitude ?? 0),
     );
     return total / programs.length;
   }
@@ -776,14 +820,14 @@ class _ProgramCluster {
   double get longitude {
     final total = programs.fold<double>(
       0,
-      (sum, program) => sum + program.longitude,
+      (sum, program) => sum + (program.longitude ?? 0),
     );
     return total / programs.length;
   }
 }
 
 extension _ProgramMapCoordinates on ProgramModel {
-  double get latitude => double.parse(location['latitude']!);
+  double? get latitude => double.tryParse(location['latitude'] ?? '');
 
-  double get longitude => double.parse(location['longitude']!);
+  double? get longitude => double.tryParse(location['longitude'] ?? '');
 }

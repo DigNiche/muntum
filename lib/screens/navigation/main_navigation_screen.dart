@@ -4,20 +4,54 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
+import 'package:muntum/models/report_model.dart';
 import 'package:muntum/screens/bookmark/bookmark_screen.dart';
 import 'package:muntum/screens/home/home_screen.dart';
 import 'package:muntum/screens/map/map_screen.dart';
 import 'package:muntum/screens/mypage/profile_screen.dart';
+import 'package:muntum/screens/mypage/report_detail_screen.dart';
+import 'package:muntum/screens/mypage/reportlist_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
-  const MainNavigationScreen({super.key});
+  final int initialIndex;
+  final ScreenTypes initialHomeScreenType;
+  final ReportModel? initialReportDetail;
+
+  const MainNavigationScreen({
+    super.key,
+    this.initialIndex = 0,
+    this.initialHomeScreenType = ScreenTypes.myNiche,
+    this.initialReportDetail,
+  });
 
   @override
   State<MainNavigationScreen> createState() => _MainNavigationScreenState();
 }
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
-  int _selectedIndex = 0;
+  late int _selectedIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = widget.initialIndex;
+    if (widget.initialReportDetail != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ReportListScreen()),
+        );
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>
+                ReportDetailScreen(report: widget.initialReportDetail!),
+          ),
+        );
+      });
+    }
+  }
 
   void _onTabTap(int index) {
     setState(() {
@@ -31,9 +65,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       body: IndexedStack(
         index: _selectedIndex,
         children: [
-          const HomeScreen(),
+          HomeScreen(initialScreenType: widget.initialHomeScreenType),
           MapScreen(isActive: _selectedIndex == 1),
-          const BookmarkScreen(),
+          BookmarkScreen(isActive: _selectedIndex == 2),
           const ProfileScreen(),
         ],
       ),

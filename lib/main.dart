@@ -4,9 +4,6 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_naver_map/flutter_naver_map.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/gates/auth_gate.dart';
-import 'package:muntum/screens/mypage/profile_screen.dart';
-import 'package:muntum/screens/navigation/main_navigation_screen.dart';
-import 'package:muntum/screens/onboarding/sign_up_screens/loading_screen.dart';
 
 Future<void> main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
@@ -49,7 +46,7 @@ class MuntumApp extends StatelessWidget {
         home: child,
         debugShowCheckedModeBanner: false,
       ),
-      child: MainNavigationScreen(),
+      child: const AuthGate(),
     );
   }
 }

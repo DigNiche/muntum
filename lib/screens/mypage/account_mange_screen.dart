@@ -2,10 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/popup_widget.dart';
+import 'package:muntum/api/api_config.dart';
+import 'package:muntum/api/token_store.dart';
 import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/screens/mypage/components/profile_menu_item.dart';
+import 'package:muntum/screens/mypage/password_change_screen.dart';
+import 'package:muntum/screens/mypage/withdraw_screen.dart';
+import 'package:muntum/screens/onboarding/login_screen.dart';
+import 'package:muntum/data/mock_user_data.dart';
+import 'package:muntum/services/auth_service.dart';
 
 class AccountMangeScreen extends StatefulWidget {
   const AccountMangeScreen({super.key});
@@ -15,6 +22,28 @@ class AccountMangeScreen extends StatefulWidget {
 }
 
 class _AccountMangeScreenState extends State<AccountMangeScreen> {
+  late Future<String?> _emailFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailFuture = _loadEmail();
+  }
+
+  Future<String?> _loadEmail() async {
+    if (!ApiConfig.hasBaseUrl) return MockUserSession.instance.email;
+    return TokenStore.instance.readEmail();
+  }
+
+  Future<void> _goToLogin() async {
+    if (!mounted) return;
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
+      (route) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -56,17 +85,32 @@ class _AccountMangeScreenState extends State<AccountMangeScreen> {
                         ),
                       ),
                       SizedBox(height: 6.h),
-                      Text(
-                        'hhjj@gmail.com',
-                        style: AppTypography.button2.copyWith(
-                          color: AppColors.gray900,
-                        ),
+                      FutureBuilder<String?>(
+                        future: _emailFuture,
+                        builder: (context, snapshot) {
+                          return Text(
+                            snapshot.data ?? '로그인 정보 없음',
+                            style: AppTypography.button2.copyWith(
+                              color: AppColors.gray900,
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
                 ),
                 SizedBox(height: 10.h),
-                ProfileMenuItem(onTap: () {}, text: '비밀번호 변경'),
+                ProfileMenuItem(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const PasswordChangeScreen(),
+                      ),
+                    );
+                  },
+                  text: '비밀번호 변경',
+                ),
                 ProfileMenuItem(
                   onTap: () {
                     showPopupWidget(
@@ -78,9 +122,14 @@ class _AccountMangeScreenState extends State<AccountMangeScreen> {
                       onText1Tap: () {
                         Navigator.pop(context);
                       },
-                      onText2Tap: () {
-                        // 로그아웃
+                      onText2Tap: () async {
                         Navigator.pop(context);
+                        if (ApiConfig.hasBaseUrl) {
+                          await AuthService().logout();
+                        } else {
+                          MockUserSession.instance.logout();
+                        }
+                        await _goToLogin();
                       },
                     );
                   },
@@ -88,20 +137,11 @@ class _AccountMangeScreenState extends State<AccountMangeScreen> {
                 ),
                 ProfileMenuItem(
                   onTap: () {
-                    showPopupWidget(
-                      context: context,
-                      title: '정말 탈퇴하시겠습니까?',
-                      description: '문틈과 함께 했던\n모든 활동 정보가 삭제되며, 복구할 수 없습니다.',
-                      text1: '아니요',
-                      text2: '탈퇴하기',
-                      text2Color: AppColors.error,
-                      onText1Tap: () {
-                        Navigator.pop(context);
-                      },
-                      onText2Tap: () {
-                        // 탈퇴
-                        Navigator.pop(context);
-                      },
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const WithdrawPasswordScreen(),
+                      ),
                     );
                   },
                   text: '회원 탈퇴',

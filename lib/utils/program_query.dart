@@ -29,7 +29,7 @@ List<ProgramModel> queryPrograms(
     final searchableText = _programSearchValues(
       program,
     ).map(_normalize).join(' ');
-    return searchTerms.every(searchableText.contains);
+    return searchTerms.every((term) => _termMatches(searchableText, term));
   }).toList();
 }
 
@@ -81,4 +81,23 @@ String _normalize(String value) {
       .replaceAll('_', ' ')
       .replaceAll(RegExp(r'\s+'), ' ')
       .trim();
+}
+
+bool _termMatches(String searchableText, String term) {
+  if (searchableText.contains(term)) {
+    return true;
+  }
+
+  final compactSearchable = _compactForLooseKeywordMatch(searchableText);
+  final compactTerm = _compactForLooseKeywordMatch(term);
+  if (compactTerm.isEmpty) {
+    return true;
+  }
+
+  return compactSearchable.contains(compactTerm);
+}
+
+String _compactForLooseKeywordMatch(String value) {
+  final compact = value.replaceAll(RegExp(r'[\s,]+'), '');
+  return compact.replaceAll(RegExp(r'(하기|하는|하다|하게|하고|한|는|기)$'), '');
 }

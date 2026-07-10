@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:muntum/models/keyword_model.dart';
 
 enum Filter {
   nowHot,
@@ -12,6 +13,8 @@ enum Filter {
 }
 
 class ProgramModel {
+  final String id;
+  final String? programType;
   // 제목
   final String title;
   // 한줄소개
@@ -45,9 +48,18 @@ class ProgramModel {
   // 이번달에 끝나는지
   final bool isOverThisMonth;
   // 스크랩
-  final bool isBookmark;
+  bool isBookmark;
+  final bool ended;
+  final int viewCount;
+  final String? officialUrl;
+  final List<String> imageUrls;
+  final List<KeywordModel> keywordModels;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
 
   ProgramModel({
+    this.id = '',
+    this.programType,
     required this.title,
     required this.oneLineDescription,
     required this.detail,
@@ -65,5 +77,137 @@ class ProgramModel {
     required this.isSpotlight,
     required this.isOverThisMonth,
     required this.isBookmark,
+    this.ended = false,
+    this.viewCount = 0,
+    this.officialUrl,
+    this.imageUrls = const [],
+    this.keywordModels = const [],
+    this.createdAt,
+    this.updatedAt,
   });
+
+  factory ProgramModel.fromJson(Map<String, dynamic> json) {
+    final imageUrls = _parseImageUrls(json);
+    final keywordModels = ((json['keywords'] as List?) ?? const [])
+        .whereType<Map>()
+        .map((item) => KeywordModel.fromJson(Map<String, dynamic>.from(item)))
+        .toList();
+    final programType = json['programType'] as String?;
+    final free = json['free'] as bool? ?? false;
+    final reserved = json['reserved'] as bool? ?? false;
+    final ended =
+        json['ended'] as bool? ?? _isEnded(json['endDate'] as String?);
+    final startDate = json['startDate'] as String? ?? '';
+    final endDate = json['endDate'] as String? ?? '';
+
+    return ProgramModel(
+      id: '${json['id'] ?? ''}',
+      programType: programType,
+      title: json['title'] as String? ?? '',
+      oneLineDescription:
+          json['tagline'] as String? ??
+          json['oneLineDescription'] as String? ??
+          '',
+      detail: json['curation'] as String? ?? json['detail'] as String? ?? '',
+      images: imageUrls
+          .map((url) => Image.network(url, fit: BoxFit.cover))
+          .toList(),
+      imageUrls: imageUrls,
+      keywords: keywordModels.map((keyword) => keyword.name).toList(),
+      keywordModels: keywordModels,
+      startEndDates: startDate.isEmpty && endDate.isEmpty
+          ? ''
+          : '$startDate - $endDate',
+      locationName: json['venueName'] as String? ?? '',
+      location: {
+        'address': json['address'] as String? ?? '',
+        'latitude': '${json['latitude'] ?? ''}',
+        'longitude': '${json['longitude'] ?? ''}',
+      },
+      availableTime: json['operatingHours'] as String? ?? '',
+      cost: json['price'] as String? ?? (free ? '무료' : ''),
+      isReservationNeeded: reserved,
+      phoneNumber: json['inquiryContact'] as String? ?? '',
+      link: json['officialUrl'] as String? ?? '',
+      filters: _filtersFromApi(
+        programType: programType,
+        free: free,
+        reserved: reserved,
+      ),
+      isSpotlight: false,
+      isOverThisMonth: _isOverThisMonth(endDate),
+      isBookmark: json['scrapped'] as bool? ?? json['saved'] as bool? ?? false,
+      ended: ended,
+      viewCount: json['viewCount'] as int? ?? 0,
+      officialUrl: json['officialUrl'] as String?,
+      createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
+      updatedAt: DateTime.tryParse(json['updatedAt'] as String? ?? ''),
+    );
+  }
+
+  static List<String> _parseImageUrls(Map<String, dynamic> json) {
+    final thumbnailUrl = json['thumbnailUrl'] as String?;
+    final images = ((json['images'] as List?) ?? const [])
+        .whereType<Map>()
+        .map((item) => item['imageUrl'] as String?)
+        .whereType<String>()
+        .where((url) => url.isNotEmpty)
+        .map(_normalizeImageUrl)
+        .toList();
+    if (thumbnailUrl != null && thumbnailUrl.isNotEmpty) {
+      final normalizedThumbnail = _normalizeImageUrl(thumbnailUrl);
+      return [
+        normalizedThumbnail,
+        ...images.where((url) => url != normalizedThumbnail),
+      ];
+    }
+    return images;
+  }
+
+  static String _normalizeImageUrl(String url) {
+    final trimmed = url.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return trimmed;
+    }
+    return 'https://$trimmed';
+  }
+
+  static List<Filter> _filtersFromApi({
+    required String? programType,
+    required bool free,
+    required bool reserved,
+  }) {
+    final filters = <Filter>[];
+    if (free) filters.add(Filter.free);
+    if (!reserved) filters.add(Filter.noReservation);
+    switch (programType) {
+      case 'EXHIBITION':
+        filters.add(Filter.exhibition);
+      case 'PERFORMANCE':
+        filters.add(Filter.show);
+      case 'CLASS_EXPERIENCE':
+        filters.add(Filter.experience);
+      case 'FAIR':
+        filters.add(Filter.festival);
+    }
+    return filters;
+  }
+
+  static bool _isEnded(String? endDate) {
+    final parsed = DateTime.tryParse(endDate ?? '');
+    if (parsed == null) return false;
+    final now = DateTime.now();
+    return DateTime(
+      parsed.year,
+      parsed.month,
+      parsed.day,
+    ).isBefore(DateTime(now.year, now.month, now.day));
+  }
+
+  static bool _isOverThisMonth(String? endDate) {
+    final parsed = DateTime.tryParse(endDate ?? '');
+    if (parsed == null) return false;
+    final now = DateTime.now();
+    return parsed.year == now.year && parsed.month == now.month;
+  }
 }

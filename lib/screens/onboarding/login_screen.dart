@@ -5,11 +5,20 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/components/button_solid.dart';
+import 'package:muntum/api/api_config.dart';
+import 'package:muntum/api/token_store.dart';
+import 'package:muntum/data/mock_user_data.dart';
+import 'package:muntum/screens/home/home_screen.dart';
 import 'package:muntum/screens/mypage/profile_screen.dart';
 import 'package:muntum/screens/navigation/main_navigation_screen.dart';
 import 'package:muntum/screens/onboarding/find_password_screens/find_password_screen.dart';
 import 'package:muntum/screens/onboarding/components/text_field_widget.dart';
+import 'package:muntum/screens/onboarding/sign_up_screens/keyword_screen.dart';
+import 'package:muntum/screens/onboarding/sign_up_screens/nickname_screen.dart';
 import 'package:muntum/screens/onboarding/sign_up_screens/sign_up.dart';
+import 'package:muntum/services/auth_service.dart';
+import 'package:muntum/services/taste_service.dart';
+import 'package:muntum/utils/app_toast.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -27,6 +36,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final FocusNode _passwordFocusNode = FocusNode();
   bool _isEmailError = false;
   bool _isPasswordError = false;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -136,17 +146,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       SizedBox(height: 24.h),
                       ButtonSolid(
-                        text: '로그인',
+                        text: _isLoading ? '로그인 중...' : '로그인',
                         textColor: AppColors.gray900,
                         boxColor: AppColors.primary400,
-                        onTap: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => MainNavigationScreen(),
-                            ),
-                          );
-                        },
+                        onTap: _login,
                       ),
                       SizedBox(height: 12.h),
                       ButtonSolid(
@@ -187,12 +190,96 @@ class _LoginScreenState extends State<LoginScreen> {
                   color: AppColors.lineNormal.withValues(alpha: 0.5),
                   width: 1.w,
                 ),
+                onTap: () async {
+                  await TokenStore.instance.clear();
+                  MockUserSession.instance.logout();
+                  if (!context.mounted) return;
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const MainNavigationScreen(
+                        initialHomeScreenType: ScreenTypes.entire,
+                      ),
+                    ),
+                  );
+                },
               ),
               SizedBox(height: 80.h),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _login() async {
+    if (_isLoading) return;
+    setState(() {
+      _isLoading = true;
+      _isEmailError = false;
+      _isPasswordError = false;
+    });
+    try {
+      if (ApiConfig.hasBaseUrl) {
+        final session = await AuthService().login(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        );
+        if (!mounted) return;
+        await _routeAfterApiLogin(session.nickname);
+      } else {
+        MockUserSession.instance.loginAsMockUser(
+          email: _emailController.text.trim().isEmpty
+              ? 'mock@muntum.app'
+              : _emailController.text.trim(),
+        );
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
+        );
+      }
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _isEmailError = true;
+        _isPasswordError = true;
+      });
+      showAppToast(context, '$error');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _routeAfterApiLogin(String? nickname) async {
+    if (nickname == null || nickname.trim().isEmpty) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const NicknameScreen()),
+      );
+      return;
+    }
+
+    final keywords = await TasteService().fetchMyKeywords();
+    MockUserSession.instance.updateKeywords(
+      keywords.selectedKeywords.map((keyword) => keyword.name),
+    );
+    if (!mounted) return;
+    if (keywords.selectedKeywords.length < 3) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const KeywordScreen()),
+      );
+      return;
+    }
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
     );
   }
 }

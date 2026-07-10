@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:muntum/api/api_config.dart';
+import 'package:muntum/api/token_store.dart';
 import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
@@ -10,8 +12,11 @@ import 'package:muntum/components/cards/horizontal.dart';
 import 'package:muntum/components/keyword_chip.dart';
 import 'package:muntum/components/popup_widget.dart';
 import 'package:muntum/models/program_model.dart';
+import 'package:muntum/models/user_keyword.dart';
 import 'package:muntum/screens/home/components/recent_search_widget.dart';
 import 'package:muntum/screens/home/components/section_header.dart';
+import 'package:muntum/services/program_service.dart';
+import 'package:muntum/services/search_service.dart';
 import 'package:muntum/utils/program_query.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -23,39 +28,6 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
-  final List<String> popularKeywords = [
-    '가만히 못 있는 편',
-    '식탁보상 생활하는',
-    '감성 낭만 충전',
-    '갓생살기',
-    '그 순간에 몰입',
-    '내 손으로 만드는',
-    '눈을 사로잡는',
-    '느긋하게 힐링하는',
-    '도파민 디톡스',
-    '미식 탐험가',
-    '복작복작 핫플',
-    '사람들과 도란도란',
-    '사진맛집',
-    '새로운 것 배우기',
-    '색다르게 즐기는',
-    '생생한 감각',
-    '쉽게 해석되지 않는',
-    '압도감을 느끼는',
-    '야외에서 즐기는',
-    '여러 작품을 한 번에',
-    '여운이 남는',
-    '음악에 집중하는',
-    '전통문화 역사 덕후',
-    '조용하고 차분한',
-    '직접 참여하는',
-    '깊은 대화 나누는',
-    '명상과 가까운',
-    '퇴근하고 슬쩍',
-    '짧게 즐기는',
-    '이번달 끝나는',
-  ];
-
   static const String _recentSearchesKey = 'recent_searches';
   final List<String> _defaultRecentSearches = [
     '큐비스트: 시각의 혁신가들',
@@ -67,14 +39,60 @@ class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
   String searchText = '';
   final List<String> _selectedKeywords = [];
+  Future<List<ProgramModel>>? _searchResultFuture;
+  late Future<List<String>> _popularKeywordsFuture;
 
   @override
   void initState() {
     super.initState();
+    _popularKeywordsFuture = _loadPopularKeywords();
     _loadRecentSearches();
   }
 
+  Future<List<String>> _loadPopularKeywords() async {
+    if (!ApiConfig.hasBaseUrl) {
+      return entireKeywords.take(6).toList();
+    }
+    try {
+      final keywords = await SearchService().fetchTopSearchKeywords();
+      final names = keywords
+          .map((keyword) => keyword.name)
+          .where((name) => name.isNotEmpty)
+          .take(6)
+          .toList();
+      return names.isEmpty ? entireKeywords.take(6).toList() : names;
+    } catch (_) {
+      return entireKeywords.take(6).toList();
+    }
+  }
+
+  Future<bool> _usesApiRecentSearches() async {
+    if (!ApiConfig.hasBaseUrl) return false;
+    if (TokenStore.instance.accessToken?.isNotEmpty == true) return true;
+    final refreshToken = await TokenStore.instance.readRefreshToken();
+    return refreshToken?.isNotEmpty == true;
+  }
+
   Future<void> _loadRecentSearches() async {
+    if (await _usesApiRecentSearches()) {
+      try {
+        final recent = await SearchService().fetchRecentSearches();
+        if (!mounted) return;
+        setState(() {
+          _recentSearches = recent
+              .map((search) => search.keyword)
+              .where((keyword) => keyword.isNotEmpty)
+              .toList();
+        });
+        return;
+      } catch (_) {
+        if (!mounted) return;
+        setState(() {
+          _recentSearches = [];
+        });
+        return;
+      }
+    }
     final prefs = await SharedPreferences.getInstance();
     final savedSearches = prefs.getStringList(_recentSearchesKey);
 
@@ -85,6 +103,9 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Future<void> _saveRecentSearches() async {
+    if (await _usesApiRecentSearches()) {
+      return;
+    }
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList(_recentSearchesKey, _recentSearches);
   }
@@ -98,6 +119,7 @@ class _SearchScreenState extends State<SearchScreen> {
     _addRecentSearch(trimmedText);
     setState(() {
       searchText = trimmedText;
+      _searchResultFuture = _loadSearchResults();
     });
   }
 
@@ -108,6 +130,7 @@ class _SearchScreenState extends State<SearchScreen> {
       }
       searchText = _selectedKeywords.join(', ');
       _searchController.clear();
+      _searchResultFuture = _loadSearchResults();
     });
 
     _addRecentSearch(keyword);
@@ -168,7 +191,7 @@ class _SearchScreenState extends State<SearchScreen> {
                             spacing: 8.w,
                             runSpacing: 10.h,
                             alignment: WrapAlignment.start,
-                            children: popularKeywords.map((keyword) {
+                            children: entireKeywords.map((keyword) {
                               final isSelected = modalSelectedKeywords.contains(
                                 keyword,
                               );
@@ -236,6 +259,8 @@ class _SearchScreenState extends State<SearchScreen> {
                                             ..addAll(modalSelectedKeywords);
                                           searchText = joinedKeywords;
                                           _searchController.clear();
+                                          _searchResultFuture =
+                                              _loadSearchResults();
                                         });
                                         Navigator.pop(context);
                                       },
@@ -278,8 +303,11 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  void _addRecentSearch(String text) {
+  Future<void> _addRecentSearch(String text) async {
     final trimmedText = text.trim();
+    if (trimmedText.isEmpty) {
+      return;
+    }
 
     setState(() {
       _recentSearches.remove(trimmedText);
@@ -289,7 +317,7 @@ class _SearchScreenState extends State<SearchScreen> {
         _recentSearches.removeRange(10, _recentSearches.length);
       }
     });
-    _saveRecentSearches();
+    await _saveRecentSearches();
   }
 
   @override
@@ -319,6 +347,7 @@ class _SearchScreenState extends State<SearchScreen> {
               setState(() {
                 searchText = '';
                 _selectedKeywords.clear();
+                _searchResultFuture = null;
               });
             },
             selectedKeywords: _selectedKeywords,
@@ -328,6 +357,9 @@ class _SearchScreenState extends State<SearchScreen> {
                 searchText = _selectedKeywords.join(', ');
                 if (_selectedKeywords.isEmpty) {
                   searchText = '';
+                  _searchResultFuture = null;
+                } else {
+                  _searchResultFuture = _loadSearchResults();
                 }
               });
             },
@@ -355,21 +387,28 @@ class _SearchScreenState extends State<SearchScreen> {
             SizedBox(height: 12.h),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 20.w),
-              child: Wrap(
-                spacing: 8.w,
-                runSpacing: 8.h,
-                children: popularKeywords.take(6).map((keyword) {
-                  return GestureDetector(
-                    onTap: () {
-                      _onKeywordSelected(keyword);
-                    },
-                    child: KeywordChip(
-                      text: keyword,
-                      textColor: AppColors.gray800,
-                      outlineColor: AppColors.lineStrong,
-                    ),
+              child: FutureBuilder<List<String>>(
+                future: _popularKeywordsFuture,
+                builder: (context, snapshot) {
+                  final keywords =
+                      snapshot.data ?? entireKeywords.take(6).toList();
+                  return Wrap(
+                    spacing: 8.w,
+                    runSpacing: 8.h,
+                    children: keywords.map((keyword) {
+                      return GestureDetector(
+                        onTap: () {
+                          _onKeywordSelected(keyword);
+                        },
+                        child: KeywordChip(
+                          text: keyword,
+                          textColor: AppColors.gray800,
+                          outlineColor: AppColors.lineStrong,
+                        ),
+                      );
+                    }).toList(),
                   );
-                }).toList(),
+                },
               ),
             ),
             SizedBox(height: 32.h),
@@ -386,12 +425,16 @@ class _SearchScreenState extends State<SearchScreen> {
                   onText1Tap: () {
                     Navigator.pop(context);
                   },
-                  onText2Tap: () {
+                  onText2Tap: () async {
+                    Navigator.pop(context);
                     setState(() {
                       _recentSearches.clear();
                     });
-                    _saveRecentSearches();
-                    Navigator.pop(context);
+                    if (await _usesApiRecentSearches()) {
+                      await SearchService().deleteAllRecentSearches();
+                    } else {
+                      await _saveRecentSearches();
+                    }
                   },
                 );
               },
@@ -406,15 +449,25 @@ class _SearchScreenState extends State<SearchScreen> {
                   onTap: () {
                     _searchController.text = _recentSearches[index];
                     searchText = _recentSearches[index];
+                    _searchResultFuture = _loadSearchResults();
                     setState(() {});
                   },
                   child: RecentSearchWidget(
                     text: _recentSearches[index],
-                    onDelete: () {
+                    onDelete: () async {
+                      final keyword = _recentSearches[index];
                       setState(() {
                         _recentSearches.removeAt(index);
                       });
-                      _saveRecentSearches();
+                      if (await _usesApiRecentSearches()) {
+                        try {
+                          await SearchService().deleteRecentSearch(keyword);
+                        } finally {
+                          await _loadRecentSearches();
+                        }
+                      } else {
+                        await _saveRecentSearches();
+                      }
                     },
                   ),
                 );
@@ -436,38 +489,62 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
+  Future<List<ProgramModel>> _loadSearchResults() async {
+    if (!ApiConfig.hasBaseUrl) return searchResult;
+    final service = ProgramService();
+    final query = _selectedKeywords.isEmpty ? searchText : '';
+
+    if (_selectedKeywords.isNotEmpty) {
+      return (await service.fetchPrograms(
+        keywordNames: _selectedKeywords,
+        size: 100,
+      )).content;
+    }
+
+    return (await service.fetchPrograms(search: query, size: 100)).content;
+  }
+
   Widget _searchSubmitScreen() {
-    return searchResult.isEmpty
-        ? Expanded(
-            child: Center(
+    final future = _searchResultFuture ?? _loadSearchResults();
+    _searchResultFuture = future;
+    return Expanded(
+      child: FutureBuilder<List<ProgramModel>>(
+        future: future,
+        builder: (context, snapshot) {
+          final results = snapshot.data ?? const <ProgramModel>[];
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(
+              child: CircularProgressIndicator(color: AppColors.gray900),
+            );
+          }
+          if (results.isEmpty) {
+            return Center(
               child: Text(
                 "검색 결과가 없어요.",
                 style: AppTypography.body2.copyWith(color: AppColors.gray500),
               ),
-            ),
-          )
-        : Expanded(
-            child: Container(
-              padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 20.w),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SectionHeader3(
-                    text: '프로그램 ${searchResult.length}개',
-                    buttonName: '',
+            );
+          }
+          return Container(
+            padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 20.w),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SectionHeader3(text: '프로그램 ${results.length}개', buttonName: ''),
+                Expanded(
+                  child: ListView.separated(
+                    padding: EdgeInsets.zero,
+                    itemBuilder: (context, index) =>
+                        HorizontalCard(program: results[index]),
+                    separatorBuilder: (_, _) => SizedBox(height: 12.h),
+                    itemCount: results.length,
                   ),
-                  Expanded(
-                    child: ListView.separated(
-                      padding: EdgeInsets.zero,
-                      itemBuilder: (context, index) =>
-                          HorizontalCard(program: searchResult[index]),
-                      separatorBuilder: (_, _) => SizedBox(height: 12.h),
-                      itemCount: searchResult.length,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           );
+        },
+      ),
+    );
   }
 }

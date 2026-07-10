@@ -3,11 +3,15 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/button_solid.dart';
+import 'package:muntum/api/api_config.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
+import 'package:muntum/data/mock_user_data.dart';
 import 'package:muntum/screens/mypage/profile_screen.dart';
 import 'package:muntum/screens/onboarding/components/text_field_widget.dart';
 import 'package:muntum/screens/onboarding/sign_up_screens/keyword_screen.dart';
+import 'package:muntum/services/user_service.dart';
+import 'package:muntum/utils/app_toast.dart';
 
 class NicknameScreen extends StatefulWidget {
   const NicknameScreen({super.key});
@@ -18,6 +22,8 @@ class NicknameScreen extends StatefulWidget {
 
 class _NicknameScreenState extends State<NicknameScreen> {
   final TextEditingController _controller = TextEditingController();
+  bool _isLoading = false;
+  bool _isError = false;
 
   @override
   void initState() {
@@ -84,7 +90,7 @@ class _NicknameScreenState extends State<NicknameScreen> {
                             hintText: '닉네임을 입력해 주세요.',
                             controller: _controller,
                             obscureText: false,
-                            isError: false,
+                            isError: _isError,
                             errorText: (_controller.text.length > 50)
                                 ? '닉네임이 50자를 초과합니다.'
                                 : '중복되는 닉네임 입니다.',
@@ -106,12 +112,10 @@ class _NicknameScreenState extends State<NicknameScreen> {
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 20.0.w),
               child: ButtonSolid(
-                text: '다음으로',
+                text: _isLoading ? '저장 중...' : '다음으로',
                 textColor: AppColors.gray900,
                 boxColor: AppColors.primary400,
-                onTap: () {
-                  pushToScreen(context, KeywordScreen());
-                },
+                onTap: _saveNickname,
               ),
             ),
             SizedBox(height: 48.h),
@@ -119,5 +123,36 @@ class _NicknameScreenState extends State<NicknameScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _saveNickname() async {
+    if (_isLoading) return;
+    final nickname = _controller.text.trim();
+    if (nickname.isEmpty || nickname.length > 50 || nickname.contains(' ')) {
+      setState(() => _isError = true);
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _isError = false;
+    });
+    try {
+      if (ApiConfig.hasBaseUrl) {
+        await UserService().updateNickname(nickname);
+      } else {
+        MockUserSession.instance.updateNickname(nickname);
+      }
+      if (!mounted) return;
+      pushToScreen(context, KeywordScreen());
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isError = true);
+      showAppToast(context, '$error');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 }

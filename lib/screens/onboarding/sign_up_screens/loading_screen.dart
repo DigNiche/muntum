@@ -1,11 +1,16 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
+import 'package:muntum/api/api_config.dart';
+import 'package:muntum/api/token_store.dart';
+import 'package:muntum/data/mock_user_data.dart';
 import 'package:muntum/screens/navigation/main_navigation_screen.dart';
+import 'package:muntum/services/program_service.dart';
 
 class LoadingScreen extends StatefulWidget {
   const LoadingScreen({super.key});
@@ -18,20 +23,12 @@ class _LoadingScreenState extends State<LoadingScreen> {
   static const int _initialPage = 5;
   static const Duration _animationDuration = Duration(milliseconds: 700);
 
-  static const List<Color> _cardColors = [
-    Color(0xFFD8D8D8),
-    Color(0xFFB7C9C8),
-    Color(0xFFDCC5B8),
-    Color(0xFFB8B1A8),
-    Color(0xFFC7B9A8),
-    Color(0xFFAEB9C8),
-    Color(0xFFD6C5A7),
-  ];
-
   late final PageController _pageController;
   Timer? _carouselTimer;
   int _currentPage = _initialPage;
   Timer? _navigationTimer;
+  List<String> _thumbnailUrls = const [];
+  String _nickname = '문틈';
 
   @override
   void initState() {
@@ -43,12 +40,36 @@ class _LoadingScreenState extends State<LoadingScreen> {
     _carouselTimer = Timer.periodic(Duration(milliseconds: 1500), (_) {
       _moveToNextCard();
     });
+    _loadNickname();
+    _loadThumbnailUrls();
     _navigationTimer = Timer(const Duration(seconds: 6), () {
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
       );
     });
+  }
+
+  Future<void> _loadNickname() async {
+    final nickname = ApiConfig.hasBaseUrl
+        ? await TokenStore.instance.readNickname()
+        : MockUserSession.instance.nickname;
+    final trimmed = nickname?.trim() ?? '';
+    if (!mounted || trimmed.isEmpty) return;
+    setState(() {
+      _nickname = trimmed;
+    });
+  }
+
+  Future<void> _loadThumbnailUrls() async {
+    try {
+      final thumbnails = await ProgramService().fetchThumbnailUrls();
+      if (!mounted || thumbnails.isEmpty) return;
+      final shuffled = List<String>.of(thumbnails)..shuffle(Random());
+      setState(() {
+        _thumbnailUrls = shuffled;
+      });
+    } catch (_) {}
   }
 
   Future<void> _moveToNextCard() async {
@@ -87,7 +108,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
               left: 20.w,
               right: 20.w,
               child: Text(
-                '문틈님의 취향에 맞는 프로그램을\n찾고 있어요.',
+                '$_nickname님의 취향에 맞는 프로그램을\n찾고 있어요.',
                 textAlign: TextAlign.center,
                 style: AppTypography.title4.copyWith(color: AppColors.white),
               ),
@@ -132,12 +153,23 @@ class _LoadingScreenState extends State<LoadingScreen> {
                         );
                       },
                       child: Center(
-                        child: Container(
-                          width: 120.w,
-                          height: 160.h,
-                          decoration: BoxDecoration(
-                            color: _cardColors[index % _cardColors.length],
-                            borderRadius: BorderRadius.circular(10.r),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(10.r),
+                          child: SizedBox(
+                            width: 120.w,
+                            height: 160.h,
+                            child: _thumbnailUrls.isEmpty
+                                ? const ColoredBox(color: AppColors.gray200)
+                                : Image.network(
+                                    _thumbnailUrls[index %
+                                        _thumbnailUrls.length],
+                                    fit: BoxFit.cover,
+                                    errorBuilder:
+                                        (context, error, stackTrace) =>
+                                            const ColoredBox(
+                                              color: AppColors.gray200,
+                                            ),
+                                  ),
                           ),
                         ),
                       ),

@@ -1,44 +1,86 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:muntum/api/api_config.dart';
+import 'package:muntum/api/token_store.dart';
+import 'package:muntum/components/button_solid.dart';
 import 'package:muntum/components/cards/vertical_card.dart';
 import 'package:muntum/components/page_header.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/data/mock_program_data.dart';
+import 'package:muntum/data/mock_user_data.dart';
 import 'package:muntum/models/program_model.dart';
+import 'package:muntum/screens/onboarding/login_screen.dart';
+import 'package:muntum/services/scrap_service.dart';
 
 class BookmarkScreen extends StatefulWidget {
   final List<ProgramModel>? programs;
+  final bool isActive;
 
-  const BookmarkScreen({super.key, this.programs});
+  const BookmarkScreen({super.key, this.programs, this.isActive = true});
 
   @override
   State<BookmarkScreen> createState() => _BookmarkScreenState();
 }
 
 class _BookmarkScreenState extends State<BookmarkScreen> {
-  late List<ProgramModel> _bookmarkedPrograms;
+  late Future<List<ProgramModel>> _bookmarkedProgramsFuture;
+  late Future<bool> _isLoggedInFuture;
 
   @override
   void initState() {
     super.initState();
-    _setPrograms();
+    MockBookmarkStore.instance.addListener(_reloadMockBookmarks);
+    _isLoggedInFuture = _isLoggedIn();
+    _bookmarkedProgramsFuture = _loadPrograms();
+  }
+
+  @override
+  void dispose() {
+    MockBookmarkStore.instance.removeListener(_reloadMockBookmarks);
+    super.dispose();
+  }
+
+  void _reloadMockBookmarks() {
+    if (!mounted) return;
+    setState(() {
+      _isLoggedInFuture = _isLoggedIn();
+      _bookmarkedProgramsFuture = _loadPrograms();
+    });
   }
 
   @override
   void didUpdateWidget(covariant BookmarkScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.programs != widget.programs) {
-      _setPrograms();
+    if (oldWidget.programs != widget.programs ||
+        (!oldWidget.isActive && widget.isActive)) {
+      setState(() {
+        _bookmarkedProgramsFuture = _loadPrograms();
+      });
     }
   }
 
-  void _setPrograms() {
-    _bookmarkedPrograms = List.of(
-      mockPrograms.where((program) => program.isBookmark),
-    );
-    //_bookmarkedPrograms = [];
+  Future<List<ProgramModel>> _loadPrograms() async {
+    if (!await _isLoggedIn()) {
+      return const <ProgramModel>[];
+    }
+    if (!ApiConfig.hasBaseUrl) {
+      return List.of(
+        mockPrograms.where(MockBookmarkStore.instance.isBookmarked),
+      );
+    }
+    return (await ScrapService().fetchMyScraps(size: 100)).content;
+  }
+
+  Future<bool> _isLoggedIn() async {
+    if (!ApiConfig.hasBaseUrl) {
+      return MockUserSession.instance.isLoggedIn;
+    }
+    final accessToken = TokenStore.instance.accessToken;
+    if (accessToken != null && accessToken.isNotEmpty) return true;
+    final refreshToken = await TokenStore.instance.readRefreshToken();
+    return refreshToken != null && refreshToken.isNotEmpty;
   }
 
   @override
@@ -56,9 +98,36 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
             showIndicator: false,
           ),
           Expanded(
-            child: _bookmarkedPrograms.isEmpty
-                ? const _EmptyBookmarkView()
-                : _BookmarkGrid(programs: _bookmarkedPrograms),
+            child: FutureBuilder<bool>(
+              future: _isLoggedInFuture,
+              builder: (context, loginSnapshot) {
+                final isLoggedIn = loginSnapshot.data ?? false;
+                if (loginSnapshot.connectionState != ConnectionState.done) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: AppColors.gray900),
+                  );
+                }
+                if (!isLoggedIn) {
+                  return const _GuestBookmarkView();
+                }
+                return FutureBuilder<List<ProgramModel>>(
+                  future: _bookmarkedProgramsFuture,
+                  builder: (context, snapshot) {
+                    final programs = snapshot.data ?? const <ProgramModel>[];
+                    if (snapshot.connectionState != ConnectionState.done) {
+                      return const Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.gray900,
+                        ),
+                      );
+                    }
+                    return programs.isEmpty
+                        ? const _EmptyBookmarkView()
+                        : _BookmarkGrid(programs: programs);
+                  },
+                );
+              },
+            ),
           ),
         ],
       ),
@@ -94,6 +163,7 @@ class _BookmarkGrid extends StatelessWidget {
               children: programs.map((program) {
                 return VerticalCard(
                   program: program,
+                  titleMaxLines: 2,
                   width:
                       ((MediaQuery.of(context).size.width - 40.w - 14.w) / 2),
                 );
@@ -118,23 +188,10 @@ class _EmptyBookmarkView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
+            SvgPicture.asset(
+              'assets/icons/bottom_sheet/scrap.svg',
               width: 140.w,
               height: 140.w,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: AppColors.gray100,
-                borderRadius: BorderRadius.circular(8.r),
-              ),
-              child: SvgPicture.asset(
-                'assets/icons/scrap.svg',
-                width: 40.w,
-                height: 40.w,
-                colorFilter: const ColorFilter.mode(
-                  AppColors.gray400,
-                  BlendMode.srcIn,
-                ),
-              ),
             ),
             SizedBox(height: 20.h),
             Text(
@@ -146,6 +203,58 @@ class _EmptyBookmarkView extends StatelessWidget {
               '마음에 드는 프로그램을 발견하고,\n스크랩해보세요!',
               textAlign: TextAlign.center,
               style: AppTypography.body2.copyWith(color: AppColors.gray500),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GuestBookmarkView extends StatelessWidget {
+  const _GuestBookmarkView();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 20.w),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SvgPicture.asset(
+              'assets/icons/bottom_sheet/login_light.svg',
+              width: 140.w,
+              height: 140.w,
+            ),
+            SizedBox(height: 32.h),
+            Text(
+              '로그인 후 이용할 수 있어요.',
+              textAlign: TextAlign.center,
+              style: AppTypography.title4.copyWith(color: AppColors.gray900),
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              '로그인하고 마음에 드는 프로그램을\n스크랩해보세요.',
+              textAlign: TextAlign.center,
+              style: AppTypography.body2.copyWith(color: AppColors.gray500),
+            ),
+            SizedBox(height: 36.h),
+            IntrinsicWidth(
+              child: ButtonSolid(
+                padding: EdgeInsets.fromLTRB(20.w, 11.h, 20.w, 10.h),
+                text: '로그인하기',
+                textColor: AppColors.white,
+                boxColor: AppColors.black,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const LoginScreen(),
+                    ),
+                  );
+                },
+              ),
             ),
           ],
         ),

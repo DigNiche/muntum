@@ -4,8 +4,10 @@ import 'package:flutter_svg/svg.dart';
 import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
+import 'package:muntum/data/mock_user_data.dart';
 import 'package:muntum/models/program_model.dart';
 import 'package:muntum/screens/program_detail/program_detail_screen.dart';
+import 'package:muntum/utils/program_scrap.dart';
 
 class HorizontalCard extends StatelessWidget {
   final ProgramModel program;
@@ -53,14 +55,28 @@ class HorizontalCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    SvgPicture.asset(
-                      program.isBookmark
-                          ? 'assets/icons/scrap-filled.svg'
-                          : 'assets/icons/scrap.svg',
-                      width: 24.w,
-                      color: program.isBookmark
-                          ? AppColors.primary400
-                          : AppColors.gray400,
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => toggleProgramScrap(context, program),
+                      child: Padding(
+                        padding: EdgeInsets.all(4.r),
+                        child: ListenableBuilder(
+                          listenable: MockBookmarkStore.instance,
+                          builder: (context, _) {
+                            final isBookmarked = MockBookmarkStore.instance
+                                .isBookmarked(program);
+                            return SvgPicture.asset(
+                              isBookmarked
+                                  ? 'assets/icons/scrap-filled.svg'
+                                  : 'assets/icons/scrap.svg',
+                              width: 24.w,
+                              color: isBookmarked
+                                  ? AppColors.primary400
+                                  : AppColors.gray400,
+                            );
+                          },
+                        ),
+                      ),
                     ),
                   ],
                 ),

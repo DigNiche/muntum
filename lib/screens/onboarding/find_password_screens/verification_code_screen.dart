@@ -4,14 +4,19 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/button_solid.dart';
+import 'package:muntum/api/api_config.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/screens/mypage/profile_screen.dart';
 import 'package:muntum/screens/onboarding/find_password_screens/reset_password_screen.dart';
 import 'package:muntum/screens/onboarding/components/text_field_widget.dart';
+import 'package:muntum/services/auth_service.dart';
+import 'package:muntum/utils/app_toast.dart';
 
 class VerificationCodeScreen extends StatefulWidget {
-  const VerificationCodeScreen({super.key});
+  final String email;
+
+  const VerificationCodeScreen({super.key, required this.email});
 
   @override
   State<VerificationCodeScreen> createState() => _VerificationCodeScreenState();
@@ -21,6 +26,7 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
   TextEditingController _controller = TextEditingController();
   FocusNode _focusNode = FocusNode();
   bool _isError = false;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -127,11 +133,7 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                 boxColor: _controller.text != ''
                     ? AppColors.primary400
                     : Color(0x1AF5F5F3),
-                onTap: () {
-                  if (_controller.text != '') {
-                    pushToScreen(context, ResetPasswordScreen());
-                  }
-                },
+                onTap: _verifyCode,
               ),
             ),
             SizedBox(height: 80.h),
@@ -139,5 +141,37 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _verifyCode() async {
+    final code = _controller.text.trim();
+    if (code.isEmpty || _isLoading) return;
+    setState(() {
+      _isLoading = true;
+      _isError = false;
+    });
+    try {
+      final result = ApiConfig.hasBaseUrl
+          ? await AuthService().verifyPasswordCode(
+              email: widget.email,
+              code: code,
+            )
+          : null;
+      if (!mounted) return;
+      pushToScreen(
+        context,
+        ResetPasswordScreen(
+          resetToken: result?.resetToken ?? 'mock-reset-token',
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isError = true);
+      showAppToast(context, '$error');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 }

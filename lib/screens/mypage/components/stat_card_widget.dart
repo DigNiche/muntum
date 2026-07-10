@@ -7,12 +7,14 @@ import 'package:muntum/constants/typography.dart';
 class StatCard extends StatelessWidget {
   final String title;
   final String number;
+  final Widget? numberWidget;
   final VoidCallback onTap;
   const StatCard({
     super.key,
     required this.title,
     required this.number,
     required this.onTap,
+    this.numberWidget,
   });
 
   @override
@@ -43,7 +45,7 @@ class StatCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                Text(number, style: AppTypography.headline1),
+                numberWidget ?? Text(number, style: AppTypography.headline1),
               ],
             ),
           ),

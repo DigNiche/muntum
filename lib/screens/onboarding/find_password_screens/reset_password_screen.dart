@@ -4,15 +4,18 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/button_solid.dart';
+import 'package:muntum/api/api_config.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
-import 'package:muntum/screens/mypage/profile_screen.dart';
 import 'package:muntum/screens/onboarding/login_screen.dart';
 import 'package:muntum/screens/onboarding/components/text_field_widget.dart';
-import 'package:muntum/screens/onboarding/find_password_screens/verification_code_screen.dart';
+import 'package:muntum/services/auth_service.dart';
+import 'package:muntum/utils/app_toast.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
-  const ResetPasswordScreen({super.key});
+  final String resetToken;
+
+  const ResetPasswordScreen({super.key, required this.resetToken});
 
   @override
   State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
@@ -27,6 +30,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   bool _isError2 = false;
   bool _obsecureText1 = false;
   bool _obsecureText2 = false;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -35,13 +39,17 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       setState(() {});
     });
     _controller1.addListener(() {
-      setState(() {});
+      setState(() {
+        _isError1 = false;
+      });
     });
     _focusNode2.addListener(() {
       setState(() {});
     });
     _controller2.addListener(() {
-      setState(() {});
+      setState(() {
+        _isError2 = false;
+      });
     });
   }
 
@@ -96,7 +104,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                       ),
                       SizedBox(height: 30.h),
                       TextFieldWidget(
-                        hintText: '새로운 비밀번호를 입력해 주세요.',
+                        hintText: '새로운 비밀번호를 입력해 주세요. (8자 이상)',
                         controller: _controller1,
                         obscureText: _obsecureText1,
                         isError: _isError1,
@@ -121,7 +129,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                                 : AppColors.gray500,
                           ),
                         ),
-                        errorText: '비밀번호가 조건에 맞지 않습니다.',
+                        errorText: '비밀번호가 조건에 맞지 않습니다.(8자 이상)',
                       ),
                       SizedBox(height: 12.h),
                       TextFieldWidget(
@@ -167,16 +175,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 boxColor: _controller1.text != ''
                     ? AppColors.primary400
                     : Color(0x1AF5F5F3),
-                onTap: () {
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const LoginScreen(),
-                    ),
-                    (Route<dynamic> route) =>
-                        false, // This line removes everything below
-                  );
-                },
+                onTap: _resetPassword,
               ),
             ),
             SizedBox(height: 80.h),
@@ -184,5 +183,52 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _resetPassword() async {
+    if (_isLoading) return;
+    setState(() {
+      _isError1 = false;
+      _isError2 = false;
+      _isLoading = true;
+    });
+    if (_controller1.text != _controller2.text) {
+      setState(() {
+        _isError2 = true;
+        _isLoading = false;
+      });
+      return;
+    }
+
+    if (_controller1.text.length < 8) {
+      setState(() {
+        _isError1 = true;
+        _isLoading = false;
+      });
+      return;
+    }
+
+    try {
+      if (ApiConfig.hasBaseUrl) {
+        await AuthService().resetPassword(
+          resetToken: widget.resetToken,
+          newPassword: _controller1.text,
+        );
+      }
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+        (Route<dynamic> route) => false,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isError1 = true);
+      showAppToast(context, '$error');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 }

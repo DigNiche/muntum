@@ -4,8 +4,11 @@ import 'package:flutter_svg/svg.dart';
 import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
+import 'package:muntum/data/mock_user_data.dart';
 import 'package:muntum/models/program_model.dart';
 import 'package:muntum/screens/program_detail/program_detail_screen.dart';
+import 'package:muntum/utils/program_keyword_match.dart';
+import 'package:muntum/utils/program_scrap.dart';
 
 class CurationCard extends StatelessWidget {
   final ProgramModel program;
@@ -95,55 +98,37 @@ class SecondCurationCard extends StatelessWidget {
                       ],
                     ),
                     SizedBox(width: 8.w),
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      spacing: 4.h,
-                      children: [
-                        Container(
-                          width: 4.w,
-                          height: 20.h,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(99),
-                            color: AppColors.primary400,
-                          ),
-                        ),
-                        Container(
-                          width: 4.w,
-                          height: 20.h,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(99),
-                            color: AppColors.primary400,
-                          ),
-                        ),
-                        Container(
-                          width: 4.w,
-                          height: 20.h,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(99),
-                            color: AppColors.primary400.withValues(alpha: 0.2),
-                          ),
-                        ),
-                      ],
-                    ),
+                    _KeywordMatchBars(program: program),
                   ],
                 ),
-                Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(999),
-                    color: AppColors.white.withValues(alpha: 0.08),
-                  ),
-                  width: 48.w,
-                  height: 48.h,
-                  child: SvgPicture.asset(
-                    program.isBookmark
-                        ? 'assets/icons/scrap-filled.svg'
-                        : "assets/icons/scrap.svg",
-                    width: 24.w,
-                    height: 24.h,
-                    fit: BoxFit.scaleDown,
-                    color: program.isBookmark
-                        ? AppColors.primary400
-                        : AppColors.white.withValues(alpha: 0.8),
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => toggleProgramScrap(context, program),
+                  child: ListenableBuilder(
+                    listenable: MockBookmarkStore.instance,
+                    builder: (context, _) {
+                      final isBookmarked = MockBookmarkStore.instance
+                          .isBookmarked(program);
+                      return Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(999),
+                          color: AppColors.white.withValues(alpha: 0.08),
+                        ),
+                        width: 48.w,
+                        height: 48.h,
+                        child: SvgPicture.asset(
+                          isBookmarked
+                              ? 'assets/icons/scrap-filled.svg'
+                              : "assets/icons/scrap.svg",
+                          width: 24.w,
+                          height: 24.h,
+                          fit: BoxFit.scaleDown,
+                          color: isBookmarked
+                              ? AppColors.primary400
+                              : AppColors.white.withValues(alpha: 0.8),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ],
@@ -164,6 +149,45 @@ class SecondCurationCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _KeywordMatchBars extends StatelessWidget {
+  final ProgramModel program;
+
+  const _KeywordMatchBars({required this.program});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: MockUserSession.instance,
+      builder: (context, _) {
+        final matchLevel = programKeywordMatchLevel(
+          program,
+          MockUserSession.instance.selectedKeywords,
+        );
+
+        return Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          spacing: 4.h,
+          children: List.generate(3, (index) {
+            final isMatched = index < matchLevel;
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOut,
+              width: 4.w,
+              height: 20.h,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(99),
+                color: AppColors.primary400.withValues(
+                  alpha: isMatched ? 1 : 0.2,
+                ),
+              ),
+            );
+          }),
+        );
+      },
     );
   }
 }

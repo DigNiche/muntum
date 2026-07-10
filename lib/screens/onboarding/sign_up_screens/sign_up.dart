@@ -4,11 +4,14 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/button_solid.dart';
+import 'package:muntum/api/api_config.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
-import 'package:muntum/screens/mypage/profile_screen.dart';
+import 'package:muntum/data/mock_user_data.dart';
 import 'package:muntum/screens/onboarding/components/text_field_widget.dart';
-import 'package:muntum/screens/onboarding/sign_up_screens/nickname_screen.dart';
+import 'package:muntum/screens/onboarding/sign_up_screens/sign_up_complete_screen.dart';
+import 'package:muntum/services/auth_service.dart';
+import 'package:muntum/utils/app_toast.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -29,6 +32,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool obsecureText2 = false;
   bool isPasswordError = false;
   bool isPasswordConfirmError = false;
+  bool isEmailError = false;
+  bool isLoading = false;
 
   @override
   void initState() {
@@ -37,10 +42,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
       setState(() {});
     });
     passwordController.addListener(() {
-      setState(() {});
+      setState(() {
+        isPasswordError = false;
+      });
     });
     confirmPasswordController.addListener(() {
-      setState(() {});
+      setState(() {
+        isPasswordConfirmError = false;
+      });
     });
     emailFocusNode.addListener(() {
       setState(() {});
@@ -117,7 +126,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             focusNode: emailFocusNode,
                             controller: emailController,
                             obscureText: false,
-                            isError: false,
+                            isError: isEmailError,
                             errorText: '이미 가입된 이메일 입니다.',
                             keyboardType: TextInputType.emailAddress,
                             suffixIcon:
@@ -138,12 +147,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           SizedBox(height: 12.h),
                           // password
                           TextFieldWidget(
-                            hintText: '영문, 숫자, 특수문자 포함 8자 이상.',
+                            hintText: '8자 이상 입력해 주세요.',
                             focusNode: passwordFocusNode,
                             controller: passwordController,
                             obscureText: obsecureText1,
                             isError: isPasswordError,
-                            errorText: '비밀번호가 조건에 맞지 않습니다.',
+                            errorText: '비밀번호가 조건에 맞지 않습니다.(8자 이상)',
                             suffixIcon: GestureDetector(
                               onTap: () {
                                 setState(() {
@@ -244,12 +253,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 20.0.h),
               child: ButtonSolid(
-                text: '다음으로',
+                text: isLoading ? '가입 중...' : '다음으로',
                 textColor: AppColors.gray900,
                 boxColor: AppColors.primary400,
-                onTap: () {
-                  pushToScreen(context, NicknameScreen());
-                },
+                onTap: _signUp,
               ),
             ),
             SizedBox(height: 48.h),
@@ -257,5 +264,62 @@ class _SignUpScreenState extends State<SignUpScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _signUp() async {
+    if (isLoading) return;
+    final email = emailController.text.trim();
+    final password = passwordController.text;
+    setState(() {
+      isLoading = true;
+      isEmailError = false;
+      isPasswordError = false;
+      isPasswordConfirmError = false;
+    });
+
+    if (password != confirmPasswordController.text) {
+      setState(() {
+        isLoading = false;
+        isPasswordConfirmError = true;
+      });
+      return;
+    }
+
+    if (password.length < 8) {
+      setState(() {
+        isLoading = false;
+        isPasswordError = true;
+      });
+      return;
+    }
+
+    try {
+      if (ApiConfig.hasBaseUrl) {
+        final authService = AuthService();
+        await authService.signup(email: email, password: password);
+      } else {
+        MockUserSession.instance.loginAsMockUser(
+          email: email.isEmpty ? 'mock@muntum.app' : email,
+        );
+      }
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const SignUpCompleteScreen()),
+        (route) => false,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        isEmailError = true;
+      });
+      showAppToast(context, '$error');
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
   }
 }

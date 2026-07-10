@@ -82,7 +82,7 @@ final List<ProgramModel> mockPrograms = List.unmodifiable([
     isOverThisMonth: true,
   ),
   ProgramModel(
-    isBookmark: true,
+    isBookmark: false,
     title: '단계동 원데이 체험',
     oneLineDescription: '퇴근 후 가볍게 시작하는 하루짜리 취미',
     detail: '부담 없이 참여해 작은 결과물을 완성하는 저녁 원데이 클래스입니다.',
@@ -139,7 +139,7 @@ final List<ProgramModel> mockPrograms = List.unmodifiable([
     isOverThisMonth: false,
   ),
   ProgramModel(
-    isBookmark: true,
+    isBookmark: false,
     title: '행구동 힐링 프로그램',
     oneLineDescription: '숲 가까이에서 잠시 속도를 늦추는 시간',
     detail: '호흡과 가벼운 스트레칭으로 몸과 마음을 편안하게 돌보는 프로그램입니다.',
@@ -191,7 +191,7 @@ final List<ProgramModel> mockPrograms = List.unmodifiable([
     isOverThisMonth: false,
   ),
   ProgramModel(
-    isBookmark: true,
+    isBookmark: false,
     title: '원주 미술 워크숍',
     oneLineDescription: '여러 재료를 겹쳐 완성하는 나만의 한 장면',
     detail: '회화와 콜라주 재료를 자유롭게 조합해 개인 작품을 만드는 워크숍입니다.',
@@ -222,7 +222,7 @@ final List<ProgramModel> mockPrograms = List.unmodifiable([
     isOverThisMonth: false,
   ),
   ProgramModel(
-    isBookmark: true,
+    isBookmark: false,
     title: '뮤지엄 나이트',
     oneLineDescription: '문 닫은 뒤 시작되는 조용한 밤의 전시',
     detail: '저녁 시간 큐레이터의 해설과 음악을 함께 즐기는 야간 관람 프로그램입니다.',
@@ -274,7 +274,7 @@ final List<ProgramModel> mockPrograms = List.unmodifiable([
     isOverThisMonth: true,
   ),
   ProgramModel(
-    isBookmark: true,
+    isBookmark: false,
     title: '섬강 물빛 축제',
     oneLineDescription: '강바람과 불빛이 어우러지는 여름 축제',
     detail: '푸드 마켓과 버스킹, 야간 조명 전시를 한 자리에서 만나는 지역 축제입니다.',
@@ -326,7 +326,7 @@ final List<ProgramModel> mockPrograms = List.unmodifiable([
     isOverThisMonth: false,
   ),
   ProgramModel(
-    isBookmark: true,
+    isBookmark: false,
     title: '한국 현대미술 특별전',
     oneLineDescription: '낯선 시선으로 다시 보는 오늘의 풍경',
     detail: '회화와 설치, 미디어아트를 통해 동시대 작가들의 다양한 시선을 소개하는 특별전입니다.',
