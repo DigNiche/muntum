@@ -46,6 +46,7 @@ class _MapScreenState extends State<MapScreen> {
   NaverMapController? _mapController;
   NLatLng? _currentLocation;
   NLatLng? _initialMapCenter;
+  final Map<String, NMarker> _programMarkerRefs = {};
   Future<NOverlayImage>? _currentLocationIconFuture;
   Timer? _currentLocationPulseTimer;
   Future<void> _markerRefreshQueue = Future<void>.value();
@@ -359,6 +360,11 @@ class _MapScreenState extends State<MapScreen> {
     return 'program_${_mapPrograms.indexOf(program) + 1}';
   }
 
+  String _programSelectionKey(ProgramModel program) {
+    final id = program.id.trim();
+    return id.isNotEmpty ? id : _markerIdFor(program);
+  }
+
   List<_ProgramCluster> _clusterPrograms(
     List<ProgramModel> programs,
     double zoom,
@@ -596,7 +602,10 @@ class _MapScreenState extends State<MapScreen> {
     required bool useCurrentBounds,
   }) async {
     final cameraPosition = await controller.getCameraPosition();
-    final previouslySelectedProgramId = _selectedProgram?.id;
+    final previouslySelectedProgramKey = _selectedProgram == null
+        ? null
+        : _programSelectionKey(_selectedProgram!);
+    _programMarkerRefs.clear();
     final visiblePrograms = useCurrentBounds
         ? await _getProgramsInCurrentMapBounds(controller)
         : await _getProgramsWithinRadius(center);
@@ -621,7 +630,8 @@ class _MapScreenState extends State<MapScreen> {
 
       final isSelectedSingleMarker =
           !isCluster &&
-          cluster.programs.first.id == previouslySelectedProgramId;
+          _programSelectionKey(cluster.programs.first) ==
+              previouslySelectedProgramKey;
 
       final marker = NMarker(
         id: markerId,
@@ -637,11 +647,16 @@ class _MapScreenState extends State<MapScreen> {
                 ),
         ),
       );
+      if (!isCluster) {
+        _programMarkerRefs[_programSelectionKey(cluster.programs.first)] =
+            marker;
+      }
 
       marker.setOnTapListener((overlay) {
         if (!mounted) {
           return;
         }
+        final previousSelectedProgram = _selectedProgram;
         final tappedProgram = isCluster ? null : cluster.programs.first;
         final shouldDeselect =
             !isCluster && tappedProgram?.id == _selectedProgram?.id;
@@ -653,6 +668,13 @@ class _MapScreenState extends State<MapScreen> {
           _showSearchHereButton = false;
         });
         if (!isCluster) {
+          unawaited(
+            _applyImmediateMarkerSelection(
+              previousSelectedProgram: previousSelectedProgram,
+              currentProgram: tappedProgram!,
+              isCurrentSelected: !shouldDeselect,
+            ),
+          );
           unawaited(
             _refreshVisibleProgramsAndMarkers(
               controller,
@@ -687,10 +709,12 @@ class _MapScreenState extends State<MapScreen> {
     setState(() {
       _selectedProgram =
           visiblePrograms.any(
-            (program) => program.id == previouslySelectedProgramId,
+            (program) =>
+                _programSelectionKey(program) == previouslySelectedProgramKey,
           )
           ? visiblePrograms.firstWhere(
-              (program) => program.id == previouslySelectedProgramId,
+              (program) =>
+                  _programSelectionKey(program) == previouslySelectedProgramKey,
             )
           : null;
       _visiblePrograms = visiblePrograms;
@@ -720,12 +744,49 @@ class _MapScreenState extends State<MapScreen> {
           ? _visiblePrograms
           : _mapPrograms;
     });
+    unawaited(_setProgramMarkerSelected(selectedProgram, isSelected: false));
 
     final cameraPosition = await controller.getCameraPosition();
     await _refreshVisibleProgramsAndMarkers(
       controller,
       cameraPosition.target,
       useCurrentBounds: true,
+    );
+  }
+
+  Future<void> _applyImmediateMarkerSelection({
+    required ProgramModel? previousSelectedProgram,
+    required ProgramModel currentProgram,
+    required bool isCurrentSelected,
+  }) async {
+    if (previousSelectedProgram != null &&
+        _programSelectionKey(previousSelectedProgram) !=
+            _programSelectionKey(currentProgram)) {
+      await _setProgramMarkerSelected(
+        previousSelectedProgram,
+        isSelected: false,
+      );
+    }
+    await _setProgramMarkerSelected(
+      currentProgram,
+      isSelected: isCurrentSelected,
+    );
+  }
+
+  Future<void> _setProgramMarkerSelected(
+    ProgramModel program, {
+    required bool isSelected,
+  }) async {
+    final marker = _programMarkerRefs[_programSelectionKey(program)];
+    if (marker == null || !mounted) {
+      return;
+    }
+    marker.setIcon(
+      await NOverlayImage.fromWidget(
+        context: context,
+        size: Size(64.w, 64.w),
+        widget: ProgramMarkerIcon(program: program, isSelected: isSelected),
+      ),
     );
   }
 
