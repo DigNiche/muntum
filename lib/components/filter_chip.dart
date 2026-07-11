@@ -20,9 +20,10 @@ class FilterChipWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final shouldShowShadow = hasShadow == true;
+    final chip = Container(
       padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 14.w),
-      decoration: (hasShadow != null && hasShadow == true)
+      decoration: shouldShowShadow
           ? BoxDecoration(
               color: backgroundColor,
               borderRadius: BorderRadius.circular(AppBorderRadius.radius_8),
@@ -31,7 +32,7 @@ class FilterChipWidget extends StatelessWidget {
                   : Border.all(color: outlineColor!),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF10110F).withOpacity(0.1),
+                  color: const Color(0xFF10110F).withValues(alpha: 0.1),
                   offset: const Offset(0, 4),
                   blurRadius: 12,
                 ),
@@ -48,6 +49,15 @@ class FilterChipWidget extends StatelessWidget {
         text,
         style: AppTypography.button3.copyWith(color: textColor),
       ),
+    );
+
+    if (!shouldShowShadow) {
+      return chip;
+    }
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(2.w, 2.h, 2.w, 10.h),
+      child: chip,
     );
   }
 }

@@ -7,6 +7,7 @@ import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/button_solid.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
+import 'package:muntum/screens/mypage/terms_detail_screen.dart';
 import 'package:muntum/screens/onboarding/components/text_field_widget.dart';
 import 'package:muntum/screens/onboarding/sign_up_screens/sign_up_complete_screen.dart';
 import 'package:muntum/services/auth_service.dart';
@@ -141,7 +142,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                     child: SvgPicture.asset(
                                       'assets/icons/circle_close.svg',
                                       width: 20.w,
-                                      color: AppColors.gray600,
+                                      colorFilter: const ColorFilter.mode(
+                                        AppColors.gray600,
+                                        BlendMode.srcIn,
+                                      ),
                                     ),
                                   )
                                 : null,
@@ -166,11 +170,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                     ? 'assets/icons/visibility.svg'
                                     : 'assets/icons/visibility-false.svg',
                                 width: 20.w,
-                                color: isPasswordError
-                                    ? AppColors.gray700
-                                    : !obsecureText1 && !isPasswordError
-                                    ? AppColors.primary400
-                                    : AppColors.gray500,
+                                colorFilter: ColorFilter.mode(
+                                  isPasswordError
+                                      ? AppColors.gray700
+                                      : !obsecureText1 && !isPasswordError
+                                      ? AppColors.primary400
+                                      : AppColors.gray500,
+                                  BlendMode.srcIn,
+                                ),
                               ),
                             ),
                           ),
@@ -194,11 +201,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                     ? 'assets/icons/visibility.svg'
                                     : 'assets/icons/visibility-false.svg',
                                 width: 20.w,
-                                color: isPasswordConfirmError
-                                    ? AppColors.gray700
-                                    : !obsecureText2 && !isPasswordConfirmError
-                                    ? AppColors.primary400
-                                    : AppColors.gray500,
+                                colorFilter: ColorFilter.mode(
+                                  isPasswordConfirmError
+                                      ? AppColors.gray700
+                                      : !obsecureText2 &&
+                                            !isPasswordConfirmError
+                                      ? AppColors.primary400
+                                      : AppColors.gray500,
+                                  BlendMode.srcIn,
+                                ),
                               ),
                             ),
                           ),
@@ -228,7 +239,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ),
                   ),
                   onTap: () {
-                    print('Tab');
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            const TermsDetailScreen(title: '서비스 이용약관'),
+                      ),
+                    );
                   },
                 ),
                 SizedBox(width: 16.h),
@@ -242,7 +259,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ),
                   ),
                   onTap: () {
-                    print('Tab');
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            const TermsDetailScreen(title: '개인정보 처리방침'),
+                      ),
+                    );
                   },
                 ),
               ],

@@ -73,7 +73,7 @@ class _ReportSubmitScreenState extends State<ReportSubmitScreen> {
       );
 
       if (!mounted) return;
-      Navigator.push(
+      Navigator.pushReplacement(
         context,
         MaterialPageRoute(
           builder: (context) => ReportCompleteScreen(report: submittedReport),

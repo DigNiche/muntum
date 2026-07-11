@@ -164,9 +164,9 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                             color: AppColors.gray600,
                           ),
                         ),
-                        SizedBox(height: 40.h),
+                        SizedBox(height: 20.h),
                         Wrap(
-                          spacing: 10.w,
+                          spacing: 6.w,
                           runSpacing: 8.h,
                           children: program.keywords
                               .take(3)
@@ -185,7 +185,7 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                           ),
                           child: SizedBox(
                             width: 350.w,
-                            height: 350.h,
+                            height: 467.h,
                             child: PageView.builder(
                               controller: _posterController,
                               itemCount: program.images.isEmpty
@@ -309,7 +309,7 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                                                 overflow: TextOverflow.ellipsis,
                                                 style: AppTypography.body3
                                                     .copyWith(
-                                                      color: AppColors.gray400,
+                                                      color: AppColors.gray600,
                                                     ),
                                               ),
                                             ),
@@ -355,7 +355,7 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                             borderRadius: BorderRadius.circular(
                               AppBorderRadius.radius_8,
                             ),
-                            color: AppColors.white,
+                            color: AppColors.backgroundNormal,
                           ),
                           child: GestureDetector(
                             onTap: _openReportBottomSheet,
@@ -438,28 +438,37 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
   Future<void> _launchPhone(String phoneNumber) async {
     final normalized = phoneNumber.replaceAll(RegExp(r'[^0-9+]'), '');
     if (normalized.isEmpty) return;
-    await launchUrl(Uri(scheme: 'tel', path: normalized));
+    await launchUrl(
+      Uri(scheme: 'tel', path: normalized),
+      mode: LaunchMode.externalApplication,
+    );
   }
 
   Future<void> _launchEmail(String email) async {
-    final normalized = email.trim();
-    if (normalized.isEmpty) return;
-    await launchUrl(Uri(scheme: 'mailto', path: normalized));
+    final normalized = _extractEmail(email);
+    if (normalized == null) return;
+
+    final uri = Uri(scheme: 'mailto', path: normalized);
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!launched) {
+      await launchUrl(uri, mode: LaunchMode.platformDefault);
+    }
   }
 
   Future<void> _launchRelatedInfo(String value) async {
-    if (_isEmail(value)) {
+    if (_extractEmail(value) != null) {
       await _launchEmail(value);
       return;
     }
     await _launchPhone(value);
   }
 
-  bool _isEmail(String value) {
-    return RegExp(
-      r'^[^\s@]+@[^\s@]+\.[^\s@]+$',
+  String? _extractEmail(String value) {
+    final match = RegExp(
+      r'[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}',
       caseSensitive: false,
-    ).hasMatch(value.trim());
+    ).firstMatch(value.trim());
+    return match?.group(0);
   }
 }
 

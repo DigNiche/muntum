@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
+import 'package:muntum/screens/mypage/terms_detail_screen.dart';
 
 class TermsScreen extends StatelessWidget {
   const TermsScreen({super.key});
@@ -51,31 +52,6 @@ class TermsScreen extends StatelessWidget {
                 ),
               ],
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class TermsDetailScreen extends StatelessWidget {
-  final String title;
-
-  const TermsDetailScreen({super.key, required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.white,
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(height: 50.h),
-          AppBarWidget(
-            centerType: AppBarCenterType.text,
-            leadingIcon: 'arrow_left.svg',
-            center: title,
-            onLeadingTap: () => Navigator.pop(context),
           ),
         ],
       ),

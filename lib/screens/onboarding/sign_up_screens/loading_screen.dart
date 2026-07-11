@@ -53,8 +53,9 @@ class _LoadingScreenState extends State<LoadingScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_pendingMyNicheCoachmarkKey, true);
     if (!mounted) return;
-    Navigator.of(context).pushReplacement(
+    Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
+      (route) => false,
     );
   }
 
@@ -99,92 +100,96 @@ class _LoadingScreenState extends State<LoadingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.light,
-        statusBarBrightness: Brightness.dark,
-      ),
-      child: Scaffold(
-        backgroundColor: AppColors.backgroundDark,
-        body: Stack(
-          children: [
-            Positioned(
-              top: 275.h,
-              left: 20.w,
-              right: 20.w,
-              child: Text(
-                '$_nickname님의 취향에 맞는 프로그램을\n찾고 있어요.',
-                textAlign: TextAlign.center,
-                style: AppTypography.title4.copyWith(color: AppColors.white),
-              ),
-            ),
-            Positioned(
-              top: 370.h,
-              left: 0,
-              right: 0,
-              child: SizedBox(
-                height: 160.h,
-                child: PageView.builder(
-                  controller: _pageController,
-                  physics: const NeverScrollableScrollPhysics(),
-                  onPageChanged: (page) {
-                    _currentPage = page;
-                  },
-                  itemBuilder: (context, index) {
-                    return AnimatedBuilder(
-                      animation: _pageController,
-                      builder: (context, child) {
-                        final page = _pageController.hasClients
-                            ? (_pageController.page ?? _currentPage.toDouble())
-                            : _currentPage.toDouble();
-
-                        final distance = (index - page).clamp(-1.0, 1.0);
-                        final progress = distance.abs();
-
-                        final scale = 1 - (progress * 0.42);
-                        final verticalOffset = progress * 16.h;
-                        final opacity = 1 - (progress * 0.25);
-
-                        return Transform.translate(
-                          offset: Offset(0, verticalOffset),
-                          child: Transform(
-                            alignment: Alignment.center,
-                            transform: Matrix4.identity()
-                              ..setEntry(3, 2, 0.0015)
-                              ..rotateY(-distance * 0.28)
-                              ..scaleByDouble(scale, scale, scale, 1),
-                            child: Opacity(opacity: opacity, child: child),
-                          ),
-                        );
-                      },
-                      child: Center(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(10.r),
-                          child: SizedBox(
-                            width: 120.w,
-                            height: 160.h,
-                            child: _thumbnailUrls.isEmpty
-                                ? const ColoredBox(color: AppColors.gray200)
-                                : Image.network(
-                                    _thumbnailUrls[index %
-                                        _thumbnailUrls.length],
-                                    fit: BoxFit.cover,
-                                    errorBuilder:
-                                        (context, error, stackTrace) =>
-                                            const ColoredBox(
-                                              color: AppColors.gray200,
-                                            ),
-                                  ),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
+    return PopScope(
+      canPop: false,
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
+        ),
+        child: Scaffold(
+          backgroundColor: AppColors.backgroundDark,
+          body: Stack(
+            children: [
+              Positioned(
+                top: 275.h,
+                left: 20.w,
+                right: 20.w,
+                child: Text(
+                  '$_nickname님의 취향에 맞는 프로그램을\n찾고 있어요.',
+                  textAlign: TextAlign.center,
+                  style: AppTypography.title4.copyWith(color: AppColors.white),
                 ),
               ),
-            ),
-          ],
+              Positioned(
+                top: 370.h,
+                left: 0,
+                right: 0,
+                child: SizedBox(
+                  height: 160.h,
+                  child: PageView.builder(
+                    controller: _pageController,
+                    physics: const NeverScrollableScrollPhysics(),
+                    onPageChanged: (page) {
+                      _currentPage = page;
+                    },
+                    itemBuilder: (context, index) {
+                      return AnimatedBuilder(
+                        animation: _pageController,
+                        builder: (context, child) {
+                          final page = _pageController.hasClients
+                              ? (_pageController.page ??
+                                    _currentPage.toDouble())
+                              : _currentPage.toDouble();
+
+                          final distance = (index - page).clamp(-1.0, 1.0);
+                          final progress = distance.abs();
+
+                          final scale = 1 - (progress * 0.42);
+                          final verticalOffset = progress * 16.h;
+                          final opacity = 1 - (progress * 0.25);
+
+                          return Transform.translate(
+                            offset: Offset(0, verticalOffset),
+                            child: Transform(
+                              alignment: Alignment.center,
+                              transform: Matrix4.identity()
+                                ..setEntry(3, 2, 0.0015)
+                                ..rotateY(-distance * 0.28)
+                                ..scaleByDouble(scale, scale, scale, 1),
+                              child: Opacity(opacity: opacity, child: child),
+                            ),
+                          );
+                        },
+                        child: Center(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(10.r),
+                            child: SizedBox(
+                              width: 120.w,
+                              height: 160.h,
+                              child: _thumbnailUrls.isEmpty
+                                  ? const ColoredBox(color: AppColors.gray200)
+                                  : Image.network(
+                                      _thumbnailUrls[index %
+                                          _thumbnailUrls.length],
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) =>
+                                              const ColoredBox(
+                                                color: AppColors.gray200,
+                                              ),
+                                    ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

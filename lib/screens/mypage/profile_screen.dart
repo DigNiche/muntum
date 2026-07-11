@@ -146,7 +146,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: SvgPicture.asset(
                     'assets/icons/setting.svg',
                     width: 24.w,
-                    color: AppColors.gray900,
+                    colorFilter: const ColorFilter.mode(
+                      AppColors.gray900,
+                      BlendMode.srcIn,
+                    ),
                   ),
                 ),
                 firstTextColor: AppColors.gray900,
@@ -167,7 +170,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          CircleAvatar(radius: 28.r),
+                          SvgPicture.asset(
+                            'assets/profile_image.svg',
+                            width: 56.r,
+                            height: 56.r,
+                          ),
                           SizedBox(width: 16.w),
                           Expanded(
                             child: FutureBuilder<String?>(
@@ -185,7 +192,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             child: SvgPicture.asset(
                               'assets/icons/edit.svg',
                               width: 18.w,
-                              color: AppColors.gray400,
+                              colorFilter: const ColorFilter.mode(
+                                AppColors.gray400,
+                                BlendMode.srcIn,
+                              ),
                             ),
                           ),
                           SizedBox(width: 8.w),

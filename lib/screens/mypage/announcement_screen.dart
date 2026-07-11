@@ -4,6 +4,7 @@ import 'package:muntum/components/appbar.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/models/announcement_model.dart';
+import 'package:muntum/screens/mypage/announcement_detail_screen.dart';
 import 'package:muntum/services/announcement_service.dart';
 
 class AnnouncementScreen extends StatefulWidget {
@@ -69,29 +70,42 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
                   padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 32.h),
                   itemBuilder: (context, index) {
                     final announcement = announcements[index];
-                    return Padding(
-                      padding: EdgeInsets.symmetric(vertical: 4.h),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            announcement.title.isEmpty
-                                ? '공지사항 제목'
-                                : announcement.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTypography.headline1.copyWith(
-                              color: AppColors.gray900,
+                    return GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AnnouncementDetailScreen(
+                              announcement: announcement,
                             ),
                           ),
-                          SizedBox(height: 8.h),
-                          Text(
-                            _formatDate(announcement.createdAt),
-                            style: AppTypography.body3.copyWith(
-                              color: AppColors.gray500,
+                        );
+                      },
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 4.h),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              announcement.title.isEmpty
+                                  ? '공지사항 제목'
+                                  : announcement.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTypography.button2.copyWith(
+                                color: AppColors.gray900,
+                              ),
                             ),
-                          ),
-                        ],
+                            SizedBox(height: 8.h),
+                            Text(
+                              _formatDate(announcement.createdAt),
+                              style: AppTypography.caption1.copyWith(
+                                color: AppColors.gray500,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   },

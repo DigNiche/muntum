@@ -46,6 +46,8 @@ class _MapScreenState extends State<MapScreen> {
   NaverMapController? _mapController;
   NLatLng? _currentLocation;
   NLatLng? _initialMapCenter;
+  Future<NOverlayImage>? _currentLocationIconFuture;
+  Timer? _currentLocationPulseTimer;
   Future<void> _markerRefreshQueue = Future<void>.value();
 
   bool _locationInitializationStarted = false;
@@ -58,6 +60,7 @@ class _MapScreenState extends State<MapScreen> {
   static const double _sheetMaxSize = 0.78;
   static const double _searchRadiusMeters = 5000;
   static const double _initialZoom = 12.2;
+  static const int _currentLocationPulseDurationMs = 1800;
   static const NLatLng _yongsanStationInitialTarget = NLatLng(
     37.529849,
     126.964561,
@@ -78,6 +81,9 @@ class _MapScreenState extends State<MapScreen> {
     super.didUpdateWidget(oldWidget);
     if (!oldWidget.isActive && widget.isActive) {
       _initializeCurrentLocation();
+      _startCurrentLocationPulse();
+    } else if (oldWidget.isActive && !widget.isActive) {
+      _stopCurrentLocationPulse();
     }
   }
 
@@ -438,7 +444,7 @@ class _MapScreenState extends State<MapScreen> {
 
       final currentLocation = NLatLng(position.latitude, position.longitude);
       _currentLocation = currentLocation;
-      _updateCurrentLocationOverlay(controller, currentLocation);
+      await _updateCurrentLocationOverlay(controller, currentLocation);
       await _focusOnSearchRadiusAndRefresh(
         controller,
         currentLocation,
@@ -457,12 +463,65 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  void _updateCurrentLocationOverlay(
+  Future<void> _updateCurrentLocationOverlay(
     NaverMapController controller,
     NLatLng location,
-  ) {
+  ) async {
     final locationOverlay = controller.getLocationOverlay();
+    locationOverlay.setIsVisible(true);
     locationOverlay.setPosition(location);
+    locationOverlay.setCircleColor(
+      const Color(0xFF2F80ED).withValues(alpha: 0.2),
+    );
+    locationOverlay.setCircleOutlineColor(Colors.transparent);
+    locationOverlay.setCircleOutlineWidth(0);
+    locationOverlay.setCircleRadius(24.r);
+    locationOverlay.setSubIcon(null);
+    locationOverlay.setIconSize(Size(20.r, 20.r));
+    locationOverlay.setIcon(await _getCurrentLocationIcon());
+    _startCurrentLocationPulse();
+  }
+
+  Future<NOverlayImage> _getCurrentLocationIcon() {
+    return _currentLocationIconFuture ??= NOverlayImage.fromWidget(
+      context: context,
+      size: Size(20.r, 20.r),
+      widget: const _CurrentLocationPinIcon(),
+    );
+  }
+
+  void _startCurrentLocationPulse() {
+    if (!mounted || !widget.isActive || _currentLocationPulseTimer != null) {
+      return;
+    }
+
+    final startedAt = DateTime.now();
+    _currentLocationPulseTimer = Timer.periodic(
+      const Duration(milliseconds: 80),
+      (_) {
+        final controller = _mapController;
+        if (!mounted || !widget.isActive || controller == null) {
+          _stopCurrentLocationPulse();
+          return;
+        }
+
+        final elapsedMs = DateTime.now().difference(startedAt).inMilliseconds;
+        final progress =
+            (elapsedMs % _currentLocationPulseDurationMs) /
+            _currentLocationPulseDurationMs;
+        final wave = (math.sin(progress * math.pi * 2 - math.pi / 2) + 1) / 2;
+        final alpha = 0.12 + (wave * 0.18);
+
+        controller.getLocationOverlay().setCircleColor(
+          const Color(0xFF2F80ED).withValues(alpha: alpha),
+        );
+      },
+    );
+  }
+
+  void _stopCurrentLocationPulse() {
+    _currentLocationPulseTimer?.cancel();
+    _currentLocationPulseTimer = null;
   }
 
   Future<void> _focusOnSearchRadiusAndRefresh(
@@ -569,7 +628,7 @@ class _MapScreenState extends State<MapScreen> {
         position: NLatLng(cluster.latitude, cluster.longitude),
         icon: await NOverlayImage.fromWidget(
           context: context,
-          size: Size(48.w, 48.w),
+          size: Size(isCluster ? 48.w : 64.w, isCluster ? 48.w : 64.w),
           widget: isCluster
               ? _ClusterMarkerIcon(count: cluster.programs.length)
               : ProgramMarkerIcon(
@@ -583,9 +642,14 @@ class _MapScreenState extends State<MapScreen> {
         if (!mounted) {
           return;
         }
+        final tappedProgram = isCluster ? null : cluster.programs.first;
+        final shouldDeselect =
+            !isCluster && tappedProgram?.id == _selectedProgram?.id;
         setState(() {
-          _selectedProgram = isCluster ? null : cluster.programs.first;
-          _visiblePrograms = cluster.programs;
+          _selectedProgram = shouldDeselect ? null : tappedProgram;
+          _visiblePrograms = shouldDeselect
+              ? visiblePrograms
+              : cluster.programs;
           _showSearchHereButton = false;
         });
         if (!isCluster) {
@@ -642,6 +706,29 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
+  Future<void> _clearSelectedProgram() async {
+    final selectedProgram = _selectedProgram;
+    final controller = _mapController;
+    if (selectedProgram == null || controller == null) {
+      return;
+    }
+
+    setState(() {
+      _selectedProgram = null;
+      _visiblePrograms =
+          _visiblePrograms.any((program) => program.id == selectedProgram.id)
+          ? _visiblePrograms
+          : _mapPrograms;
+    });
+
+    final cameraPosition = await controller.getCameraPosition();
+    await _refreshVisibleProgramsAndMarkers(
+      controller,
+      cameraPosition.target,
+      useCurrentBounds: true,
+    );
+  }
+
   Future<void> _precacheMarkerImage(ProgramModel program) async {
     if (!mounted || program.imageUrls.isEmpty) {
       return;
@@ -659,6 +746,7 @@ class _MapScreenState extends State<MapScreen> {
 
   @override
   void dispose() {
+    _stopCurrentLocationPulse();
     _searchbarController.dispose();
     _sheetController.dispose();
     super.dispose();
@@ -694,7 +782,7 @@ class _MapScreenState extends State<MapScreen> {
             _mapController = controller;
             final currentLocation = _currentLocation;
             if (currentLocation != null) {
-              _updateCurrentLocationOverlay(controller, currentLocation);
+              await _updateCurrentLocationOverlay(controller, currentLocation);
             }
             await _focusOnSearchRadiusAndRefresh(
               controller,
@@ -711,6 +799,9 @@ class _MapScreenState extends State<MapScreen> {
                 _showSearchHereButton = true;
               });
             }
+          },
+          onMapTapped: (point, latLng) {
+            unawaited(_clearSelectedProgram());
           },
         ),
         Column(
@@ -843,6 +934,29 @@ class _ClusterMarkerIcon extends StatelessWidget {
       child: Text(
         '$count',
         style: AppTypography.headline1.copyWith(color: AppColors.white),
+      ),
+    );
+  }
+}
+
+class _CurrentLocationPinIcon extends StatelessWidget {
+  const _CurrentLocationPinIcon();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 20,
+      height: 20,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: const Color(0xFF2F80ED),
+        border: Border.all(color: AppColors.white, width: 3),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF2F80ED).withValues(alpha: 0.22),
+            blurRadius: 2,
+          ),
+        ],
       ),
     );
   }

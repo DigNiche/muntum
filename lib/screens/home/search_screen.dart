@@ -622,6 +622,7 @@ class _SearchScreenState extends State<SearchScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SectionHeader3(text: '프로그램 ${results.length}개', buttonName: ''),
+                SizedBox(height: 12.h),
                 Expanded(
                   child: ListView.separated(
                     padding: EdgeInsets.zero,

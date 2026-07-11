@@ -311,7 +311,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _routeAfterApiLogin(String? nickname) async {
     if (nickname == null || nickname.trim().isEmpty) {
-      Navigator.push(
+      Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const NicknameScreen()),
       );
@@ -324,16 +324,17 @@ class _LoginScreenState extends State<LoginScreen> {
     );
     if (!mounted) return;
     if (keywords.selectedKeywords.length < 3) {
-      Navigator.push(
+      Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const KeywordScreen()),
       );
       return;
     }
 
-    Navigator.pushReplacement(
+    Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
+      (route) => false,
     );
   }
 }
