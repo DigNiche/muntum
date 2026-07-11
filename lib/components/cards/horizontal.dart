@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
-import 'package:flutter_svg/svg.dart';
+import 'package:muntum/components/animated_scrap_icon.dart';
 import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
-import 'package:muntum/data/mock_user_data.dart';
 import 'package:muntum/models/program_model.dart';
 import 'package:muntum/screens/program_detail/program_detail_screen.dart';
+import 'package:muntum/stores/program_scrap_store.dart';
 import 'package:muntum/utils/program_scrap.dart';
 
 class HorizontalCard extends StatelessWidget {
@@ -61,18 +61,15 @@ class HorizontalCard extends StatelessWidget {
                       child: Padding(
                         padding: EdgeInsets.all(4.r),
                         child: ListenableBuilder(
-                          listenable: MockBookmarkStore.instance,
+                          listenable: ProgramScrapStore.instance,
                           builder: (context, _) {
-                            final isBookmarked = MockBookmarkStore.instance
-                                .isBookmarked(program);
-                            return SvgPicture.asset(
-                              isBookmarked
-                                  ? 'assets/icons/scrap-filled.svg'
-                                  : 'assets/icons/scrap.svg',
-                              width: 24.w,
-                              color: isBookmarked
-                                  ? AppColors.primary400
-                                  : AppColors.gray400,
+                            final isBookmarked = ProgramScrapStore.instance
+                                .isScrapped(program);
+                            return AnimatedScrapIcon(
+                              isScrapped: isBookmarked,
+                              size: 24,
+                              activeColor: AppColors.primary400,
+                              inactiveColor: AppColors.gray400,
                             );
                           },
                         ),
@@ -89,7 +86,7 @@ class HorizontalCard extends StatelessWidget {
                 ),
                 SizedBox(height: 2.h),
                 Text(
-                  program.startEndDates,
+                  program.cardDateText,
                   style: AppTypography.caption1.copyWith(
                     color: AppColors.gray700,
                   ),

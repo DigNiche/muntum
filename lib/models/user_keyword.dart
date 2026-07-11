@@ -1,4 +1,4 @@
-List<String> entireKeywords = [
+Set<String> entireKeywords = {
   '쉽게 해석되지 않는',
   '갓생살기',
   '야외에서 즐기는',
@@ -29,6 +29,4 @@ List<String> entireKeywords = [
   '내 손으로 만드는',
   '도파민디톡스',
   '여운이 남는',
-];
-
-List<String> userKeywords = ['느긋하게 힐링하는', '생생한 감각', '깊은 대화 나누는'];
+};

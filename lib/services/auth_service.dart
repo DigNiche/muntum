@@ -89,8 +89,17 @@ class AuthService {
     }
   }
 
-  Future<void> requestPasswordCode(String email) async {
-    await _client.post(ApiEndpoints.passwordFind, body: {'email': email});
+  Future<PasswordFindResult> requestPasswordCode(String email) async {
+    final response = await _client.post(
+      ApiEndpoints.passwordFind,
+      body: {'email': email},
+    );
+    return ApiResponse.fromJson(
+      response,
+      (data) => PasswordFindResult.fromJson(
+        data as Map<String, dynamic>? ?? const {},
+      ),
+    ).data;
   }
 
   Future<PasswordVerifyResult> verifyPasswordCode({

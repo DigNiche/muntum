@@ -43,7 +43,7 @@ class ReportDetailScreen extends StatelessWidget {
                   ),
                   SizedBox(height: 14.h),
                   Text(
-                    report.place.name,
+                    report.place.address,
                     style: AppTypography.body3.copyWith(
                       color: AppColors.gray900,
                     ),
@@ -60,7 +60,7 @@ class ReportDetailScreen extends StatelessWidget {
                       SizedBox(width: 4.w),
                       Expanded(
                         child: Text(
-                          report.place.address,
+                          report.place.name,
                           style: AppTypography.caption1.copyWith(
                             color: AppColors.gray500,
                           ),

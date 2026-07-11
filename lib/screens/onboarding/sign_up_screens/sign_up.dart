@@ -2,16 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:muntum/api/api_exception.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/button_solid.dart';
-import 'package:muntum/api/api_config.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
-import 'package:muntum/data/mock_user_data.dart';
 import 'package:muntum/screens/onboarding/components/text_field_widget.dart';
 import 'package:muntum/screens/onboarding/sign_up_screens/sign_up_complete_screen.dart';
 import 'package:muntum/services/auth_service.dart';
-import 'package:muntum/utils/app_toast.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -28,18 +26,22 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final FocusNode emailFocusNode = FocusNode();
   final FocusNode passwordFocusNode = FocusNode();
   final FocusNode confirmPasswordFocusNode = FocusNode();
-  bool obsecureText1 = false;
-  bool obsecureText2 = false;
+  bool obsecureText1 = true;
+  bool obsecureText2 = true;
   bool isPasswordError = false;
   bool isPasswordConfirmError = false;
   bool isEmailError = false;
   bool isLoading = false;
+  String _emailErrorText = '이메일 형식이 올바르지 않습니다.';
+  String _passwordErrorText = '비밀번호가 조건에 맞지 않습니다.';
 
   @override
   void initState() {
     super.initState();
     emailController.addListener(() {
-      setState(() {});
+      setState(() {
+        isEmailError = false;
+      });
     });
     passwordController.addListener(() {
       setState(() {
@@ -127,7 +129,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             controller: emailController,
                             obscureText: false,
                             isError: isEmailError,
-                            errorText: '이미 가입된 이메일 입니다.',
+                            errorText: _emailErrorText,
                             keyboardType: TextInputType.emailAddress,
                             suffixIcon:
                                 emailFocusNode.hasFocus &&
@@ -147,12 +149,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           SizedBox(height: 12.h),
                           // password
                           TextFieldWidget(
-                            hintText: '8자 이상 입력해 주세요.',
+                            hintText: '영문, 숫자, 특수문자 포함 8자 이상',
                             focusNode: passwordFocusNode,
                             controller: passwordController,
                             obscureText: obsecureText1,
                             isError: isPasswordError,
-                            errorText: '비밀번호가 조건에 맞지 않습니다.(8자 이상)',
+                            errorText: _passwordErrorText,
                             suffixIcon: GestureDetector(
                               onTap: () {
                                 setState(() {
@@ -160,15 +162,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 });
                               },
                               child: SvgPicture.asset(
-                                obsecureText1
+                                !obsecureText1
                                     ? 'assets/icons/visibility.svg'
                                     : 'assets/icons/visibility-false.svg',
                                 width: 20.w,
                                 color: isPasswordError
                                     ? AppColors.gray700
-                                    : obsecureText1 &&
-                                          passwordFocusNode.hasFocus &&
-                                          !isPasswordError
+                                    : !obsecureText1 && !isPasswordError
                                     ? AppColors.primary400
                                     : AppColors.gray500,
                               ),
@@ -190,15 +190,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 });
                               },
                               child: SvgPicture.asset(
-                                obsecureText2
+                                !obsecureText2
                                     ? 'assets/icons/visibility.svg'
                                     : 'assets/icons/visibility-false.svg',
                                 width: 20.w,
                                 color: isPasswordConfirmError
                                     ? AppColors.gray700
-                                    : obsecureText2 &&
-                                          confirmPasswordFocusNode.hasFocus &&
-                                          !isPasswordConfirmError
+                                    : !obsecureText2 && !isPasswordConfirmError
                                     ? AppColors.primary400
                                     : AppColors.gray500,
                               ),
@@ -270,14 +268,35 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (isLoading) return;
     final email = emailController.text.trim();
     final password = passwordController.text;
+    final confirmPassword = confirmPasswordController.text;
     setState(() {
       isLoading = true;
       isEmailError = false;
       isPasswordError = false;
       isPasswordConfirmError = false;
+      _emailErrorText = '이메일 형식이 올바르지 않습니다.';
+      _passwordErrorText = '비밀번호가 조건에 맞지 않습니다.';
     });
 
-    if (password != confirmPasswordController.text) {
+    if (!_isValidEmail(email)) {
+      setState(() {
+        isLoading = false;
+        isEmailError = true;
+        _emailErrorText = '이메일 형식이 올바르지 않습니다.';
+      });
+      return;
+    }
+
+    if (!_isValidPassword(password)) {
+      setState(() {
+        isLoading = false;
+        isPasswordError = true;
+        _passwordErrorText = '영문, 숫자, 특수문자 포함 8자 이상이어야 합니다.';
+      });
+      return;
+    }
+
+    if (password != confirmPassword) {
       setState(() {
         isLoading = false;
         isPasswordConfirmError = true;
@@ -285,23 +304,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
       return;
     }
 
-    if (password.length < 8) {
-      setState(() {
-        isLoading = false;
-        isPasswordError = true;
-      });
-      return;
-    }
-
     try {
-      if (ApiConfig.hasBaseUrl) {
-        final authService = AuthService();
-        await authService.signup(email: email, password: password);
-      } else {
-        MockUserSession.instance.loginAsMockUser(
-          email: email.isEmpty ? 'mock@muntum.app' : email,
-        );
-      }
+      final authService = AuthService();
+      await authService.signup(email: email, password: password);
+
       if (!mounted) return;
       Navigator.pushAndRemoveUntil(
         context,
@@ -310,10 +316,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       );
     } catch (error) {
       if (!mounted) return;
-      setState(() {
-        isEmailError = true;
-      });
-      showAppToast(context, '$error');
+      _setSignUpError(error);
     } finally {
       if (mounted) {
         setState(() {
@@ -321,5 +324,40 @@ class _SignUpScreenState extends State<SignUpScreen> {
         });
       }
     }
+  }
+
+  bool _isValidEmail(String email) {
+    return RegExp(
+      r'^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$',
+    ).hasMatch(email);
+  }
+
+  bool _isValidPassword(String password) {
+    return RegExp(
+      r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$',
+    ).hasMatch(password);
+  }
+
+  void _setSignUpError(Object error) {
+    final code = error is ApiException ? error.code ?? '' : '';
+    final message = error is ApiException ? error.message : error.toString();
+    final normalized = '$code $message'.toLowerCase();
+    final isPasswordFailure =
+        normalized.contains('password') ||
+        normalized.contains('비밀번호') ||
+        normalized.contains('영문') ||
+        normalized.contains('특수문자');
+
+    setState(() {
+      if (isPasswordFailure) {
+        isPasswordError = true;
+        _passwordErrorText = '영문, 숫자, 특수문자 포함 8자 이상이어야 합니다.';
+      } else {
+        isEmailError = true;
+        _emailErrorText = normalized.contains('형식')
+            ? '이메일 형식이 올바르지 않습니다.'
+            : '이미 가입된 이메일 입니다.';
+      }
+    });
   }
 }

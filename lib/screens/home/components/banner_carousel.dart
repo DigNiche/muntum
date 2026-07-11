@@ -14,25 +14,53 @@ class BannerCarousel extends StatefulWidget {
 }
 
 class _BannerCarouselState extends State<BannerCarousel> {
-  final PageController _pageController = PageController();
+  late final PageController _pageController;
   int currentIndex = 0;
 
   @override
+  void initState() {
+    super.initState();
+    final initialPage = widget.programs.isEmpty
+        ? 0
+        : widget.programs.length * 1000;
+    _pageController = PageController(initialPage: initialPage);
+  }
+
+  @override
+  void didUpdateWidget(covariant BannerCarousel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.programs.length != widget.programs.length) {
+      currentIndex = 0;
+    }
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (widget.programs.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
     return Column(
       children: [
         SizedBox(
           height: 292.5.h,
           child: PageView.builder(
             controller: _pageController,
-            itemCount: widget.programs.length,
             onPageChanged: (index) {
               setState(() {
-                currentIndex = index;
+                currentIndex = index % widget.programs.length;
               });
             },
             itemBuilder: (context, index) {
-              return BannerCard(program: widget.programs[index]);
+              return BannerCard(
+                program: widget.programs[index % widget.programs.length],
+              );
             },
           ),
         ),

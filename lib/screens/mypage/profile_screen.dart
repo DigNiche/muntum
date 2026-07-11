@@ -4,13 +4,10 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/components/button_solid.dart';
 import 'package:muntum/components/page_header.dart';
 import 'package:muntum/components/popup_widget.dart';
-import 'package:muntum/api/api_config.dart';
 import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/api/token_store.dart';
-import 'package:muntum/data/mock_report_data.dart';
-import 'package:muntum/data/mock_user_data.dart';
 import 'package:muntum/screens/mypage/account_mange_screen.dart';
 import 'package:muntum/screens/mypage/announcement_screen.dart';
 import 'package:muntum/screens/mypage/components/profile_menu_item.dart';
@@ -25,6 +22,7 @@ import 'package:muntum/screens/mypage/version_info_screen.dart';
 import 'package:muntum/screens/onboarding/login_screen.dart';
 import 'package:muntum/services/suggestion_service.dart';
 import 'package:muntum/services/taste_service.dart';
+import 'package:muntum/stores/user_preference_store.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -43,7 +41,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    MockUserSession.instance.addListener(_reloadProfile);
+    UserPreferenceStore.instance.addListener(_reloadProfile);
     _isLoggedInFuture = _loadIsLoggedIn();
     _nicknameFuture = Future<String?>.value();
     _keywordCountFuture = Future<int>.value(0);
@@ -52,32 +50,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   void dispose() {
-    MockUserSession.instance.removeListener(_reloadProfile);
+    UserPreferenceStore.instance.removeListener(_reloadProfile);
     super.dispose();
   }
 
   Future<String?> _loadNickname() async {
-    if (!ApiConfig.hasBaseUrl) {
-      return MockUserSession.instance.nickname;
-    }
     return TokenStore.instance.readNickname();
   }
 
   Future<int> _loadKeywordCount() async {
-    if (!ApiConfig.hasBaseUrl) {
-      return MockUserSession.instance.selectedKeywords.length;
-    }
     final result = await TasteService().fetchMyKeywords();
-    MockUserSession.instance.updateKeywords(
+    UserPreferenceStore.instance.updateKeywords(
       result.selectedKeywords.map((keyword) => keyword.name),
     );
     return result.selectedKeywords.length;
   }
 
   Future<int> _loadReportCount() async {
-    if (!ApiConfig.hasBaseUrl) {
-      return mockReports.length;
-    }
     final result = await SuggestionService().fetchMySuggestions(size: 1);
     return result.totalElements == 0
         ? result.content.length
@@ -113,7 +102,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Navigator.pop(context);
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const LoginScreen()),
+            MaterialPageRoute(
+              builder: (context) => const LoginScreen(showBackButton: true),
+            ),
           );
         },
       );
@@ -340,7 +331,7 @@ class _GuestProfileContent extends StatelessWidget {
             SizedBox(height: 36.h),
             IntrinsicWidth(
               child: ButtonSolid(
-                text: '로그인 하기',
+                text: '로그인하기',
                 textColor: AppColors.white,
                 boxColor: AppColors.black,
                 padding: EdgeInsets.fromLTRB(20.w, 11.h, 20.w, 10.h),
@@ -348,7 +339,8 @@ class _GuestProfileContent extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const LoginScreen(),
+                      builder: (context) =>
+                          const LoginScreen(showBackButton: true),
                     ),
                   );
                 },
@@ -369,9 +361,6 @@ Future<T?> pushToScreen<T>(BuildContext context, Widget screen) {
 }
 
 Future<bool> _loadIsLoggedIn() async {
-  if (!ApiConfig.hasBaseUrl) {
-    return MockUserSession.instance.isLoggedIn;
-  }
   final accessToken = TokenStore.instance.accessToken;
   if (accessToken != null && accessToken.isNotEmpty) return true;
   final refreshToken = await TokenStore.instance.readRefreshToken();

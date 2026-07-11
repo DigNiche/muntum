@@ -78,6 +78,27 @@ class SearchService {
         .toList();
   }
 
+  Future<void> saveRecentSearch(String keyword) async {
+    final trimmed = keyword.trim();
+    if (trimmed.isEmpty) return;
+
+    try {
+      await _client.post(
+        ApiEndpoints.recentSearch,
+        authorized: true,
+        queryParameters: {'query': trimmed},
+        body: {'query': trimmed},
+      );
+    } catch (_) {
+      await _client.post(
+        ApiEndpoints.recentSearch,
+        authorized: true,
+        queryParameters: {'query': trimmed},
+        body: {'keyword': trimmed},
+      );
+    }
+  }
+
   Future<void> deleteRecentSearch(String keyword) async {
     await _client.delete(
       ApiEndpoints.recentSearch,

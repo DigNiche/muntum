@@ -13,6 +13,7 @@ import 'package:muntum/components/filter_chip.dart';
 import 'package:muntum/components/popup_widget.dart';
 import 'package:muntum/models/program_model.dart';
 import 'package:muntum/screens/home/components/searchbar.dart';
+import 'package:muntum/screens/home/search_screen.dart';
 import 'package:muntum/screens/map/components/findin_current_location.dart';
 import 'package:muntum/screens/map/components/map_bottom_sheet.dart';
 import 'package:muntum/screens/map/components/program_marker_icon.dart';
@@ -30,7 +31,6 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
-  // TODO: Can't search at same time with filter chip
   final _searchbarController = TextEditingController();
   final DraggableScrollableController _sheetController =
       DraggableScrollableController();
@@ -58,7 +58,10 @@ class _MapScreenState extends State<MapScreen> {
   static const double _sheetMaxSize = 0.78;
   static const double _searchRadiusMeters = 5000;
   static const double _initialZoom = 12.2;
-  static const NLatLng _wonjuInitialTarget = NLatLng(37.3422, 127.9202);
+  static const NLatLng _yongsanStationInitialTarget = NLatLng(
+    37.529849,
+    126.964561,
+  );
 
   bool _showSearchHereButton = false;
 
@@ -85,7 +88,7 @@ class _MapScreenState extends State<MapScreen> {
     _locationInitializationStarted = true;
     _setLocating(true);
 
-    NLatLng initialCenter = _wonjuInitialTarget;
+    NLatLng initialCenter = _yongsanStationInitialTarget;
     String? errorMessage;
     var permissionDenied = false;
 
@@ -182,7 +185,6 @@ class _MapScreenState extends State<MapScreen> {
     showAppToast(context, message);
   }
 
-  // TODO: Add Listener to listen for permission
   Future<void> _showLocationPermissionPopup() async {
     if (!mounted || _isLocationPermissionPopupVisible) {
       return;
@@ -246,6 +248,49 @@ class _MapScreenState extends State<MapScreen> {
     return visiblePrograms;
   }
 
+  Future<List<ProgramModel>> _getProgramsInCurrentMapBounds(
+    NaverMapController controller,
+  ) async {
+    final programs = await _fetchMapCandidatePrograms();
+    _mapPrograms = programs;
+    final bounds = await controller.getContentBounds(withPadding: false);
+
+    final visiblePrograms = programs.where((program) {
+      final latitude = program.latitude;
+      final longitude = program.longitude;
+      if (latitude == null || longitude == null) return false;
+      return bounds.containsPoint(NLatLng(latitude, longitude));
+    }).toList();
+
+    visiblePrograms.sort((a, b) {
+      final center = bounds.center;
+      final aLatitude = a.latitude;
+      final aLongitude = a.longitude;
+      final bLatitude = b.latitude;
+      final bLongitude = b.longitude;
+      if (aLatitude == null ||
+          aLongitude == null ||
+          bLatitude == null ||
+          bLongitude == null) {
+        return 0;
+      }
+      final aDistance = _distanceInMeters(
+        center.latitude,
+        center.longitude,
+        aLatitude,
+        aLongitude,
+      );
+      final bDistance = _distanceInMeters(
+        center.latitude,
+        center.longitude,
+        bLatitude,
+        bLongitude,
+      );
+      return aDistance.compareTo(bDistance);
+    });
+    return visiblePrograms;
+  }
+
   Future<List<ProgramModel>> _fetchMapCandidatePrograms() async {
     final service = ProgramService();
     try {
@@ -265,46 +310,11 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  Future<void> _submitMapSearch(String value) async {
-    final query = value.trim();
-    setState(() {
-      _mapSearchQuery = query;
-      if (query.isNotEmpty) {
-        _selectedFilter = null;
-      }
-    });
-
-    final controller = _mapController;
-    if (controller == null) {
-      return;
-    }
-
-    final matchedPrograms = await _fetchMapCandidatePrograms();
-    if (query.isNotEmpty && matchedPrograms.isNotEmpty) {
-      final firstMatch = matchedPrograms.firstWhere(
-        (program) => program.latitude != null && program.longitude != null,
-        orElse: () => matchedPrograms.first,
-      );
-      if (firstMatch.latitude == null || firstMatch.longitude == null) {
-        await _refreshAtCurrentMapCenter();
-        return;
-      }
-      await _focusOnSearchRadiusAndRefresh(
-        controller,
-        NLatLng(firstMatch.latitude!, firstMatch.longitude!),
-        animated: true,
-      );
-      return;
-    }
-
-    await _refreshAtCurrentMapCenter();
-  }
-
-  Future<void> _clearMapSearch() async {
-    setState(() {
-      _mapSearchQuery = '';
-    });
-    await _refreshAtCurrentMapCenter();
+  void _openSearchScreen() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const SearchScreen()),
+    );
   }
 
   Future<void> _toggleMapFilter(Filter filter) async {
@@ -379,10 +389,11 @@ class _MapScreenState extends State<MapScreen> {
 
   double _clusterThresholdMeters(double zoom) {
     if (zoom < 12) return 900;
-    if (zoom < 13.5) return 500;
-    if (zoom < 15) return 180;
-    if (zoom < 16.5) return 70;
-    return 25;
+    if (zoom < 13.5) return 450;
+    if (zoom < 15) return 120;
+    if (zoom < 16) return 40;
+    if (zoom < 17) return 12;
+    return 0;
   }
 
   double _distanceInMeters(double lat1, double lng1, double lat2, double lng2) {
@@ -405,10 +416,10 @@ class _MapScreenState extends State<MapScreen> {
     }
 
     final cameraPosition = await controller.getCameraPosition();
-    await _focusOnSearchRadiusAndRefresh(
+    await _refreshVisibleProgramsAndMarkers(
       controller,
       cameraPosition.target,
-      animated: true,
+      useCurrentBounds: true,
     );
   }
 
@@ -496,8 +507,9 @@ class _MapScreenState extends State<MapScreen> {
 
   Future<void> _refreshVisibleProgramsAndMarkers(
     NaverMapController controller,
-    NLatLng center,
-  ) async {
+    NLatLng center, {
+    bool useCurrentBounds = false,
+  }) async {
     final requestGeneration = ++_markerRefreshGeneration;
     final previousRefresh = _markerRefreshQueue;
     final refresh = () async {
@@ -505,7 +517,11 @@ class _MapScreenState extends State<MapScreen> {
       if (!mounted || requestGeneration != _markerRefreshGeneration) {
         return;
       }
-      await _performMarkerRefresh(controller, center);
+      await _performMarkerRefresh(
+        controller,
+        center,
+        useCurrentBounds: useCurrentBounds,
+      );
     }();
 
     _markerRefreshQueue = refresh.then<void>(
@@ -517,10 +533,14 @@ class _MapScreenState extends State<MapScreen> {
 
   Future<void> _performMarkerRefresh(
     NaverMapController controller,
-    NLatLng center,
-  ) async {
+    NLatLng center, {
+    required bool useCurrentBounds,
+  }) async {
     final cameraPosition = await controller.getCameraPosition();
-    final visiblePrograms = await _getProgramsWithinRadius(center);
+    final previouslySelectedProgramId = _selectedProgram?.id;
+    final visiblePrograms = useCurrentBounds
+        ? await _getProgramsInCurrentMapBounds(controller)
+        : await _getProgramsWithinRadius(center);
     final clusters = _clusterPrograms(visiblePrograms, cameraPosition.zoom);
     final markers = <NMarker>{};
 
@@ -540,6 +560,10 @@ class _MapScreenState extends State<MapScreen> {
         }
       }
 
+      final isSelectedSingleMarker =
+          !isCluster &&
+          cluster.programs.first.id == previouslySelectedProgramId;
+
       final marker = NMarker(
         id: markerId,
         position: NLatLng(cluster.latitude, cluster.longitude),
@@ -548,7 +572,10 @@ class _MapScreenState extends State<MapScreen> {
           size: Size(48.w, 48.w),
           widget: isCluster
               ? _ClusterMarkerIcon(count: cluster.programs.length)
-              : ProgramMarkerIcon(program: cluster.programs.first),
+              : ProgramMarkerIcon(
+                  program: cluster.programs.first,
+                  isSelected: isSelectedSingleMarker,
+                ),
         ),
       );
 
@@ -561,6 +588,15 @@ class _MapScreenState extends State<MapScreen> {
           _visiblePrograms = cluster.programs;
           _showSearchHereButton = false;
         });
+        if (!isCluster) {
+          unawaited(
+            _refreshVisibleProgramsAndMarkers(
+              controller,
+              NLatLng(cluster.latitude, cluster.longitude),
+              useCurrentBounds: useCurrentBounds,
+            ),
+          );
+        }
 
         if (_sheetController.isAttached) {
           _sheetController.animateTo(
@@ -585,7 +621,14 @@ class _MapScreenState extends State<MapScreen> {
     }
 
     setState(() {
-      _selectedProgram = null;
+      _selectedProgram =
+          visiblePrograms.any(
+            (program) => program.id == previouslySelectedProgramId,
+          )
+          ? visiblePrograms.firstWhere(
+              (program) => program.id == previouslySelectedProgramId,
+            )
+          : null;
       _visiblePrograms = visiblePrograms;
       _showSearchHereButton = false;
     });
@@ -678,8 +721,8 @@ class _MapScreenState extends State<MapScreen> {
               child: SearchBarWidget(
                 controller: _searchbarController,
                 backgroundColor: AppColors.white,
-                onSubmitted: _submitMapSearch,
-                onClear: _clearMapSearch,
+                readOnly: true,
+                onTap: _openSearchScreen,
               ),
             ),
             SingleChildScrollView(
@@ -742,7 +785,8 @@ class _MapScreenState extends State<MapScreen> {
                     )
                   : SvgPicture.asset(
                       'assets/icons/mylocation.svg',
-                      width: 20.w,
+                      width: 20.r,
+                      height: 20.r,
                       colorFilter: const ColorFilter.mode(
                         AppColors.gray900,
                         BlendMode.srcIn,

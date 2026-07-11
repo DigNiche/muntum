@@ -4,14 +4,12 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/button_solid.dart';
-import 'package:muntum/api/api_config.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/screens/mypage/profile_screen.dart';
 import 'package:muntum/screens/onboarding/components/text_field_widget.dart';
 import 'package:muntum/screens/onboarding/find_password_screens/verification_code_screen.dart';
 import 'package:muntum/services/auth_service.dart';
-import 'package:muntum/utils/app_toast.dart';
 
 class FindPasswordScreen extends StatefulWidget {
   const FindPasswordScreen({super.key});
@@ -21,8 +19,8 @@ class FindPasswordScreen extends StatefulWidget {
 }
 
 class _FindPasswordScreenState extends State<FindPasswordScreen> {
-  TextEditingController _controller = TextEditingController();
-  FocusNode _focusNode = FocusNode();
+  final TextEditingController _controller = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
   bool _isError = false;
   bool _isLoading = false;
 
@@ -139,15 +137,15 @@ class _FindPasswordScreenState extends State<FindPasswordScreen> {
       _isError = false;
     });
     try {
-      if (ApiConfig.hasBaseUrl) {
-        await AuthService().requestPasswordCode(email);
-      }
+      final result = await AuthService().requestPasswordCode(email);
       if (!mounted) return;
-      pushToScreen(context, VerificationCodeScreen(email: email));
+      pushToScreen(
+        context,
+        VerificationCodeScreen(email: email, expiresIn: result.expiresIn),
+      );
     } catch (error) {
       if (!mounted) return;
       setState(() => _isError = true);
-      showAppToast(context, '$error');
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);

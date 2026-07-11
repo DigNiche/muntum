@@ -18,7 +18,9 @@ class AppBarWidget extends StatefulWidget {
   final VoidCallback? onClear;
   final List<String> selectedKeywords;
   final ValueChanged<String>? onKeywordDeleted;
+  final VoidCallback? onSearchTap;
   final Color? leadingColor;
+  final bool searchAutofocus;
   const AppBarWidget({
     super.key,
     this.trailing,
@@ -31,7 +33,9 @@ class AppBarWidget extends StatefulWidget {
     this.onClear,
     this.selectedKeywords = const [],
     this.onKeywordDeleted,
+    this.onSearchTap,
     this.leadingColor,
+    this.searchAutofocus = false,
   });
 
   @override
@@ -41,11 +45,11 @@ class AppBarWidget extends StatefulWidget {
 class _AppBarWidgetState extends State<AppBarWidget> {
   @override
   Widget build(BuildContext context) {
+    final isSearchBar = widget.centerType == AppBarCenterType.searchbar;
     return Container(
       height: 64.h,
       padding: EdgeInsets.symmetric(vertical: 6.h, horizontal: 20.w),
       child: Row(
-        spacing: 16.w,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           GestureDetector(
@@ -61,11 +65,15 @@ class _AppBarWidgetState extends State<AppBarWidget> {
               ),
             ),
           ),
+          SizedBox(width: 16.w),
           _buildCenter(),
-          SizedBox(
-            width: (widget.trailing == null) ? 24.w : null,
-            child: (widget.trailing != null) ? widget.trailing! : null,
-          ),
+          if (!isSearchBar) ...[
+            SizedBox(width: 16.w),
+            SizedBox(
+              width: (widget.trailing == null) ? 24.w : null,
+              child: (widget.trailing != null) ? widget.trailing! : null,
+            ),
+          ],
         ],
       ),
     );
@@ -81,6 +89,8 @@ class _AppBarWidgetState extends State<AppBarWidget> {
             onClear: widget.onClear,
             selectedKeywords: widget.selectedKeywords,
             onKeywordDeleted: widget.onKeywordDeleted,
+            onTap: widget.onSearchTap,
+            autofocus: widget.searchAutofocus,
           ),
         );
       case AppBarCenterType.text:

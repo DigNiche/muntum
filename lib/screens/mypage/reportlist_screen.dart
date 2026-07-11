@@ -3,12 +3,9 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:lottie/lottie.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/button_solid.dart';
-import 'package:muntum/api/api_config.dart';
 import 'package:muntum/api/token_store.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
-import 'package:muntum/data/mock_report_data.dart';
-import 'package:muntum/data/mock_user_data.dart';
 import 'package:muntum/models/report_model.dart';
 import 'package:muntum/screens/mypage/report_detail_screen.dart';
 import 'package:muntum/screens/mypage/report_submit_screen.dart';
@@ -33,14 +30,11 @@ class _ReportListScreenState extends State<ReportListScreen> {
   }
 
   Future<List<ReportModel>> _loadReports() async {
-    if (!ApiConfig.hasBaseUrl) return mockReports;
     return (await SuggestionService().fetchMySuggestions(size: 100)).content;
   }
 
   Future<String> _loadNickname() async {
-    final nickname = ApiConfig.hasBaseUrl
-        ? await TokenStore.instance.readNickname()
-        : MockUserSession.instance.nickname;
+    final nickname = await TokenStore.instance.readNickname();
     final trimmed = nickname?.trim() ?? '';
     return trimmed.isEmpty ? '문화발굴단' : trimmed;
   }
@@ -199,7 +193,7 @@ class _ReportListTile extends StatelessWidget {
             ),
             SizedBox(height: 6.h),
             Text(
-              report.place.name,
+              report.place.address,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: AppTypography.caption1.copyWith(color: AppColors.gray400),

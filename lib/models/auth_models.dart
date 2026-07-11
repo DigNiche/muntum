@@ -53,6 +53,18 @@ class SignupResult {
   }
 }
 
+class PasswordFindResult {
+  final int expiresIn;
+
+  const PasswordFindResult({required this.expiresIn});
+
+  factory PasswordFindResult.fromJson(Map<String, dynamic> json) {
+    return PasswordFindResult(
+      expiresIn: (json['expiresIn'] as num? ?? 300).toInt(),
+    );
+  }
+}
+
 class PasswordVerifyResult {
   final String resetToken;
 

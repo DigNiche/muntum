@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:muntum/api/api_config.dart';
+import 'package:muntum/api/token_store.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
+import 'package:muntum/screens/onboarding/login_screen.dart';
 import 'package:muntum/services/user_service.dart';
+import 'package:muntum/stores/program_scrap_store.dart';
+import 'package:muntum/stores/user_preference_store.dart';
 import 'package:muntum/utils/app_toast.dart';
 
 class PasswordChangeScreen extends StatefulWidget {
@@ -101,15 +104,21 @@ class _PasswordChangeScreenState extends State<PasswordChangeScreen> {
     }
 
     try {
-      if (ApiConfig.hasBaseUrl) {
-        await UserService().changePassword(
-          currentPassword: currentPassword,
-          newPassword: newPassword,
-        );
-      }
+      await UserService().changePassword(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+      );
       if (!mounted) return;
       showAppToast(context, '비밀번호가 변경되었습니다.');
-      Navigator.pop(context);
+      await TokenStore.instance.clear();
+      ProgramScrapStore.instance.clear(notify: false);
+      UserPreferenceStore.instance.clear();
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+        (route) => false,
+      );
     } catch (_) {
       if (!mounted) return;
       setState(() {

@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
-import 'package:muntum/api/api_config.dart';
 import 'package:muntum/api/token_store.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
-import 'package:muntum/data/mock_user_data.dart';
 import 'package:muntum/services/user_service.dart';
 import 'package:muntum/utils/app_toast.dart';
 
@@ -32,9 +30,7 @@ class _NickNameChangeScreenState extends State<NickNameChangeScreen> {
   }
 
   Future<void> _loadNickname() async {
-    final nickname = ApiConfig.hasBaseUrl
-        ? await TokenStore.instance.readNickname()
-        : MockUserSession.instance.nickname;
+    final nickname = await TokenStore.instance.readNickname();
     if (!mounted || nickname == null) return;
     _controller.text = nickname;
   }
@@ -161,11 +157,7 @@ class _NickNameChangeScreenState extends State<NickNameChangeScreen> {
       _isError = false;
     });
     try {
-      if (ApiConfig.hasBaseUrl) {
-        await UserService().updateNickname(nickname);
-      } else {
-        MockUserSession.instance.updateNickname(nickname);
-      }
+      await UserService().updateNickname(nickname);
       if (!mounted) return;
       Navigator.pop(context, nickname);
     } catch (error) {

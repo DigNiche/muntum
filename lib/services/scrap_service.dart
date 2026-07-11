@@ -1,8 +1,8 @@
 import 'package:muntum/api/api_client.dart';
 import 'package:muntum/api/api_endpoints.dart';
 import 'package:muntum/api/api_response.dart';
-import 'package:muntum/data/mock_user_data.dart';
 import 'package:muntum/models/program_model.dart';
+import 'package:muntum/stores/program_scrap_store.dart';
 
 class ScrapService {
   ScrapService({ApiClient? client}) : _client = client ?? ApiClient();
@@ -33,7 +33,7 @@ class ScrapService {
     for (final program in pageResponse.content) {
       program.isBookmark = true;
     }
-    MockBookmarkStore.instance.replaceBookmarkedPrograms(
+    ProgramScrapStore.instance.replaceScrappedPrograms(
       pageResponse.content,
       notify: false,
     );

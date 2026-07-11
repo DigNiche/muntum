@@ -2,20 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:muntum/api/api_config.dart';
 import 'package:muntum/api/token_store.dart';
 import 'package:muntum/components/action_bottom_sheet.dart';
+import 'package:muntum/components/animated_scrap_icon.dart';
 import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/cards/horizontal.dart';
 import 'package:muntum/components/label.dart';
-import 'package:muntum/data/mock_user_data.dart';
 import 'package:muntum/models/program_model.dart';
 import 'package:muntum/screens/home/components/section_header.dart';
 import 'package:muntum/screens/mypage/report_submit_screen.dart';
 import 'package:muntum/services/program_service.dart';
+import 'package:muntum/stores/program_scrap_store.dart';
 import 'package:muntum/utils/program_scrap.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -47,9 +47,7 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
     }
     try {
       final detail = await ProgramService().fetchProgram(widget.program.id);
-      detail.isBookmark = MockBookmarkStore.instance.isBookmarked(
-        widget.program,
-      );
+      detail.isBookmark = ProgramScrapStore.instance.isScrapped(detail);
       return detail;
     } catch (_) {
       return widget.program;
@@ -58,18 +56,25 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
 
   Future<List<ProgramModel>> _loadRecommendedPrograms() async {
     try {
-      return (await ProgramService().fetchHotPrograms(
-        size: 3,
-      )).content.take(3).toList();
+      final currentId = widget.program.id.trim();
+      final currentTitle = widget.program.title.trim();
+      final programs = (await ProgramService().fetchHotPrograms(size: 10))
+          .content
+          .where((program) {
+            final sameId =
+                currentId.isNotEmpty && program.id.trim() == currentId;
+            final sameTitle =
+                currentTitle.isNotEmpty && program.title.trim() == currentTitle;
+            return !sameId && !sameTitle;
+          })
+          .toList();
+      return programs.take(3).toList();
     } catch (_) {
       return const <ProgramModel>[];
     }
   }
 
   Future<bool> _isLoggedIn() async {
-    if (!ApiConfig.hasBaseUrl) {
-      return MockUserSession.instance.isLoggedIn;
-    }
     final accessToken = TokenStore.instance.accessToken;
     if (accessToken != null && accessToken.isNotEmpty) {
       return true;
@@ -120,34 +125,21 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                 onLeadingTap: () {
                   Navigator.pop(context);
                 },
-                trailing: Row(
-                  children: [
-                    SvgPicture.asset(
-                      'assets/icons/share.svg',
-                      width: 24.w,
-                      color: Color(0xff1c1b1f),
-                    ),
-                    SizedBox(width: 20.w),
-                    GestureDetector(
-                      onTap: () => toggleProgramScrap(context, program),
-                      child: ListenableBuilder(
-                        listenable: MockBookmarkStore.instance,
-                        builder: (context, _) {
-                          final isBookmarked = MockBookmarkStore.instance
-                              .isBookmarked(program);
-                          return SvgPicture.asset(
-                            isBookmarked
-                                ? 'assets/icons/scrap-filled.svg'
-                                : 'assets/icons/scrap.svg',
-                            width: 24.w,
-                            color: isBookmarked
-                                ? AppColors.primary400
-                                : const Color(0xff1c1b1f),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
+                trailing: GestureDetector(
+                  onTap: () => toggleProgramScrap(context, program),
+                  child: ListenableBuilder(
+                    listenable: ProgramScrapStore.instance,
+                    builder: (context, _) {
+                      final isBookmarked = ProgramScrapStore.instance
+                          .isScrapped(program);
+                      return AnimatedScrapIcon(
+                        isScrapped: isBookmarked,
+                        size: 24,
+                        activeColor: AppColors.primary400,
+                        inactiveColor: const Color(0xff1c1b1f),
+                      );
+                    },
+                  ),
                 ),
               ),
               Expanded(
@@ -167,7 +159,7 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                           ),
                         ),
                         Text(
-                          program.startEndDates,
+                          program.detailDateText,
                           style: AppTypography.button2.copyWith(
                             color: AppColors.gray600,
                           ),
@@ -247,43 +239,14 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                           ),
                         ),
                         SizedBox(height: 24.h),
-                        MarkdownBody(
-                          data: program.detail.isEmpty
+                        ProgramDetailMarkdownBody(
+                          markdown: program.detail.isEmpty
                               ? '상세 정보가 준비 중입니다.'
                               : program.detail,
-                          selectable: true,
-                          onTapLink: (text, href, title) {
-                            if (href == null || href.isEmpty) return;
+                          onTapLink: (href) {
+                            if (href.isEmpty) return;
                             _launchExternalUrl(href);
                           },
-                          styleSheet:
-                              MarkdownStyleSheet.fromTheme(
-                                Theme.of(context),
-                              ).copyWith(
-                                p: AppTypography.body1.copyWith(
-                                  color: AppColors.gray900,
-                                ),
-                                strong: AppTypography.body1.copyWith(
-                                  color: AppColors.gray900,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                                listBullet: AppTypography.body1.copyWith(
-                                  color: AppColors.gray900,
-                                ),
-                                h1: AppTypography.title1.copyWith(
-                                  color: AppColors.gray900,
-                                ),
-                                h2: AppTypography.title3.copyWith(
-                                  color: AppColors.gray900,
-                                ),
-                                h3: AppTypography.title4.copyWith(
-                                  color: AppColors.gray900,
-                                ),
-                                a: AppTypography.body1.copyWith(
-                                  color: AppColors.primary600,
-                                  decoration: TextDecoration.underline,
-                                ),
-                              ),
                         ),
                         SizedBox(height: 40.h),
                         Column(
@@ -331,7 +294,11 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                                             SvgPicture.asset(
                                               'assets/icons/location-filled.svg',
                                               width: 16.w,
-                                              color: AppColors.gray400,
+                                              colorFilter:
+                                                  const ColorFilter.mode(
+                                                    AppColors.gray400,
+                                                    BlendMode.srcIn,
+                                                  ),
                                             ),
                                             SizedBox(width: 2.w),
                                             Expanded(
@@ -356,7 +323,7 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                             ),
                             ProgramDescription(
                               title: '기간',
-                              body: program.startEndDates,
+                              body: program.detailDateText,
                             ),
                             ProgramDescription(
                               title: '시간',
@@ -367,12 +334,10 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                               title: '사전예약',
                               body: program.isReservationNeeded ? '필요' : '불필요',
                             ),
-                            ProgramDescription(
+                            ProgramRelatedInfoDescription(
                               title: '관련정보',
                               body: program.phoneNumber,
-                              onTap: program.phoneNumber.isEmpty
-                                  ? null
-                                  : () => _launchPhone(program.phoneNumber),
+                              onTapContact: _launchRelatedInfo,
                             ),
                             ProgramDescription(
                               title: '링크',
@@ -475,6 +440,109 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
     if (normalized.isEmpty) return;
     await launchUrl(Uri(scheme: 'tel', path: normalized));
   }
+
+  Future<void> _launchEmail(String email) async {
+    final normalized = email.trim();
+    if (normalized.isEmpty) return;
+    await launchUrl(Uri(scheme: 'mailto', path: normalized));
+  }
+
+  Future<void> _launchRelatedInfo(String value) async {
+    if (_isEmail(value)) {
+      await _launchEmail(value);
+      return;
+    }
+    await _launchPhone(value);
+  }
+
+  bool _isEmail(String value) {
+    return RegExp(
+      r'^[^\s@]+@[^\s@]+\.[^\s@]+$',
+      caseSensitive: false,
+    ).hasMatch(value.trim());
+  }
+}
+
+class ProgramDetailMarkdownBody extends StatelessWidget {
+  final String markdown;
+  final ValueChanged<String> onTapLink;
+
+  const ProgramDetailMarkdownBody({
+    super.key,
+    required this.markdown,
+    required this.onTapLink,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final normalizedMarkdown = markdown.replaceAll(
+      RegExp(r'\n\s*---\s*\n'),
+      '\n\n',
+    );
+    final fixedMarkdown = fixCjkEmphasis(normalizedMarkdown);
+    final pointTitleMatch = RegExp(
+      r'(^|\n).*프로그램 포인트.*',
+      multiLine: true,
+    ).firstMatch(fixedMarkdown);
+    final styleSheet = _styleSheet(context);
+
+    if (pointTitleMatch == null || pointTitleMatch.start <= 0) {
+      return _buildMarkdown(fixedMarkdown, styleSheet);
+    }
+
+    final afterStart = fixedMarkdown.codeUnitAt(pointTitleMatch.start) == 10
+        ? pointTitleMatch.start + 1
+        : pointTitleMatch.start;
+    final before = fixedMarkdown.substring(0, afterStart).trimRight();
+    final after = fixedMarkdown.substring(afterStart).trimLeft();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (before.isNotEmpty) _buildMarkdown(before, styleSheet),
+        SizedBox(height: 28.h),
+        _buildMarkdown(after, styleSheet),
+      ],
+    );
+  }
+
+  MarkdownBody _buildMarkdown(String data, MarkdownStyleSheet styleSheet) {
+    return MarkdownBody(
+      data: data,
+      selectable: true,
+      onTapLink: (text, href, title) {
+        onTapLink(href ?? '');
+      },
+      styleSheet: styleSheet,
+    );
+  }
+
+  MarkdownStyleSheet _styleSheet(BuildContext context) {
+    return MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+      p: AppTypography.body1.copyWith(color: AppColors.gray900),
+      strong: AppTypography.body1.copyWith(
+        color: AppColors.gray900,
+        fontWeight: FontWeight.w700,
+      ),
+      listBullet: AppTypography.body1.copyWith(color: AppColors.gray900),
+      h1: AppTypography.title1.copyWith(color: AppColors.gray900),
+      h2: AppTypography.title3.copyWith(color: AppColors.gray900),
+      h3: AppTypography.title4.copyWith(color: AppColors.gray900),
+      a: AppTypography.body1.copyWith(decoration: TextDecoration.underline),
+    );
+  }
+}
+
+String fixCjkEmphasis(String md) {
+  return md
+      .replaceAllMapped(
+        RegExp(r'([\p{P}\p{S}])\*\*(?=[가-힣])', unicode: true),
+        (match) => '${match.group(1)}**\u200B',
+      )
+      .replaceAllMapped(
+        RegExp(r'([가-힣])\*\*([\p{P}\p{S}])', unicode: true),
+        (match) => '${match.group(1)}\u200B**${match.group(2)}',
+      );
 }
 
 class ProgramDescription extends StatelessWidget {
@@ -517,5 +585,86 @@ class ProgramDescription extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+class ProgramRelatedInfoDescription extends StatelessWidget {
+  final String title;
+  final String body;
+  final ValueChanged<String> onTapContact;
+
+  const ProgramRelatedInfoDescription({
+    super.key,
+    required this.title,
+    required this.body,
+    required this.onTapContact,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final contacts = _splitContacts(body);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 70.w,
+          padding: EdgeInsets.only(top: 4.h, bottom: 4.h),
+          child: Text(
+            title,
+            style: AppTypography.button2.copyWith(color: AppColors.gray900),
+          ),
+        ),
+        SizedBox(width: 20.w),
+        Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(top: 4.h, bottom: 4.h),
+            child: contacts.isEmpty
+                ? Text(
+                    '정보 없음',
+                    style: AppTypography.body1.copyWith(
+                      color: AppColors.gray900,
+                    ),
+                  )
+                : Wrap(
+                    spacing: 4.w,
+                    runSpacing: 4.h,
+                    children: [
+                      for (var i = 0; i < contacts.length; i++) ...[
+                        GestureDetector(
+                          onTap: () => onTapContact(contacts[i]),
+                          behavior: HitTestBehavior.opaque,
+                          child: Text(
+                            contacts[i],
+                            style: AppTypography.body1.copyWith(
+                              color: AppColors.gray900,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ),
+                        if (i != contacts.length - 1)
+                          Text(
+                            '/',
+                            style: AppTypography.body1.copyWith(
+                              color: AppColors.gray900,
+                            ),
+                          ),
+                      ],
+                    ],
+                  ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  List<String> _splitContacts(String value) {
+    final normalized = value.trim();
+    if (normalized.isEmpty) return const [];
+    return normalized
+        .split(RegExp(r'\s*(?:/|,|;|\n)\s*'))
+        .map((contact) => contact.trim())
+        .where((contact) => contact.isNotEmpty)
+        .toList();
   }
 }

@@ -20,7 +20,7 @@ class _ReportPlaceSearchScreenState extends State<ReportPlaceSearchScreen> {
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _directController = TextEditingController();
   final ReportPlaceSearchRepository _repository =
-      const MockReportPlaceSearchRepository();
+      const NaverLocalPlaceSearchRepository();
   List<ReportPlace> _results = [];
   bool _isSearching = false;
   int _searchSerial = 0;

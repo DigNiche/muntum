@@ -18,7 +18,7 @@ Future<void> showActionBottomSheet(
     ActionBottomSheetType.scrapLogin => const _ActionBottomSheetContent(
       title: '마음에 드는 프로그램을 발견했나요?',
       description: '스크랩은 로그인 이후 이용할 수 있어요.\n로그인하고 마음에 드는 프로그램을 스크랩 해보세요.',
-      buttonText: '로그인 하기',
+      buttonText: '로그인하기',
       assetPath: 'assets/icons/bottom_sheet/scrap.svg',
       assetSize: 140,
       opensLogin: true,
@@ -26,7 +26,7 @@ Future<void> showActionBottomSheet(
     ActionBottomSheetType.reportLogin => const _ActionBottomSheetContent(
       title: '프로그램 제보를 원하시나요?',
       description: '제보를 하기 위해 로그인이 필요해요.\n아무도 모르는 나만의 장소, 로그인 후 제보해주세요!',
-      buttonText: '로그인 하기',
+      buttonText: '로그인하기',
       lottiePath: 'assets/lottie/report_submit.lottie',
       assetSize: 120,
       opensLogin: true,
@@ -120,7 +120,9 @@ class _ActionBottomSheetContent extends StatelessWidget {
               navigator.pop();
               if (opensLogin) {
                 navigator.push(
-                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  MaterialPageRoute(
+                    builder: (_) => const LoginScreen(showBackButton: true),
+                  ),
                 );
                 return;
               }

@@ -5,8 +5,13 @@ import 'package:muntum/models/program_model.dart';
 
 class ProgramMarkerIcon extends StatelessWidget {
   final ProgramModel program;
+  final bool isSelected;
 
-  const ProgramMarkerIcon({super.key, required this.program});
+  const ProgramMarkerIcon({
+    super.key,
+    required this.program,
+    this.isSelected = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -19,11 +24,11 @@ class ProgramMarkerIcon extends StatelessWidget {
       width: 44.w,
       height: 44.w,
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: isSelected ? AppColors.primary500 : AppColors.white,
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF10110F).withOpacity(0.12),
+            color: const Color(0xFF10110F).withValues(alpha: 0.12),
             offset: const Offset(0, 4),
             blurRadius: 12,
             spreadRadius: 0,
@@ -38,7 +43,6 @@ class ProgramMarkerIcon extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.gray100,
             shape: BoxShape.circle,
-            border: Border.all(color: AppColors.white, width: 2.w),
           ),
           clipBehavior: Clip.antiAlias,
           child: imageUrl.isNotEmpty

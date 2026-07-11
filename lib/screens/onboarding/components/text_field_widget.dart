@@ -50,6 +50,7 @@ class TextFieldWidget extends StatelessWidget {
         SizedBox(
           height: 48.h,
           child: TextField(
+            textAlignVertical: TextAlignVertical.center,
             focusNode: focusNode,
             controller: controller,
             keyboardType: keyboardType,
@@ -62,7 +63,9 @@ class TextFieldWidget extends StatelessWidget {
               color: isError ? AppColors.gray500 : AppColors.white,
             ),
             decoration: InputDecoration(
-              error: isError ? SizedBox() : null,
+              isDense: true,
+              errorStyle: const TextStyle(height: 0, fontSize: 0),
+              errorText: isError ? '' : null,
               filled: true,
               fillColor: AppColors.white.withValues(alpha: 0.1),
               hintText: hintText,
@@ -75,9 +78,13 @@ class TextFieldWidget extends StatelessWidget {
                 padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 16.h),
                 child: suffixIcon,
               ),
+              suffixIconConstraints: BoxConstraints(
+                minWidth: 40.w,
+                minHeight: 48.h,
+              ),
               contentPadding: EdgeInsets.symmetric(
                 horizontal: 16.w,
-                vertical: 10.h,
+                vertical: 0,
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppBorderRadius.radius_8),

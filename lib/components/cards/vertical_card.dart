@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
-import 'package:flutter_svg/svg.dart';
+import 'package:muntum/components/animated_scrap_icon.dart';
 import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
-import 'package:muntum/data/mock_user_data.dart';
 import 'package:muntum/models/program_model.dart';
 import 'package:muntum/screens/program_detail/program_detail_screen.dart';
+import 'package:muntum/stores/program_scrap_store.dart';
 import 'package:muntum/utils/program_scrap.dart';
 
 class VerticalCard extends StatelessWidget {
@@ -65,7 +65,7 @@ class VerticalCard extends StatelessWidget {
                         end: Alignment.topCenter,
                         colors: [
                           Colors.transparent,
-                          Colors.black.withOpacity(0.15),
+                          Colors.black.withValues(alpha: 0.15),
                         ],
                       ),
                     ),
@@ -77,10 +77,10 @@ class VerticalCard extends StatelessWidget {
                     behavior: HitTestBehavior.opaque,
                     onTap: () => toggleProgramScrap(context, program),
                     child: ListenableBuilder(
-                      listenable: MockBookmarkStore.instance,
+                      listenable: ProgramScrapStore.instance,
                       builder: (context, _) {
-                        final isBookmarked = MockBookmarkStore.instance
-                            .isBookmarked(program);
+                        final isBookmarked = ProgramScrapStore.instance
+                            .isScrapped(program);
                         return Container(
                           padding: EdgeInsets.symmetric(
                             vertical: 15.h,
@@ -89,15 +89,11 @@ class VerticalCard extends StatelessWidget {
                           child: SizedBox(
                             width: 24.w,
                             height: 24.h,
-                            child: SvgPicture.asset(
-                              isBookmarked
-                                  ? 'assets/icons/scrap-filled.svg'
-                                  : "assets/icons/scrap.svg",
-                              width: 14.w,
-                              height: 20.h,
-                              color: isBookmarked
-                                  ? AppColors.primary400
-                                  : AppColors.white,
+                            child: AnimatedScrapIcon(
+                              isScrapped: isBookmarked,
+                              size: 24,
+                              activeColor: AppColors.primary400,
+                              inactiveColor: AppColors.white,
                             ),
                           ),
                         );
@@ -126,7 +122,7 @@ class VerticalCard extends StatelessWidget {
             ),
             SizedBox(height: 2.h),
             Text(
-              program.startEndDates,
+              program.cardDateText,
               style: AppTypography.caption1.copyWith(color: AppColors.gray700),
             ),
             SizedBox(height: 2.0.h),

@@ -4,13 +4,11 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/button_solid.dart';
-import 'package:muntum/api/api_config.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
-import 'package:muntum/screens/onboarding/login_screen.dart';
+import 'package:muntum/screens/onboarding/find_password_screens/reset_complete_screen.dart';
 import 'package:muntum/screens/onboarding/components/text_field_widget.dart';
 import 'package:muntum/services/auth_service.dart';
-import 'package:muntum/utils/app_toast.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   final String resetToken;
@@ -22,10 +20,10 @@ class ResetPasswordScreen extends StatefulWidget {
 }
 
 class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
-  TextEditingController _controller1 = TextEditingController();
-  TextEditingController _controller2 = TextEditingController();
-  FocusNode _focusNode1 = FocusNode();
-  FocusNode _focusNode2 = FocusNode();
+  final TextEditingController _controller1 = TextEditingController();
+  final TextEditingController _controller2 = TextEditingController();
+  final FocusNode _focusNode1 = FocusNode();
+  final FocusNode _focusNode2 = FocusNode();
   bool _isError1 = false;
   bool _isError2 = false;
   bool _obsecureText1 = false;
@@ -62,7 +60,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     super.dispose();
   }
 
-  //TODO: password reset algorithm
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -104,7 +101,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                       ),
                       SizedBox(height: 30.h),
                       TextFieldWidget(
-                        hintText: '새로운 비밀번호를 입력해 주세요. (8자 이상)',
+                        hintText: '새로운 비밀번호를 입력해 주세요.',
                         controller: _controller1,
                         obscureText: _obsecureText1,
                         isError: _isError1,
@@ -122,9 +119,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                             width: 20.w,
                             color: _isError1
                                 ? AppColors.gray700
-                                : _obsecureText1 &&
-                                      _focusNode1.hasFocus &&
-                                      !_isError1
+                                : !_obsecureText1 && !_isError1
                                 ? AppColors.primary400
                                 : AppColors.gray500,
                           ),
@@ -151,9 +146,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                             width: 20.w,
                             color: _isError2
                                 ? AppColors.gray700
-                                : _obsecureText2 &&
-                                      _focusNode1.hasFocus &&
-                                      !_isError2
+                                : !_obsecureText2 && !_isError2
                                 ? AppColors.primary400
                                 : AppColors.gray500,
                           ),
@@ -209,22 +202,21 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     }
 
     try {
-      if (ApiConfig.hasBaseUrl) {
-        await AuthService().resetPassword(
-          resetToken: widget.resetToken,
-          newPassword: _controller1.text,
-        );
-      }
+      await AuthService().resetPassword(
+        resetToken: widget.resetToken,
+        newPassword: _controller1.text,
+      );
       if (!mounted) return;
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
+        MaterialPageRoute(
+          builder: (context) => const PasswordResetCompleteScreen(),
+        ),
         (Route<dynamic> route) => false,
       );
     } catch (error) {
       if (!mounted) return;
       setState(() => _isError1 = true);
-      showAppToast(context, '$error');
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);

@@ -13,6 +13,9 @@ class SearchBarWidget extends StatefulWidget {
   final List<String> selectedKeywords;
   final ValueChanged<String>? onKeywordDeleted;
   final Color? backgroundColor;
+  final VoidCallback? onTap;
+  final bool readOnly;
+  final bool autofocus;
 
   const SearchBarWidget({
     super.key,
@@ -22,6 +25,9 @@ class SearchBarWidget extends StatefulWidget {
     this.selectedKeywords = const [],
     this.onKeywordDeleted,
     this.backgroundColor,
+    this.onTap,
+    this.readOnly = false,
+    this.autofocus = false,
   });
 
   @override
@@ -36,6 +42,16 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
   void initState() {
     super.initState();
     _focusNode.addListener(_onFocusChange);
+    widget.controller.addListener(_onControllerChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant SearchBarWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_onControllerChanged);
+      widget.controller.addListener(_onControllerChanged);
+    }
   }
 
   void _onFocusChange() {
@@ -44,9 +60,14 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
     });
   }
 
+  void _onControllerChanged() {
+    setState(() {});
+  }
+
   @override
   void dispose() {
     _focusNode.removeListener(_onFocusChange);
+    widget.controller.removeListener(_onControllerChanged);
     _focusNode.dispose();
     super.dispose();
   }
@@ -61,7 +82,7 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
         color: widget.backgroundColor,
       ),
       padding: widget.selectedKeywords.isEmpty
-          ? EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h)
+          ? EdgeInsets.only(left: 12.w, right: 8.w, top: 12.h, bottom: 12.h)
           : EdgeInsets.only(left: 12.w),
       child: Center(
         child: Stack(
@@ -87,6 +108,9 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
                           controller: widget.controller,
                           maxLines: 1,
                           focusNode: _focusNode,
+                          readOnly: widget.readOnly,
+                          autofocus: widget.autofocus,
+                          onTap: widget.onTap,
                           onTapOutside: (event) {
                             _focusNode.unfocus();
                           },
@@ -100,22 +124,33 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
                                   ? AppColors.gray900
                                   : AppColors.gray500,
                             ),
-                            suffix: GestureDetector(
-                              onTap: () {
-                                widget.controller.clear();
-                                widget.onClear?.call();
-                                _focusNode.unfocus();
-                              },
-                              child: SizedBox(
-                                width: 20.w,
-                                height: 20.h,
-                                child: SvgPicture.asset(
-                                  'assets/icons/circle_close.svg',
-                                  color: AppColors.gray500,
-                                  width: 16.67.w,
-                                  height: 16.67.h,
-                                ),
-                              ),
+                            suffixIcon:
+                                widget.readOnly ||
+                                    widget.controller.text.isEmpty
+                                ? null
+                                : GestureDetector(
+                                    onTap: () {
+                                      widget.controller.clear();
+                                      widget.onClear?.call();
+                                      _focusNode.unfocus();
+                                    },
+                                    child: Container(
+                                      width: 20.r,
+                                      height: 20.r,
+                                      padding: EdgeInsets.all(1.r),
+                                      decoration: const BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: AppColors.gray400,
+                                      ),
+                                      child: SvgPicture.asset(
+                                        'assets/icons/close.svg',
+                                        color: AppColors.white,
+                                      ),
+                                    ),
+                                  ),
+                            suffixIconConstraints: BoxConstraints(
+                              minWidth: 32.w,
+                              minHeight: 48.h,
                             ),
                             border: InputBorder.none,
                           ),
@@ -124,23 +159,27 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
                           ),
                           onSubmitted: widget.onSubmitted,
                         )
-                      : SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: widget.selectedKeywords.map((keyword) {
-                              return Padding(
-                                padding: EdgeInsets.only(right: 8.w),
-                                child: KeywordChip(
-                                  text: keyword,
-                                  textColor: AppColors.gray900,
-                                  outlineColor: AppColors.lineStrong,
-                                  showCloseIcon: true,
-                                  onCloseTap: () {
-                                    widget.onKeywordDeleted?.call(keyword);
-                                  },
-                                ),
-                              );
-                            }).toList(),
+                      : GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: widget.onTap,
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: widget.selectedKeywords.map((keyword) {
+                                return Padding(
+                                  padding: EdgeInsets.only(right: 8.w),
+                                  child: KeywordChip(
+                                    text: keyword,
+                                    textColor: AppColors.gray900,
+                                    outlineColor: AppColors.lineStrong,
+                                    showCloseIcon: true,
+                                    onCloseTap: () {
+                                      widget.onKeywordDeleted?.call(keyword);
+                                    },
+                                  ),
+                                );
+                              }).toList(),
+                            ),
                           ),
                         ),
                 ),

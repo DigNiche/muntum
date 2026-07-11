@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/popup_widget.dart';
-import 'package:muntum/api/api_config.dart';
 import 'package:muntum/api/token_store.dart';
 import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
@@ -11,8 +10,9 @@ import 'package:muntum/screens/mypage/components/profile_menu_item.dart';
 import 'package:muntum/screens/mypage/password_change_screen.dart';
 import 'package:muntum/screens/mypage/withdraw_screen.dart';
 import 'package:muntum/screens/onboarding/login_screen.dart';
-import 'package:muntum/data/mock_user_data.dart';
 import 'package:muntum/services/auth_service.dart';
+import 'package:muntum/stores/program_scrap_store.dart';
+import 'package:muntum/stores/user_preference_store.dart';
 
 class AccountMangeScreen extends StatefulWidget {
   const AccountMangeScreen({super.key});
@@ -31,7 +31,6 @@ class _AccountMangeScreenState extends State<AccountMangeScreen> {
   }
 
   Future<String?> _loadEmail() async {
-    if (!ApiConfig.hasBaseUrl) return MockUserSession.instance.email;
     return TokenStore.instance.readEmail();
   }
 
@@ -124,11 +123,14 @@ class _AccountMangeScreenState extends State<AccountMangeScreen> {
                       },
                       onText2Tap: () async {
                         Navigator.pop(context);
-                        if (ApiConfig.hasBaseUrl) {
+                        try {
                           await AuthService().logout();
-                        } else {
-                          MockUserSession.instance.logout();
+                        } catch (_) {
+                          // 서버 토큰 상태가 이미 만료/삭제되어도 로컬 세션은 정리한다.
                         }
+                        await TokenStore.instance.clear();
+                        ProgramScrapStore.instance.clear(notify: false);
+                        UserPreferenceStore.instance.clear();
                         await _goToLogin();
                       },
                     );

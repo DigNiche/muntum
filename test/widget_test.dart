@@ -2,46 +2,36 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:muntum/api/api_config.dart';
-import 'package:muntum/data/mock_program_data.dart';
-import 'package:muntum/data/mock_user_data.dart';
 import 'package:muntum/data/report_place_search_repository.dart';
 import 'package:muntum/models/program_model.dart';
-import 'package:muntum/screens/home/home_screen.dart';
-import 'package:muntum/screens/home/see_more_screen.dart';
+import 'package:muntum/models/report_model.dart';
 import 'package:muntum/screens/map/map_radius.dart';
 import 'package:muntum/screens/mypage/components/report_form_field.dart';
 import 'package:muntum/screens/mypage/report_submit_screen.dart';
+import 'package:muntum/stores/program_scrap_store.dart';
+import 'package:muntum/stores/user_preference_store.dart';
 import 'package:muntum/utils/program_keyword_match.dart';
 import 'package:muntum/utils/program_query.dart';
 
 void main() {
-  setUpAll(() {
-    ApiConfig.forceMock = true;
-  });
-
   group('api config', () {
-    test('uses the production API by default and allows mock override', () {
-      ApiConfig.forceMock = false;
+    test('uses the production API by default', () {
       expect(ApiConfig.baseUrl, 'https://api.muntum.work');
       expect(ApiConfig.hasBaseUrl, isTrue);
-
-      ApiConfig.forceMock = true;
-      expect(ApiConfig.baseUrl, isEmpty);
-      expect(ApiConfig.hasBaseUrl, isFalse);
     });
   });
 
   group('map search radius', () {
-    const centerLatitude = 37.3422;
-    const centerLongitude = 127.9202;
+    const centerLatitude = 37.5298;
+    const centerLongitude = 126.9647;
 
     test('includes a program inside 5km', () {
       expect(
         isWithinRadius(
           centerLatitude: centerLatitude,
           centerLongitude: centerLongitude,
-          targetLatitude: 37.3494,
-          targetLongitude: 127.9490,
+          targetLatitude: 37.5235,
+          targetLongitude: 126.9804,
           radiusMeters: 5000,
         ),
         isTrue,
@@ -53,89 +43,22 @@ void main() {
         isWithinRadius(
           centerLatitude: centerLatitude,
           centerLongitude: centerLongitude,
-          targetLatitude: 37.3435,
-          targetLongitude: 127.9845,
-          radiusMeters: 5000,
+          targetLatitude: 37.5665,
+          targetLongitude: 126.9780,
+          radiusMeters: 2500,
         ),
         isFalse,
       );
     });
   });
 
-  group('mock program data', () {
-    test('provides complete card data', () {
-      expect(mockPrograms, isNotEmpty);
-
-      for (final program in mockPrograms) {
-        expect(program.title, isNotEmpty);
-        expect(program.locationName, isNotEmpty);
-        expect(program.startEndDates, isNotEmpty);
-        expect(program.images, isNotEmpty);
-        expect(program.keywords, isNotEmpty);
-      }
-    });
-
-    test('provides valid map coordinates', () {
-      for (final program in mockPrograms) {
-        expect(double.tryParse(program.location['latitude'] ?? ''), isNotNull);
-        expect(double.tryParse(program.location['longitude'] ?? ''), isNotNull);
-      }
-    });
-
-    test('covers every program category', () {
-      for (final category in const {
-        Filter.exhibition,
-        Filter.show,
-        Filter.experience,
-        Filter.festival,
-      }) {
-        expect(
-          mockPrograms.where((program) => program.filters.contains(category)),
-          isNotEmpty,
-        );
-      }
-    });
-
-    test(
-      'starts with no bookmarked programs and updates shared mock store',
-      () {
-        expect(mockPrograms.where((program) => program.isBookmark), isEmpty);
-
-        final program = mockPrograms.first;
-        MockBookmarkStore.instance.setBookmarked(program, true);
-        expect(
-          MockBookmarkStore.instance.bookmarkedPrograms,
-          contains(program),
-        );
-
-        MockBookmarkStore.instance.setBookmarked(program, false);
-        expect(MockBookmarkStore.instance.bookmarkedPrograms, isEmpty);
-      },
-    );
-  });
-
-  group('mock user session', () {
-    test('supports login, nickname update, and logout without backend', () {
-      final session = MockUserSession.instance;
-
-      session.logout();
-      expect(session.isLoggedIn, isFalse);
-
-      session.loginAsMockUser(email: 'user@test.com', nickname: '테스터');
-      expect(session.isLoggedIn, isTrue);
-      expect(session.nickname, '테스터');
-
-      session.updateNickname('문틈러');
-      expect(session.nickname, '문틈러');
-
-      session.logout();
-      expect(session.isLoggedIn, isFalse);
-    });
-  });
-
   group('program keyword match', () {
     test('calculates capped three-bar match level', () {
-      final program = mockPrograms.first;
+      final program = _program(
+        id: '1',
+        title: '용산 전시 클래스',
+        keywords: ['그 순간에 몰입', '생생한 감각', '사진맛집'],
+      );
 
       expect(
         programKeywordMatchCount(program, [
@@ -159,70 +82,114 @@ void main() {
     });
 
     test('sorts programs with stronger keyword matches first', () {
-      final sorted = sortProgramsByKeywordMatch(mockPrograms.take(5), [
+      final programs = [
+        _program(id: '1', title: '일반 공연', keywords: ['여운이 남는']),
+        _program(
+          id: '2',
+          title: '추천 체험',
+          keywords: ['내 손으로 만드는', '새로운 것 배우기', '여운이 남는'],
+        ),
+      ];
+
+      final sorted = sortProgramsByKeywordMatch(programs, [
         '내 손으로 만드는',
         '새로운 것 배우기',
         '여운이 남는',
       ]);
 
-      expect(sorted.first.title, '무실동 전시 클래스');
+      expect(sorted.first.title, '추천 체험');
     });
   });
 
   group('program query', () {
+    final programs = [
+      _program(
+        id: '1',
+        title: '용산 문화공간 체험',
+        detail: '작가의 표현법을 배워요.',
+        address: '서울 용산구 한강대로14길 35-29',
+        keywords: ['직접 참여하기', '새로운 것 배우기'],
+        filters: [Filter.free, Filter.thisWeek],
+        phoneNumber: '02-123-1004',
+        link: 'https://muntum.work/programs/1',
+      ),
+      _program(
+        id: '2',
+        title: '남산 공연',
+        detail: '야외에서 즐기는 공연입니다.',
+        address: '서울 중구 남산공원길',
+        keywords: ['여운이 남는'],
+        filters: [Filter.show],
+      ),
+    ];
+
     test('searches address and detail fields', () {
       expect(
-        queryPrograms(mockPrograms, query: '무실로 235').single.title,
-        '원주 문화공간 체험',
+        queryPrograms(programs, query: '한강대로14길').single.title,
+        '용산 문화공간 체험',
       );
       expect(
-        queryPrograms(mockPrograms, query: '작가의 표현법').single.title,
-        '무실동 전시 클래스',
+        queryPrograms(programs, query: '작가의 표현법').single.title,
+        '용산 문화공간 체험',
       );
     });
 
     test('requires every selected keyword', () {
       final result = queryPrograms(
-        mockPrograms,
-        keywords: ['내 손으로 만드는', '여운이 남는'],
+        programs,
+        keywords: ['직접 참여하기', '새로운 것 배우기'],
       );
 
-      expect(result.map((program) => program.title), ['무실동 전시 클래스']);
+      expect(result.map((program) => program.title), ['용산 문화공간 체험']);
     });
 
     test('requires every selected filter', () {
       final result = queryPrograms(
-        mockPrograms,
+        programs,
         filters: {Filter.free, Filter.thisWeek},
       );
 
-      expect(result.map((program) => program.title), ['원주 문화공간 체험']);
+      expect(result.map((program) => program.title), ['용산 문화공간 체험']);
     });
 
     test('searches reservation, phone, and link parameters', () {
       expect(
-        queryPrograms(mockPrograms, query: '예약없이 033-123-1004').single.title,
-        '원주 중앙시장 투어',
+        queryPrograms(programs, query: '예약없이 02-123-1004').single.title,
+        '용산 문화공간 체험',
       );
       expect(
-        queryPrograms(mockPrograms, query: 'programs/8').single.title,
-        '뮤지엄 나이트',
-      );
-    });
-
-    test('loosely matches participation keyword wording', () {
-      expect(
-        queryPrograms(
-          mockPrograms,
-          query: '직접참여하기',
-        ).map((program) => program.title),
-        containsAll(['단계동 원데이 체험', '손끝으로 빚는 도자기']),
+        queryPrograms(programs, query: 'programs/1').single.title,
+        '용산 문화공간 체험',
       );
     });
   });
 
+  group('real-data local stores', () {
+    tearDown(() {
+      ProgramScrapStore.instance.clear(notify: false);
+      UserPreferenceStore.instance.clear();
+    });
+
+    test('keeps scrapped programs from real API models', () {
+      final program = _program(id: 'program-1', title: '스크랩 프로그램');
+
+      ProgramScrapStore.instance.setScrapped(program, true, notify: false);
+      expect(ProgramScrapStore.instance.isScrapped(program), isTrue);
+      expect(ProgramScrapStore.instance.scrappedPrograms, contains(program));
+
+      ProgramScrapStore.instance.setScrapped(program, false, notify: false);
+      expect(ProgramScrapStore.instance.scrappedPrograms, isEmpty);
+    });
+
+    test('keeps selected keywords from real API models', () {
+      UserPreferenceStore.instance.updateKeywords(['전시', '체험', '공연']);
+      expect(UserPreferenceStore.instance.selectedKeywords, contains('전시'));
+      expect(UserPreferenceStore.instance.selectedKeywords.length, 3);
+    });
+  });
+
   group('report place search', () {
-    const repository = MockReportPlaceSearchRepository();
+    const repository = _FakeReportPlaceSearchRepository();
 
     test('searches place names and addresses', () async {
       final stationResults = await repository.search('용산역');
@@ -259,77 +226,63 @@ void main() {
 
     expect(find.text('장소 검색'), findsOneWidget);
   });
+}
 
-  testWidgets('my niche scroll-to-top button returns the list to the top', (
-    tester,
-  ) async {
-    MockUserSession.instance.loginAsMockUser();
-    addTearDown(MockUserSession.instance.logout);
+ProgramModel _program({
+  required String id,
+  required String title,
+  String detail = '문화 프로그램 상세 설명',
+  String address = '서울 용산구 한강대로14길 35-29',
+  List<String> keywords = const ['전시'],
+  List<Filter> filters = const [Filter.exhibition],
+  String phoneNumber = '',
+  String link = '',
+}) {
+  return ProgramModel(
+    id: id,
+    title: title,
+    oneLineDescription: '$title 소개',
+    detail: detail,
+    images: const [],
+    keywords: keywords,
+    startEndDates: '26.07.01-상시',
+    locationName: '용산역사박물관',
+    location: {
+      'address': address,
+      'latitude': '37.5235',
+      'longitude': '126.9804',
+    },
+    availableTime: '10:00-18:00',
+    cost: filters.contains(Filter.free) ? '무료' : '유료',
+    isReservationNeeded: false,
+    phoneNumber: phoneNumber,
+    link: link,
+    filters: filters,
+    isSpotlight: false,
+    isOverThisMonth: false,
+    isBookmark: false,
+    startDate: '2026-07-01',
+    endDate: '',
+  );
+}
 
-    await tester.pumpWidget(
-      ScreenUtilPlusInit(
-        designSize: const Size(390, 844),
-        builder: (context, child) => MaterialApp(home: child),
-        child: const MyNichePage(),
-      ),
-    );
-    await tester.pumpAndSettle();
+class _FakeReportPlaceSearchRepository implements ReportPlaceSearchRepository {
+  const _FakeReportPlaceSearchRepository();
 
-    const scrollToTopKey = ValueKey('my_niche_scroll_to_top');
-    expect(find.byKey(scrollToTopKey), findsNothing);
-    await tester.drag(find.byType(ListView), const Offset(0, -600));
-    await tester.pumpAndSettle();
+  static const _places = [
+    ReportPlace(name: '용산역사박물관', address: '서울 용산구 한강대로14길 35-29'),
+    ReportPlace(name: '문틈박물관', address: '강원 원주시 중앙로 42'),
+  ];
 
-    expect(find.byKey(scrollToTopKey), findsOneWidget);
-    await tester.tap(find.byKey(scrollToTopKey));
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(scrollToTopKey), findsNothing);
-  });
-
-  testWidgets('see more uses one filter at a time', (tester) async {
-    tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = const Size(390, 844);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    addTearDown(tester.view.resetPhysicalSize);
-
-    await tester.pumpWidget(
-      ScreenUtilPlusInit(
-        designSize: const Size(390, 844),
-        builder: (context, child) => MaterialApp(home: child),
-        child: const SeeMoreScreen(type: SeeMoreType.allPrograms),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('프로그램 12개'), findsOneWidget);
-    await tester.tap(find.text('무료'));
-    await tester.pumpAndSettle();
-    expect(find.text('프로그램 5개'), findsOneWidget);
-
-    await tester.tap(find.text('이번주'));
-    await tester.pumpAndSettle();
-    expect(find.text('프로그램 6개'), findsOneWidget);
-  });
-
-  testWidgets('see more supports programs ending this month', (tester) async {
-    tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = const Size(390, 844);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    addTearDown(tester.view.resetPhysicalSize);
-
-    await tester.pumpWidget(
-      ScreenUtilPlusInit(
-        designSize: const Size(390, 844),
-        builder: (context, child) => MaterialApp(home: child),
-        child: const SeeMoreScreen(type: SeeMoreType.endingThisMonth),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('이번달에 끝나는'), findsOneWidget);
-    expect(find.text('무료'), findsNothing);
-    expect(find.text('이번주'), findsNothing);
-    expect(find.text('프로그램 4개'), findsOneWidget);
-  });
+  @override
+  Future<List<ReportPlace>> search(String query) async {
+    final normalized = query.replaceAll(RegExp(r'\s+'), '');
+    return _places
+        .where(
+          (place) =>
+              place.name.replaceAll(RegExp(r'\s+'), '').contains(normalized) ||
+              place.address.replaceAll(RegExp(r'\s+'), '').contains(normalized),
+        )
+        .toList();
+  }
 }

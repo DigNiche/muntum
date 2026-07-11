@@ -29,7 +29,11 @@ Future<void> showPopupWidget({
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(title, style: AppTypography.headline1),
+              Text(
+                title,
+                style: AppTypography.headline1,
+                textAlign: TextAlign.center,
+              ),
               if (description.isNotEmpty)
                 Column(
                   children: [

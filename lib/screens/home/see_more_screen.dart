@@ -4,14 +4,11 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/cards/horizontal.dart';
 import 'package:muntum/components/filter_chip.dart';
-import 'package:muntum/api/api_config.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
-import 'package:muntum/data/mock_program_data.dart';
 import 'package:muntum/models/program_model.dart';
 import 'package:muntum/screens/home/components/filter_list.dart';
 import 'package:muntum/services/program_service.dart';
-import 'package:muntum/utils/program_query.dart';
 
 enum SeeMoreType { allPrograms, endingThisMonth }
 
@@ -49,20 +46,7 @@ class _SeeMoreScreenState extends State<SeeMoreScreen> {
     _programsFuture = _loadPrograms();
   }
 
-  List<ProgramModel> get _sourcePrograms => switch (widget.type) {
-    SeeMoreType.allPrograms => mockPrograms,
-    SeeMoreType.endingThisMonth =>
-      mockPrograms.where((program) => program.isOverThisMonth).toList(),
-  };
-
-  List<ProgramModel> get _visiblePrograms => queryPrograms(
-    _sourcePrograms,
-    filters: _selectedFilter == null ? const {} : {_selectedFilter!},
-  );
-
   Future<List<ProgramModel>> _loadPrograms() async {
-    if (!ApiConfig.hasBaseUrl) return _visiblePrograms;
-
     final service = ProgramService();
     final chip = _selectedFilter?.apiChip;
     final page = widget.type == SeeMoreType.endingThisMonth

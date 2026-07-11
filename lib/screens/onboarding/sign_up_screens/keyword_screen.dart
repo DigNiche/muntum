@@ -4,15 +4,14 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/button_solid.dart';
 import 'package:muntum/components/keyword_chip.dart';
-import 'package:muntum/api/api_config.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
-import 'package:muntum/data/mock_user_data.dart';
-import 'package:muntum/models/user_keyword.dart';
 import 'package:muntum/screens/mypage/profile_screen.dart';
 import 'package:muntum/screens/onboarding/sign_up_screens/loading_screen.dart';
+import 'package:muntum/screens/onboarding/login_screen.dart';
 import 'package:muntum/services/keyword_service.dart';
 import 'package:muntum/services/taste_service.dart';
+import 'package:muntum/stores/user_preference_store.dart';
 import 'package:muntum/utils/app_toast.dart';
 
 class KeywordScreen extends StatefulWidget {
@@ -23,13 +22,14 @@ class KeywordScreen extends StatefulWidget {
 }
 
 class _KeywordScreenState extends State<KeywordScreen> {
-  static const int _minimumSelectionCount = 3;
-  static const int _maximumSelectionCount = 30;
-
   final Set<String> _selectedKeywords = {};
-  List<String> _availableKeywords = List.of(entireKeywords);
+  List<String> _availableKeywords = const [];
   bool _isLoading = false;
   bool _isKeywordLoading = true;
+  static const int _minimumSelectionCount = 3;
+  int get _maximumSelectionCount => _availableKeywords.isEmpty
+      ? _minimumSelectionCount
+      : _availableKeywords.length;
 
   bool get _canContinue => _selectedKeywords.length >= _minimumSelectionCount;
 
@@ -53,22 +53,17 @@ class _KeywordScreenState extends State<KeywordScreen> {
   Future<void> _loadAvailableKeywords() async {
     setState(() => _isKeywordLoading = true);
     try {
-      if (ApiConfig.hasBaseUrl) {
-        final keywords = await KeywordService().fetchTaggedKeywords();
-        if (!mounted) return;
-        setState(() {
-          _availableKeywords = keywords
-              .map((keyword) => keyword.name)
-              .where((name) => name.isNotEmpty)
-              .toList();
-          if (_availableKeywords.isEmpty) {
-            _availableKeywords = List.of(entireKeywords);
-          }
-        });
-      }
+      final keywords = await KeywordService().fetchTaggedKeywords();
+      if (!mounted) return;
+      setState(() {
+        _availableKeywords = keywords
+            .map((keyword) => keyword.name)
+            .where((name) => name.isNotEmpty)
+            .toList();
+      });
     } catch (_) {
       if (!mounted) return;
-      setState(() => _availableKeywords = List.of(entireKeywords));
+      setState(() => _availableKeywords = const []);
     } finally {
       if (mounted) setState(() => _isKeywordLoading = false);
     }
@@ -91,7 +86,7 @@ class _KeywordScreenState extends State<KeywordScreen> {
               centerType: AppBarCenterType.none,
               leadingIcon: 'arrow_left.svg',
               leadingColor: AppColors.gray200,
-              onLeadingTap: () => Navigator.pop(context),
+              onLeadingTap: _goBackSafely,
             ),
             SizedBox(height: 32.h),
             Expanded(
@@ -245,10 +240,8 @@ class _KeywordScreenState extends State<KeywordScreen> {
     if (!_canContinue || _isLoading) return;
     setState(() => _isLoading = true);
     try {
-      if (ApiConfig.hasBaseUrl) {
-        await TasteService().saveMyKeywords(_selectedKeywords.toList());
-      }
-      MockUserSession.instance.updateKeywords(_selectedKeywords);
+      await TasteService().saveMyKeywords(_selectedKeywords.toList());
+      UserPreferenceStore.instance.updateKeywords(_selectedKeywords);
       if (!mounted) return;
       pushToScreen(context, LoadingScreen());
     } catch (error) {
@@ -259,5 +252,16 @@ class _KeywordScreenState extends State<KeywordScreen> {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  void _goBackSafely() {
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.pop();
+      return;
+    }
+    navigator.pushReplacement(
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
+    );
   }
 }

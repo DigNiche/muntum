@@ -2,11 +2,8 @@ import 'package:flutter/material.dart' hide FilterChip;
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:muntum/api/api_config.dart';
 import 'package:muntum/api/token_store.dart';
 import 'package:muntum/components/button_solid.dart';
-import 'package:muntum/data/mock_program_data.dart';
-import 'package:muntum/data/mock_user_data.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/screens/home/components/banner_carousel.dart';
@@ -22,6 +19,7 @@ import 'package:muntum/screens/home/see_more_screen.dart';
 import 'package:muntum/screens/onboarding/login_screen.dart';
 import 'package:muntum/services/program_service.dart';
 import 'package:muntum/services/taste_service.dart';
+import 'package:muntum/stores/user_preference_store.dart';
 import 'package:muntum/utils/program_keyword_match.dart';
 
 enum ScreenTypes { myNiche, entire }
@@ -142,7 +140,7 @@ class _MyNichePageState extends State<MyNichePage> {
   void initState() {
     super.initState();
     _scrollController.addListener(_handleScroll);
-    MockUserSession.instance.addListener(_reloadProgramsByKeyword);
+    UserPreferenceStore.instance.addListener(_reloadProgramsByKeyword);
     _isLoggedInFuture = _isLoggedIn();
     _programsFuture = _loadPrograms();
   }
@@ -150,19 +148,6 @@ class _MyNichePageState extends State<MyNichePage> {
   Future<List<ProgramModel>> _loadPrograms() async {
     final selectedFilterValue = _selectedFilterValue;
     final isLoggedIn = await _isLoggedIn();
-    if (!ApiConfig.hasBaseUrl) {
-      final programs = selectedFilterValue == null
-          ? List<ProgramModel>.of(mockPrograms)
-          : mockPrograms
-                .where(
-                  (program) => program.filters.contains(selectedFilterValue),
-                )
-                .toList();
-      return sortProgramsByKeywordMatch(
-        programs,
-        MockUserSession.instance.selectedKeywords,
-      );
-    }
     if (!isLoggedIn) {
       final programs = (await ProgramService().fetchPrograms(
         chip: selectedFilterValue,
@@ -170,7 +155,7 @@ class _MyNichePageState extends State<MyNichePage> {
       )).content;
       return sortProgramsByKeywordMatch(
         programs,
-        MockUserSession.instance.selectedKeywords,
+        UserPreferenceStore.instance.selectedKeywords,
       );
     }
     final programs = (await TasteService().fetchTastePrograms(
@@ -179,14 +164,11 @@ class _MyNichePageState extends State<MyNichePage> {
     )).content;
     return sortProgramsByKeywordMatch(
       programs,
-      MockUserSession.instance.selectedKeywords,
+      UserPreferenceStore.instance.selectedKeywords,
     );
   }
 
   Future<bool> _isLoggedIn() async {
-    if (!ApiConfig.hasBaseUrl) {
-      return MockUserSession.instance.isLoggedIn;
-    }
     final accessToken = TokenStore.instance.accessToken;
     if (accessToken != null && accessToken.isNotEmpty) return true;
     final refreshToken = await TokenStore.instance.readRefreshToken();
@@ -252,7 +234,7 @@ class _MyNichePageState extends State<MyNichePage> {
     _scrollController
       ..removeListener(_handleScroll)
       ..dispose();
-    MockUserSession.instance.removeListener(_reloadProgramsByKeyword);
+    UserPreferenceStore.instance.removeListener(_reloadProgramsByKeyword);
     super.dispose();
   }
 
@@ -275,8 +257,6 @@ class _MyNichePageState extends State<MyNichePage> {
 
   @override
   Widget build(BuildContext context) {
-    final hasSelectedFilter = selectedFilter != null;
-
     return FutureBuilder<bool>(
       future: _isLoggedInFuture,
       builder: (context, loginSnapshot) {
@@ -318,8 +298,7 @@ class _MyNichePageState extends State<MyNichePage> {
                             ),
                           );
                         }
-                        if ((hasSelectedFilter || ApiConfig.hasBaseUrl) &&
-                            programs.isEmpty) {
+                        if (programs.isEmpty) {
                           return Center(
                             child: Text(
                               '조건에 맞는 프로그램이 없어요.',
@@ -329,7 +308,9 @@ class _MyNichePageState extends State<MyNichePage> {
                             ),
                           );
                         }
-                        return ListView.builder(
+                        return ListView.separated(
+                          separatorBuilder: (context, index) =>
+                              SizedBox(height: 40.h),
                           controller: _scrollController,
                           padding: EdgeInsets.zero,
                           itemCount: programs.length,
@@ -351,12 +332,12 @@ class _MyNichePageState extends State<MyNichePage> {
                             borderRadius: BorderRadius.circular(999),
                             color: AppColors.white.withValues(alpha: 0.85),
                           ),
-                          width: 48.w,
-                          height: 48.h,
+                          width: 48.r,
+                          height: 48.r,
                           child: SvgPicture.asset(
                             'assets/icons/arrow_up_2.svg',
-                            width: 24.w,
-                            height: 24.w,
+                            width: 24.r,
+                            height: 24.r,
                             fit: BoxFit.scaleDown,
                             colorFilter: const ColorFilter.mode(
                               AppColors.gray900,
@@ -415,7 +396,8 @@ class _GuestMyNicheView extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const LoginScreen(),
+                      builder: (context) =>
+                          const LoginScreen(showBackButton: true),
                     ),
                   );
                 },
@@ -445,20 +427,6 @@ class _EntirePageState extends State<EntirePage> {
   }
 
   Future<_EntirePagePrograms> _loadPrograms() async {
-    if (!ApiConfig.hasBaseUrl) {
-      return _EntirePagePrograms(
-        banners: mockPrograms.take(3).toList(),
-        all: mockPrograms.take(8).toList(),
-        hot: mockPrograms
-            .where((program) => program.isSpotlight)
-            .take(8)
-            .toList(),
-        closingSoon: mockPrograms
-            .where((program) => program.isOverThisMonth)
-            .take(8)
-            .toList(),
-      );
-    }
     final service = ProgramService();
     final results = await Future.wait([
       service.fetchPrograms(

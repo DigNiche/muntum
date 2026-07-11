@@ -1,16 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:muntum/api/api_config.dart';
 import 'package:muntum/api/token_store.dart';
 import 'package:muntum/components/action_bottom_sheet.dart';
-import 'package:muntum/data/mock_user_data.dart';
 import 'package:muntum/models/program_model.dart';
 import 'package:muntum/services/scrap_service.dart';
+import 'package:muntum/stores/program_scrap_store.dart';
 import 'package:muntum/utils/app_toast.dart';
 
 Future<bool> _isLoggedIn() async {
-  if (!ApiConfig.hasBaseUrl) {
-    return MockUserSession.instance.isLoggedIn;
-  }
   final accessToken = TokenStore.instance.accessToken;
   if (accessToken != null && accessToken.isNotEmpty) {
     return true;
@@ -32,23 +28,18 @@ Future<void> toggleProgramScrap(
     return;
   }
 
-  final previous = MockBookmarkStore.instance.isBookmarked(program);
-  MockBookmarkStore.instance.toggle(program);
-
-  if (!ApiConfig.hasBaseUrl || program.id.isEmpty) {
-    return;
-  }
+  final previous = ProgramScrapStore.instance.isScrapped(program);
+  ProgramScrapStore.instance.setScrapped(program, !previous);
 
   try {
-    if (MockBookmarkStore.instance.isBookmarked(program)) {
+    if (ProgramScrapStore.instance.isScrapped(program)) {
       await ScrapService().scrapProgram(program.id);
     } else {
       await ScrapService().unscrapProgram(program.id);
     }
-    MockBookmarkStore.instance.notifyChanged();
   } catch (error) {
     if (!context.mounted) return;
-    MockBookmarkStore.instance.setBookmarked(program, previous);
+    ProgramScrapStore.instance.setScrapped(program, previous);
     showAppToast(context, '$error');
   }
 }

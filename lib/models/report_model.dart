@@ -54,9 +54,14 @@ class ReportModel {
       place: ReportPlace(
         name:
             json['venueName'] as String? ??
-            json['programName'] as String? ??
+            json['placeName'] as String? ??
+            json['address'] as String? ??
             '',
-        address: json['address'] as String? ?? '',
+        address:
+            json['address'] as String? ??
+            json['programAddress'] as String? ??
+            json['venueAddress'] as String? ??
+            '',
       ),
       status: json['status'] as String? ?? 'PENDING',
       createdAt:

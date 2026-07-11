@@ -1,23 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:muntum/api/api_config.dart';
 import 'package:muntum/api/token_store.dart';
 import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
-import 'package:muntum/data/mock_program_data.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/cards/horizontal.dart';
 import 'package:muntum/components/keyword_chip.dart';
 import 'package:muntum/components/popup_widget.dart';
 import 'package:muntum/models/program_model.dart';
-import 'package:muntum/models/user_keyword.dart';
 import 'package:muntum/screens/home/components/recent_search_widget.dart';
 import 'package:muntum/screens/home/components/section_header.dart';
+import 'package:muntum/services/keyword_service.dart';
 import 'package:muntum/services/program_service.dart';
 import 'package:muntum/services/search_service.dart';
-import 'package:muntum/utils/program_query.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -28,46 +25,50 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
-  static const String _recentSearchesKey = 'recent_searches';
-  final List<String> _defaultRecentSearches = [
-    '큐비스트: 시각의 혁신가들',
-    '우아한',
-    '서울시립미술관',
-    '국립현대미술관',
-  ];
+  static const String _guestRecentSearchesKey = 'recent_searches';
+  static const String _userRecentSearchesKeyPrefix = 'recent_searches_user';
   List<String> _recentSearches = [];
   final TextEditingController _searchController = TextEditingController();
   String searchText = '';
   final List<String> _selectedKeywords = [];
   Future<List<ProgramModel>>? _searchResultFuture;
   late Future<List<String>> _popularKeywordsFuture;
+  late Future<List<String>> _allKeywordsFuture;
 
   @override
   void initState() {
     super.initState();
     _popularKeywordsFuture = _loadPopularKeywords();
+    _allKeywordsFuture = _loadAllKeywords();
     _loadRecentSearches();
   }
 
   Future<List<String>> _loadPopularKeywords() async {
-    if (!ApiConfig.hasBaseUrl) {
-      return entireKeywords.take(6).toList();
-    }
     try {
       final keywords = await SearchService().fetchTopSearchKeywords();
-      final names = keywords
+      return keywords
           .map((keyword) => keyword.name)
           .where((name) => name.isNotEmpty)
           .take(6)
           .toList();
-      return names.isEmpty ? entireKeywords.take(6).toList() : names;
     } catch (_) {
-      return entireKeywords.take(6).toList();
+      return const [];
+    }
+  }
+
+  Future<List<String>> _loadAllKeywords() async {
+    try {
+      final keywords = await KeywordService().fetchTaggedKeywords();
+      return keywords
+          .map((keyword) => keyword.name)
+          .where((name) => name.isNotEmpty)
+          .toList();
+    } catch (_) {
+      return const [];
     }
   }
 
   Future<bool> _usesApiRecentSearches() async {
-    if (!ApiConfig.hasBaseUrl) return false;
     if (TokenStore.instance.accessToken?.isNotEmpty == true) return true;
     final refreshToken = await TokenStore.instance.readRefreshToken();
     return refreshToken?.isNotEmpty == true;
@@ -77,50 +78,71 @@ class _SearchScreenState extends State<SearchScreen> {
     if (await _usesApiRecentSearches()) {
       try {
         final recent = await SearchService().fetchRecentSearches();
+        final apiSearches = recent
+            .map((search) => search.keyword)
+            .where((keyword) => keyword.isNotEmpty)
+            .toList();
+        final localSearches = await _loadLocalRecentSearches(userScoped: true);
+        final searches = apiSearches.isNotEmpty ? apiSearches : localSearches;
         if (!mounted) return;
         setState(() {
-          _recentSearches = recent
-              .map((search) => search.keyword)
-              .where((keyword) => keyword.isNotEmpty)
-              .toList();
+          _recentSearches = List<String>.from(searches);
         });
+        if (apiSearches.isNotEmpty) {
+          await _saveLocalRecentSearches(userScoped: true);
+        }
         return;
       } catch (_) {
+        final localSearches = await _loadLocalRecentSearches(userScoped: true);
         if (!mounted) return;
         setState(() {
-          _recentSearches = [];
+          _recentSearches = List<String>.from(localSearches);
         });
         return;
       }
     }
-    final prefs = await SharedPreferences.getInstance();
-    final savedSearches = prefs.getStringList(_recentSearchesKey);
-
+    final savedSearches = await _loadLocalRecentSearches(userScoped: false);
+    if (!mounted) return;
     setState(() {
-      _recentSearches =
-          savedSearches ?? List<String>.from(_defaultRecentSearches);
+      _recentSearches = List<String>.from(savedSearches);
     });
   }
 
-  Future<void> _saveRecentSearches() async {
-    if (await _usesApiRecentSearches()) {
-      return;
+  Future<String> _recentSearchesStorageKey({required bool userScoped}) async {
+    if (!userScoped) return _guestRecentSearchesKey;
+    final email = (await TokenStore.instance.readEmail())?.trim();
+    if (email != null && email.isNotEmpty) {
+      return '${_userRecentSearchesKeyPrefix}_$email';
     }
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(_recentSearchesKey, _recentSearches);
+    final refreshToken = (await TokenStore.instance.readRefreshToken()) ?? '';
+    return '${_userRecentSearchesKeyPrefix}_${refreshToken.hashCode}';
   }
 
-  void _onSearchSubmitted(String text) {
+  Future<List<String>> _loadLocalRecentSearches({
+    required bool userScoped,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = await _recentSearchesStorageKey(userScoped: userScoped);
+    return List<String>.from(prefs.getStringList(key) ?? const <String>[]);
+  }
+
+  Future<void> _saveLocalRecentSearches({required bool userScoped}) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = await _recentSearchesStorageKey(userScoped: userScoped);
+    await prefs.setStringList(key, List<String>.from(_recentSearches));
+  }
+
+  void _onSearchSubmitted(String text) async {
     final trimmedText = text.trim();
 
     if (trimmedText.isEmpty) {
       return;
     }
-    _addRecentSearch(trimmedText);
     setState(() {
       searchText = trimmedText;
       _searchResultFuture = _loadSearchResults();
     });
+    await _addRecentSearch(trimmedText);
   }
 
   void _onKeywordSelected(String keyword) {
@@ -132,8 +154,6 @@ class _SearchScreenState extends State<SearchScreen> {
       _searchController.clear();
       _searchResultFuture = _loadSearchResults();
     });
-
-    _addRecentSearch(keyword);
   }
 
   void _showKeywordSelectionModal() {
@@ -179,42 +199,68 @@ class _SearchScreenState extends State<SearchScreen> {
                             child: SvgPicture.asset(
                               'assets/icons/close.svg',
                               width: 24.sp,
-                              color: AppColors.gray900,
+                              colorFilter: const ColorFilter.mode(
+                                AppColors.gray900,
+                                BlendMode.srcIn,
+                              ),
                             ),
                           ),
                         ],
                       ),
                       SizedBox(height: 24.h),
                       Expanded(
-                        child: SingleChildScrollView(
-                          child: Wrap(
-                            spacing: 8.w,
-                            runSpacing: 10.h,
-                            alignment: WrapAlignment.start,
-                            children: entireKeywords.map((keyword) {
-                              final isSelected = modalSelectedKeywords.contains(
-                                keyword,
-                              );
-                              return GestureDetector(
-                                onTap: () {
-                                  setModalState(() {
-                                    if (isSelected) {
-                                      modalSelectedKeywords.remove(keyword);
-                                    } else {
-                                      modalSelectedKeywords.add(keyword);
-                                    }
-                                  });
-                                },
-                                child: KeywordChip(
-                                  text: keyword,
-                                  textColor: AppColors.black,
-                                  outlineColor: isSelected
-                                      ? AppColors.black
-                                      : AppColors.lineStrong,
+                        child: FutureBuilder<List<String>>(
+                          future: _allKeywordsFuture,
+                          builder: (context, snapshot) {
+                            final keywords = snapshot.data ?? const <String>[];
+                            if (snapshot.connectionState !=
+                                ConnectionState.done) {
+                              return const Center(
+                                child: CircularProgressIndicator(
+                                  color: AppColors.gray900,
                                 ),
                               );
-                            }).toList(),
-                          ),
+                            }
+                            if (keywords.isEmpty) {
+                              return Center(
+                                child: Text(
+                                  '불러올 키워드가 없어요.',
+                                  style: AppTypography.body2.copyWith(
+                                    color: AppColors.gray500,
+                                  ),
+                                ),
+                              );
+                            }
+                            return SingleChildScrollView(
+                              child: Wrap(
+                                spacing: 8.w,
+                                runSpacing: 10.h,
+                                alignment: WrapAlignment.start,
+                                children: keywords.map((keyword) {
+                                  final isSelected = modalSelectedKeywords
+                                      .contains(keyword);
+                                  return GestureDetector(
+                                    onTap: () {
+                                      setModalState(() {
+                                        if (isSelected) {
+                                          modalSelectedKeywords.remove(keyword);
+                                        } else {
+                                          modalSelectedKeywords.add(keyword);
+                                        }
+                                      });
+                                    },
+                                    child: KeywordChip(
+                                      text: keyword,
+                                      textColor: AppColors.black,
+                                      outlineColor: isSelected
+                                          ? AppColors.black
+                                          : AppColors.lineStrong,
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            );
+                          },
                         ),
                       ),
                       SizedBox(height: 16.h),
@@ -231,7 +277,10 @@ class _SearchScreenState extends State<SearchScreen> {
                                 SvgPicture.asset(
                                   'assets/icons/redo.svg',
                                   width: 18.sp,
-                                  color: AppColors.gray900,
+                                  colorFilter: const ColorFilter.mode(
+                                    AppColors.gray900,
+                                    BlendMode.srcIn,
+                                  ),
                                 ),
                                 SizedBox(width: 4.w),
                                 Text(
@@ -309,15 +358,28 @@ class _SearchScreenState extends State<SearchScreen> {
       return;
     }
 
-    setState(() {
-      _recentSearches.remove(trimmedText);
-      _recentSearches.insert(0, trimmedText);
+    if (await _usesApiRecentSearches()) {
+      setState(() => _insertRecentSearch(trimmedText));
+      await _saveLocalRecentSearches(userScoped: true);
+      try {
+        await SearchService().saveRecentSearch(trimmedText);
+        await _loadRecentSearches();
+      } catch (_) {}
+      return;
+    }
+    setState(() => _insertRecentSearch(trimmedText));
+    await _saveLocalRecentSearches(userScoped: false);
+  }
 
-      if (_recentSearches.length > 10) {
-        _recentSearches.removeRange(10, _recentSearches.length);
-      }
-    });
-    await _saveRecentSearches();
+  void _insertRecentSearch(String text) {
+    final nextSearches = List<String>.from(_recentSearches);
+    nextSearches.remove(text);
+    nextSearches.insert(0, text);
+
+    if (nextSearches.length > 10) {
+      nextSearches.removeRange(10, nextSearches.length);
+    }
+    _recentSearches = nextSearches;
   }
 
   @override
@@ -351,6 +413,9 @@ class _SearchScreenState extends State<SearchScreen> {
               });
             },
             selectedKeywords: _selectedKeywords,
+            onSearchTap: _selectedKeywords.isNotEmpty
+                ? _showKeywordSelectionModal
+                : null,
             onKeywordDeleted: (keyword) {
               setState(() {
                 _selectedKeywords.remove(keyword);
@@ -363,6 +428,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 }
               });
             },
+            searchAutofocus: true,
           ),
           searchText.isEmpty
               ? _defaultSearchScreen(context)
@@ -390,8 +456,25 @@ class _SearchScreenState extends State<SearchScreen> {
               child: FutureBuilder<List<String>>(
                 future: _popularKeywordsFuture,
                 builder: (context, snapshot) {
-                  final keywords =
-                      snapshot.data ?? entireKeywords.take(6).toList();
+                  final keywords = snapshot.data ?? const <String>[];
+                  if (snapshot.connectionState != ConnectionState.done) {
+                    return const SizedBox(
+                      height: 36,
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.gray900,
+                        ),
+                      ),
+                    );
+                  }
+                  if (keywords.isEmpty) {
+                    return Text(
+                      '인기 키워드가 아직 없어요.',
+                      style: AppTypography.body2.copyWith(
+                        color: AppColors.gray500,
+                      ),
+                    );
+                  }
                   return Wrap(
                     spacing: 8.w,
                     runSpacing: 8.h,
@@ -412,85 +495,89 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
             ),
             SizedBox(height: 32.h),
-            SectionHeader2(
-              text: '최근 검색어',
-              buttonName: '전체 삭제',
-              onButtonTap: () {
-                showPopupWidget(
-                  context: context,
-                  title: '최근 검색어를 모두 삭제할까요?',
-                  description: '검색 내역이 전부 삭제됩니다.',
-                  text1: '취소',
-                  text2: '삭제하기',
-                  onText1Tap: () {
-                    Navigator.pop(context);
-                  },
-                  onText2Tap: () async {
-                    Navigator.pop(context);
-                    setState(() {
-                      _recentSearches.clear();
-                    });
-                    if (await _usesApiRecentSearches()) {
-                      await SearchService().deleteAllRecentSearches();
-                    } else {
-                      await _saveRecentSearches();
-                    }
-                  },
-                );
-              },
-            ),
-            SizedBox(height: 12.h),
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              padding: EdgeInsets.zero,
-              itemBuilder: (context, index) {
-                return GestureDetector(
-                  onTap: () {
-                    _searchController.text = _recentSearches[index];
-                    searchText = _recentSearches[index];
-                    _searchResultFuture = _loadSearchResults();
-                    setState(() {});
-                  },
-                  child: RecentSearchWidget(
-                    text: _recentSearches[index],
-                    onDelete: () async {
-                      final keyword = _recentSearches[index];
+            if (_recentSearches.isNotEmpty) ...[
+              SectionHeader2(
+                text: '최근 검색어',
+                buttonName: '전체 삭제',
+                onButtonTap: () {
+                  showPopupWidget(
+                    context: context,
+                    title: '최근 검색어를 모두 삭제할까요?',
+                    description: '검색 내역이 전부 삭제됩니다.',
+                    text1: '취소',
+                    text2: '삭제하기',
+                    onText1Tap: () {
+                      Navigator.pop(context);
+                    },
+                    onText2Tap: () async {
+                      Navigator.pop(context);
+                      final usesApi = await _usesApiRecentSearches();
                       setState(() {
-                        _recentSearches.removeAt(index);
+                        _recentSearches = [];
                       });
-                      if (await _usesApiRecentSearches()) {
+                      if (usesApi) {
                         try {
-                          await SearchService().deleteRecentSearch(keyword);
+                          await SearchService().deleteAllRecentSearches();
                         } finally {
-                          await _loadRecentSearches();
+                          await _saveLocalRecentSearches(userScoped: true);
                         }
                       } else {
-                        await _saveRecentSearches();
+                        await _saveLocalRecentSearches(userScoped: false);
                       }
                     },
-                  ),
-                );
-              },
-              separatorBuilder: (_, __) => SizedBox(height: 8.h),
-              itemCount: _recentSearches.length,
-            ),
+                  );
+                },
+              ),
+              SizedBox(height: 12.h),
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                padding: EdgeInsets.zero,
+                itemBuilder: (context, index) {
+                  return GestureDetector(
+                    onTap: () {
+                      _searchController.text = _recentSearches[index];
+                      searchText = _recentSearches[index];
+                      _searchResultFuture = _loadSearchResults();
+                      setState(() {});
+                    },
+                    child: RecentSearchWidget(
+                      text: _recentSearches[index],
+                      onDelete: () async {
+                        final keyword = _recentSearches[index];
+                        setState(() {
+                          final nextSearches = List<String>.from(
+                            _recentSearches,
+                          );
+                          nextSearches.removeAt(index);
+                          _recentSearches = nextSearches;
+                        });
+                        final usesApi = await _usesApiRecentSearches();
+                        if (usesApi) {
+                          try {
+                            await SearchService().deleteRecentSearch(keyword);
+                          } finally {
+                            await _saveLocalRecentSearches(userScoped: true);
+                            await _loadRecentSearches();
+                          }
+                        } else {
+                          await _saveLocalRecentSearches(userScoped: false);
+                        }
+                      },
+                    ),
+                  );
+                },
+                separatorBuilder: (_, _) => SizedBox(height: 8.h),
+                itemCount: _recentSearches.length,
+              ),
+            ],
           ],
         ),
       ),
     );
   }
 
-  List<ProgramModel> get searchResult {
-    return queryPrograms(
-      mockPrograms,
-      query: _selectedKeywords.isEmpty ? searchText : '',
-      keywords: _selectedKeywords,
-    );
-  }
-
   Future<List<ProgramModel>> _loadSearchResults() async {
-    if (!ApiConfig.hasBaseUrl) return searchResult;
     final service = ProgramService();
     final query = _selectedKeywords.isEmpty ? searchText : '';
 
@@ -501,7 +588,11 @@ class _SearchScreenState extends State<SearchScreen> {
       )).content;
     }
 
-    return (await service.fetchPrograms(search: query, size: 100)).content;
+    return (await service.fetchPrograms(
+      search: query,
+      size: 100,
+      authorized: await _usesApiRecentSearches(),
+    )).content;
   }
 
   Widget _searchSubmitScreen() {

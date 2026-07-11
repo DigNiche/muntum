@@ -48,7 +48,7 @@ class ReportCompleteScreen extends StatelessWidget {
           AppBarWidget(
             centerType: AppBarCenterType.none,
             leadingIcon: 'close.svg',
-            onLeadingTap: () => _goToEntireHome(context),
+            onLeadingTap: () => Navigator.pop(context),
           ),
           Expanded(
             child: Column(

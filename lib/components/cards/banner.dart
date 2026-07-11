@@ -81,7 +81,7 @@ class BannerCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      program.startEndDates,
+                      program.cardDateText,
                       style: AppTypography.caption1.copyWith(
                         color: AppColors.white,
                       ),

@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/button_solid.dart';
-import 'package:muntum/api/api_config.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
-import 'package:muntum/data/mock_report_data.dart';
 import 'package:muntum/models/report_model.dart';
 import 'package:muntum/screens/mypage/components/report_form_field.dart';
 import 'package:muntum/screens/mypage/report_complete_screen.dart';
@@ -68,18 +66,14 @@ class _ReportSubmitScreenState extends State<ReportSubmitScreen> {
         createdAt: DateTime.now(),
       );
 
-      if (ApiConfig.hasBaseUrl) {
-        await SuggestionService().createSuggestion(
-          programName: submittedReport.programName,
-          address: _selectedPlace!.address,
-          reason: submittedReport.reason,
-        );
-      } else {
-        addMockReport(submittedReport);
-      }
+      await SuggestionService().createSuggestion(
+        programName: submittedReport.programName,
+        address: _selectedPlace!.address,
+        reason: submittedReport.reason,
+      );
 
       if (!mounted) return;
-      Navigator.pushReplacement(
+      Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => ReportCompleteScreen(report: submittedReport),
@@ -147,7 +141,7 @@ class _ReportSubmitScreenState extends State<ReportSubmitScreen> {
             child: Column(
               children: [
                 Text(
-                  '✨제보 확인 후 누군가를 특별한 공간이 돼요',
+                  '✨작은 발견이 누군가의 특별한 경험이 돼요',
                   style: AppTypography.caption3.copyWith(
                     color: AppColors.gray500,
                   ),

@@ -6,11 +6,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
-import 'package:muntum/api/api_config.dart';
 import 'package:muntum/api/token_store.dart';
-import 'package:muntum/data/mock_user_data.dart';
 import 'package:muntum/screens/navigation/main_navigation_screen.dart';
 import 'package:muntum/services/program_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoadingScreen extends StatefulWidget {
   const LoadingScreen({super.key});
@@ -20,6 +19,8 @@ class LoadingScreen extends StatefulWidget {
 }
 
 class _LoadingScreenState extends State<LoadingScreen> {
+  static const String _pendingMyNicheCoachmarkKey =
+      'pending_my_niche_coachmark';
   static const int _initialPage = 5;
   static const Duration _animationDuration = Duration(milliseconds: 700);
 
@@ -44,16 +45,21 @@ class _LoadingScreenState extends State<LoadingScreen> {
     _loadThumbnailUrls();
     _navigationTimer = Timer(const Duration(seconds: 6), () {
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
-      );
+      _goToMain();
     });
   }
 
+  Future<void> _goToMain() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_pendingMyNicheCoachmarkKey, true);
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
+    );
+  }
+
   Future<void> _loadNickname() async {
-    final nickname = ApiConfig.hasBaseUrl
-        ? await TokenStore.instance.readNickname()
-        : MockUserSession.instance.nickname;
+    final nickname = await TokenStore.instance.readNickname();
     final trimmed = nickname?.trim() ?? '';
     if (!mounted || trimmed.isEmpty) return;
     setState(() {

@@ -3,13 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/button_solid.dart';
-import 'package:muntum/api/api_config.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
-import 'package:muntum/data/mock_user_data.dart';
 import 'package:muntum/screens/mypage/profile_screen.dart';
 import 'package:muntum/screens/onboarding/components/text_field_widget.dart';
 import 'package:muntum/screens/onboarding/sign_up_screens/keyword_screen.dart';
+import 'package:muntum/screens/onboarding/login_screen.dart';
 import 'package:muntum/services/user_service.dart';
 import 'package:muntum/utils/app_toast.dart';
 
@@ -62,9 +61,7 @@ class _NicknameScreenState extends State<NicknameScreen> {
                       centerType: AppBarCenterType.none,
                       leadingIcon: 'arrow_left.svg',
                       leadingColor: AppColors.gray200,
-                      onLeadingTap: () {
-                        Navigator.pop(context);
-                      },
+                      onLeadingTap: _goBackSafely,
                     ),
                     SizedBox(height: 32.h),
                     Padding(
@@ -138,11 +135,7 @@ class _NicknameScreenState extends State<NicknameScreen> {
       _isError = false;
     });
     try {
-      if (ApiConfig.hasBaseUrl) {
-        await UserService().updateNickname(nickname);
-      } else {
-        MockUserSession.instance.updateNickname(nickname);
-      }
+      await UserService().updateNickname(nickname);
       if (!mounted) return;
       pushToScreen(context, KeywordScreen());
     } catch (error) {
@@ -154,5 +147,16 @@ class _NicknameScreenState extends State<NicknameScreen> {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  void _goBackSafely() {
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.pop();
+      return;
+    }
+    navigator.pushReplacement(
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
+    );
   }
 }

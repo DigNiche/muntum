@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:muntum/api/api_config.dart';
 import 'package:muntum/api/token_store.dart';
 import 'package:muntum/components/button_solid.dart';
 import 'package:muntum/components/cards/vertical_card.dart';
 import 'package:muntum/components/page_header.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
-import 'package:muntum/data/mock_program_data.dart';
-import 'package:muntum/data/mock_user_data.dart';
 import 'package:muntum/models/program_model.dart';
 import 'package:muntum/screens/onboarding/login_screen.dart';
 import 'package:muntum/services/scrap_service.dart';
@@ -31,23 +28,13 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
   @override
   void initState() {
     super.initState();
-    MockBookmarkStore.instance.addListener(_reloadMockBookmarks);
     _isLoggedInFuture = _isLoggedIn();
     _bookmarkedProgramsFuture = _loadPrograms();
   }
 
   @override
   void dispose() {
-    MockBookmarkStore.instance.removeListener(_reloadMockBookmarks);
     super.dispose();
-  }
-
-  void _reloadMockBookmarks() {
-    if (!mounted) return;
-    setState(() {
-      _isLoggedInFuture = _isLoggedIn();
-      _bookmarkedProgramsFuture = _loadPrograms();
-    });
   }
 
   @override
@@ -65,18 +52,11 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
     if (!await _isLoggedIn()) {
       return const <ProgramModel>[];
     }
-    if (!ApiConfig.hasBaseUrl) {
-      return List.of(
-        mockPrograms.where(MockBookmarkStore.instance.isBookmarked),
-      );
-    }
+
     return (await ScrapService().fetchMyScraps(size: 100)).content;
   }
 
   Future<bool> _isLoggedIn() async {
-    if (!ApiConfig.hasBaseUrl) {
-      return MockUserSession.instance.isLoggedIn;
-    }
     final accessToken = TokenStore.instance.accessToken;
     if (accessToken != null && accessToken.isNotEmpty) return true;
     final refreshToken = await TokenStore.instance.readRefreshToken();
@@ -250,7 +230,8 @@ class _GuestBookmarkView extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const LoginScreen(),
+                      builder: (context) =>
+                          const LoginScreen(showBackButton: true),
                     ),
                   );
                 },

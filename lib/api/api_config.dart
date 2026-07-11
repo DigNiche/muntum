@@ -3,10 +3,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 class ApiConfig {
   static const defaultBaseUrl = 'https://api.muntum.work';
   static const _dartDefineBaseUrl = String.fromEnvironment('API_BASE_URL');
-  static bool forceMock = false;
 
   static String get baseUrl {
-    if (forceMock) return '';
     String envBaseUrl = '';
     try {
       envBaseUrl = dotenv.env['API_BASE_URL'] ?? '';

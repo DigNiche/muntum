@@ -56,6 +56,8 @@ class ProgramModel {
   final List<KeywordModel> keywordModels;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final String startDate;
+  final String endDate;
 
   ProgramModel({
     this.id = '',
@@ -84,6 +86,8 @@ class ProgramModel {
     this.keywordModels = const [],
     this.createdAt,
     this.updatedAt,
+    this.startDate = '',
+    this.endDate = '',
   });
 
   factory ProgramModel.fromJson(Map<String, dynamic> json) {
@@ -97,8 +101,10 @@ class ProgramModel {
     final reserved = json['reserved'] as bool? ?? false;
     final ended =
         json['ended'] as bool? ?? _isEnded(json['endDate'] as String?);
-    final startDate = json['startDate'] as String? ?? '';
-    final endDate = json['endDate'] as String? ?? '';
+    final startDate =
+        json['startDate'] as String? ?? json['startTime'] as String? ?? '';
+    final endDate =
+        json['endDate'] as String? ?? json['endTime'] as String? ?? '';
 
     return ProgramModel(
       id: '${json['id'] ?? ''}',
@@ -115,9 +121,9 @@ class ProgramModel {
       imageUrls: imageUrls,
       keywords: keywordModels.map((keyword) => keyword.name).toList(),
       keywordModels: keywordModels,
-      startEndDates: startDate.isEmpty && endDate.isEmpty
-          ? ''
-          : '$startDate - $endDate',
+      startEndDates: _formatDateRange(startDate, endDate, compactYear: true),
+      startDate: startDate,
+      endDate: endDate,
       locationName: json['venueName'] as String? ?? '',
       location: {
         'address': json['address'] as String? ?? '',
@@ -209,5 +215,93 @@ class ProgramModel {
     if (parsed == null) return false;
     final now = DateTime.now();
     return parsed.year == now.year && parsed.month == now.month;
+  }
+
+  String get cardDateText {
+    final formatted = _formatDateRange(startDate, endDate, compactYear: true);
+    if (formatted.isNotEmpty) return formatted;
+    return _formatStoredDateRange(startEndDates, compactYear: true);
+  }
+
+  String get detailDateText {
+    final formatted = _formatDateRange(startDate, endDate, compactYear: false);
+    if (formatted.isNotEmpty) return formatted;
+    return _formatStoredDateRange(startEndDates, compactYear: false);
+  }
+
+  static String _formatStoredDateRange(
+    String value, {
+    required bool compactYear,
+  }) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return '';
+
+    final parts = trimmed
+        .split(RegExp(r'\s*-\s*'))
+        .map((part) => part.trim())
+        .toList();
+    if (parts.length >= 2) {
+      return _formatDateRange(
+        parts[0],
+        parts.sublist(1).join('-'),
+        compactYear: compactYear,
+      );
+    }
+
+    final date = _formatSingleDate(trimmed, compactYear: compactYear);
+    return date.isEmpty ? trimmed : date;
+  }
+
+  static String _formatDateRange(
+    String start,
+    String end, {
+    required bool compactYear,
+  }) {
+    final formattedStart = _formatSingleDate(start, compactYear: compactYear);
+    final formattedEnd = _formatSingleDate(end, compactYear: compactYear);
+
+    if (formattedStart.isEmpty && formattedEnd.isEmpty) return '';
+    if (formattedStart.isEmpty) return formattedEnd;
+    if (formattedEnd.isEmpty) {
+      return compactYear ? '$formattedStart-상시' : '$formattedStart - 상시';
+    }
+    return compactYear
+        ? '$formattedStart-$formattedEnd'
+        : '$formattedStart - $formattedEnd';
+  }
+
+  static String _formatSingleDate(String value, {required bool compactYear}) {
+    final parsed = _parseDate(value);
+    if (parsed == null) return '';
+    final year = compactYear
+        ? (parsed.year % 100).toString().padLeft(2, '0')
+        : parsed.year.toString().padLeft(4, '0');
+    final month = parsed.month.toString().padLeft(2, '0');
+    final day = parsed.day.toString().padLeft(2, '0');
+    return '$year.$month.$day';
+  }
+
+  static DateTime? _parseDate(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty || trimmed == '상시') return null;
+
+    final normalized = trimmed
+        .replaceAll('.', '-')
+        .replaceAll('/', '-')
+        .split(RegExp(r'\s+'))
+        .first;
+    final directParsed = DateTime.tryParse(normalized);
+    if (directParsed != null) return directParsed;
+
+    final match = RegExp(
+      r'^(\d{2,4})-(\d{1,2})-(\d{1,2})$',
+    ).firstMatch(normalized);
+    if (match == null) return null;
+    var year = int.tryParse(match.group(1) ?? '');
+    final month = int.tryParse(match.group(2) ?? '');
+    final day = int.tryParse(match.group(3) ?? '');
+    if (year == null || month == null || day == null) return null;
+    if (year < 100) year += 2000;
+    return DateTime(year, month, day);
   }
 }

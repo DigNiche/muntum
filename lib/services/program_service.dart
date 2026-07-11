@@ -48,6 +48,7 @@ class ProgramService {
     SortOrder order = SortOrder.desc,
     int page = 0,
     int size = 20,
+    bool authorized = false,
   }) async {
     final response = await _client.get(
       ApiEndpoints.programs,
@@ -60,6 +61,7 @@ class ProgramService {
         'page': page,
         'size': size,
       },
+      authorized: authorized,
     );
     return ApiResponse.fromJson(
       response,
