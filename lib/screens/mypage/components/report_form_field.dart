@@ -39,7 +39,7 @@ class ReportFormField extends StatelessWidget {
       children: [
         Text(
           label,
-          style: AppTypography.caption2.copyWith(color: AppColors.gray900),
+          style: AppTypography.button3.copyWith(color: AppColors.gray900),
         ),
         SizedBox(height: 8.h),
         GestureDetector(
@@ -53,10 +53,10 @@ class ReportFormField extends StatelessWidget {
               readOnly: readOnly,
               maxLines: maxLines,
               minLines: maxLines,
-              style: AppTypography.caption1.copyWith(color: AppColors.gray900),
+              style: AppTypography.body1.copyWith(color: AppColors.gray900),
               decoration: InputDecoration(
                 hintText: value ?? hintText,
-                hintStyle: AppTypography.caption1.copyWith(
+                hintStyle: AppTypography.body1.copyWith(
                   color: value == null ? AppColors.gray400 : AppColors.gray900,
                 ),
                 suffixIcon: showChevron

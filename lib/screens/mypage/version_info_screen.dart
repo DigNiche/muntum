@@ -50,11 +50,11 @@ class VersionInfoScreen extends StatelessWidget {
                     children: [
                       Text(
                         '버전 정보',
-                        style: AppTypography.body2.copyWith(
+                        style: AppTypography.button2.copyWith(
                           color: AppColors.gray900,
                         ),
                       ),
-                      SizedBox(height: 8.h),
+                      SizedBox(height: 4.h),
                       Text(
                         '$versionText (${_needsUpdate ? '업데이트 필요' : '최신'})',
                         style: AppTypography.caption1.copyWith(

@@ -142,8 +142,8 @@ class _ReportSubmitScreenState extends State<ReportSubmitScreen> {
               children: [
                 Text(
                   '✨작은 발견이 누군가의 특별한 경험이 돼요',
-                  style: AppTypography.caption3.copyWith(
-                    color: AppColors.gray500,
+                  style: AppTypography.caption1.copyWith(
+                    color: AppColors.gray800,
                   ),
                 ),
                 SizedBox(height: 12.h),

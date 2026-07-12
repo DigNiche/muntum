@@ -82,12 +82,12 @@ class _TermsMenuItem extends StatelessWidget {
             Expanded(
               child: Text(
                 title,
-                style: AppTypography.body2.copyWith(color: AppColors.gray900),
+                style: AppTypography.button2.copyWith(color: AppColors.gray900),
               ),
             ),
             SvgPicture.asset(
-              'assets/icons/arrow_right-small.svg',
-              width: 18.w,
+              'assets/icons/arrow_right.svg',
+              width: 16.r,
               colorFilter: const ColorFilter.mode(
                 AppColors.gray500,
                 BlendMode.srcIn,

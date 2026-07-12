@@ -75,7 +75,7 @@ class _AnnouncementDetailScreenState extends State<AnnouncementDetailScreen> {
                         announcement.title.isEmpty
                             ? '공지사항 제목'
                             : announcement.title,
-                        style: AppTypography.headline1.copyWith(
+                        style: AppTypography.title4.copyWith(
                           color: AppColors.gray900,
                         ),
                       ),
