@@ -626,9 +626,15 @@ class _SearchScreenState extends State<SearchScreen> {
                 Expanded(
                   child: ListView.separated(
                     padding: EdgeInsets.zero,
-                    itemBuilder: (context, index) =>
-                        HorizontalCard(program: results[index]),
-                    separatorBuilder: (_, _) => SizedBox(height: 12.h),
+                    itemBuilder: (context, index) {
+                      final isLast = index == results.length - 1;
+                      return Padding(
+                        padding: EdgeInsets.only(bottom: isLast ? 40.h : 0),
+                        child: HorizontalCard(program: results[index]),
+                      );
+                    },
+                    separatorBuilder: (context, index) =>
+                        SizedBox(height: 12.h),
                     itemCount: results.length,
                   ),
                 ),

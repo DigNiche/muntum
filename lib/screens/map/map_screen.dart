@@ -881,7 +881,7 @@ class _MapScreenState extends State<MapScreen> {
               scrollDirection: Axis.horizontal,
               padding: EdgeInsets.symmetric(horizontal: 20.w),
               child: Row(
-                spacing: 8.w,
+                spacing: 6.w,
                 children: [
                   _buildMapFilterChip(Filter.nowHot, '🔥지금핫한'),
                   _buildMapFilterChip(Filter.free, '무료'),

@@ -130,7 +130,7 @@ class _NickNameChangeScreenState extends State<NickNameChangeScreen> {
                         width: 1.w,
                       ),
                     ),
-                    errorText: _isError ? '닉네임을 확인해주세요.' : null,
+                    errorText: _isError ? '중복된 닉네임' : null,
                   ),
                 ),
                 SizedBox(height: 8.h),
@@ -163,7 +163,7 @@ class _NickNameChangeScreenState extends State<NickNameChangeScreen> {
     } catch (error) {
       if (!mounted) return;
       setState(() => _isError = true);
-      showAppToast(context, '$error');
+      showAppToast(context, '중복된 닉네임');
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }

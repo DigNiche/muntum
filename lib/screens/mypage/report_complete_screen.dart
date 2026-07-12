@@ -42,62 +42,69 @@ class ReportCompleteScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.white,
-      body: Column(
+      body: Stack(
         children: [
-          SizedBox(height: 50.h),
-          AppBarWidget(
-            centerType: AppBarCenterType.none,
-            leadingIcon: 'close.svg',
-            onLeadingTap: () => Navigator.pop(context),
+          Column(
+            children: [
+              SizedBox(height: 50.h),
+              AppBarWidget(
+                centerType: AppBarCenterType.none,
+                leadingIcon: 'close.svg',
+                onLeadingTap: () => Navigator.pop(context),
+              ),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Lottie.asset(
+                      'assets/lottie/report_complete.lottie',
+                      width: 140.w,
+                      height: 140.w,
+                      repeat: false,
+                    ),
+                    SizedBox(height: 28.h),
+                    Text(
+                      '제보해주셔서 감사해요!',
+                      style: AppTypography.title4.copyWith(
+                        color: AppColors.gray900,
+                      ),
+                    ),
+                    SizedBox(height: 8.h),
+                    Text(
+                      '관리자 검토 후 등록될 예정이에요.',
+                      style: AppTypography.body2.copyWith(
+                        color: AppColors.gray400,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 152.h),
+            ],
           ),
-          Expanded(
+          Positioned(
+            left: 20.w,
+            right: 20.w,
+            bottom: 48.h,
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Lottie.asset(
-                  'assets/lottie/report_complete.lottie',
-                  width: 140.w,
-                  height: 140.w,
-                  repeat: false,
-                ),
-                SizedBox(height: 28.h),
-                Text(
-                  '제보해주셔서 감사해요!',
-                  style: AppTypography.headline1.copyWith(
-                    color: AppColors.gray900,
-                  ),
-                ),
-                SizedBox(height: 8.h),
-                Text(
-                  '관리자 검토 후 등록될 예정이에요.',
-                  style: AppTypography.caption1.copyWith(
-                    color: AppColors.gray400,
-                  ),
-                ),
-                SizedBox(height: 64.h),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20.w),
-                  child: ButtonSolid(
-                    text: '홈으로',
-                    textColor: AppColors.white,
-                    boxColor: AppColors.black,
-                    onTap: () => _goToEntireHome(context),
-                    padding: EdgeInsets.symmetric(vertical: 13.h),
-                  ),
+                ButtonSolid(
+                  text: '홈으로',
+                  textColor: AppColors.white,
+                  boxColor: AppColors.black,
+                  onTap: () => _goToEntireHome(context),
+                  padding: EdgeInsets.symmetric(vertical: 13.h),
                 ),
                 SizedBox(height: 14.h),
                 GestureDetector(
                   onTap: () => _goToReportDetail(context),
                   behavior: HitTestBehavior.opaque,
                   child: Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 20.w,
-                      vertical: 8.h,
-                    ),
+                    padding: EdgeInsets.symmetric(vertical: 8.h),
                     child: Text(
                       '제보 내용 확인하기',
-                      style: AppTypography.caption1.copyWith(
-                        color: AppColors.gray400,
+                      style: AppTypography.button3.copyWith(
+                        color: AppColors.gray500,
                       ),
                     ),
                   ),

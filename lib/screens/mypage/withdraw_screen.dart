@@ -79,9 +79,12 @@ class _WithdrawPasswordScreenState extends State<WithdrawPasswordScreen> {
       text1: '아니요',
       text2: _isWithdrawing ? '탈퇴 중...' : '탈퇴하기',
       text2Color: AppColors.error,
-      onText1Tap: () => Navigator.pop(context),
-      onText2Tap: () async {
+      onText1Tap: () {
+        Navigator.of(context, rootNavigator: true).pop();
         Navigator.pop(context);
+      },
+      onText2Tap: () async {
+        Navigator.of(context, rootNavigator: true).pop();
         await _withdraw(password);
       },
     );
@@ -305,9 +308,9 @@ class WithdrawCompleteScreen extends StatelessWidget {
           Text(
             '탈퇴가 완료됐어요',
             textAlign: TextAlign.center,
-            style: AppTypography.title3.copyWith(color: AppColors.gray900),
+            style: AppTypography.title4.copyWith(color: AppColors.gray900),
           ),
-          SizedBox(height: 14.h),
+          SizedBox(height: 24.h),
           Text(
             '그동안 문틈을 이용해주셔서 감사합니다.',
             textAlign: TextAlign.center,

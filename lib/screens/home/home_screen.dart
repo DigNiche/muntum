@@ -314,8 +314,15 @@ class _MyNichePageState extends State<MyNichePage> {
                           controller: _scrollController,
                           padding: EdgeInsets.zero,
                           itemCount: programs.length,
-                          itemBuilder: (context, index) =>
-                              CurationCard(program: programs[index]),
+                          itemBuilder: (context, index) {
+                            final isLast = index == programs.length - 1;
+                            return Padding(
+                              padding: EdgeInsets.only(
+                                bottom: isLast ? 40.h : 0,
+                              ),
+                              child: CurationCard(program: programs[index]),
+                            );
+                          },
                         );
                       },
                     ),

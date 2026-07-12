@@ -76,7 +76,9 @@ class _PasswordChangeScreenState extends State<PasswordChangeScreen> {
       !_isSaving;
 
   bool _isValidPassword(String password) {
-    return password.length >= 8;
+    return RegExp(
+      r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$',
+    ).hasMatch(password);
   }
 
   Future<void> _submit() async {
@@ -178,7 +180,7 @@ class _PasswordChangeScreenState extends State<PasswordChangeScreen> {
                     focusNode: _newFocusNode,
                     obscureText: _newObscureText,
                     isError: _newPasswordError,
-                    errorText: '비밀번호가 조건에 맞지 않습니다.(8자 이상)',
+                    errorText: '영문, 숫자, 특수문자 포함 8자 이상이어야 합니다.',
                     onVisibilityTap: () {
                       setState(() => _newObscureText = !_newObscureText);
                     },
@@ -284,8 +286,12 @@ class _PasswordChangeField extends StatelessWidget {
                             ? 'assets/icons/visibility-false.svg'
                             : 'assets/icons/visibility.svg',
                         width: 20.w,
-                        colorFilter: const ColorFilter.mode(
-                          AppColors.gray400,
+                        colorFilter: ColorFilter.mode(
+                          isError
+                              ? AppColors.gray700
+                              : !obscureText
+                              ? AppColors.primary400
+                              : AppColors.gray500,
                           BlendMode.srcIn,
                         ),
                       ),

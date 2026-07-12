@@ -135,7 +135,7 @@ class _ReportListContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView.separated(
-      padding: EdgeInsets.fromLTRB(20.w, 32.h, 20.w, 20.h),
+      padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 24.h),
       itemBuilder: (context, index) {
         if (index == 0) {
           return Column(
@@ -143,16 +143,16 @@ class _ReportListContent extends StatelessWidget {
             children: [
               Text(
                 '알려지지 않은 프로그램 ${reports.length}개,\n$nickname님이 👀발견했어요!',
-                style: AppTypography.title4.copyWith(color: AppColors.gray900),
+                style: AppTypography.title3.copyWith(color: AppColors.gray900),
               ),
-              SizedBox(height: 46.h),
+              SizedBox(height: 40.h),
               Text(
                 '제보내역 ${reports.length}개',
-                style: AppTypography.caption2.copyWith(
+                style: AppTypography.headline2.copyWith(
                   color: AppColors.gray500,
                 ),
               ),
-              SizedBox(height: 20.h),
+              SizedBox(height: 16.h),
               _ReportListTile(report: reports[index], onTap: onReportTap),
             ],
           );
@@ -160,7 +160,7 @@ class _ReportListContent extends StatelessWidget {
         return _ReportListTile(report: reports[index], onTap: onReportTap);
       },
       separatorBuilder: (context, index) => Divider(
-        height: 28.h,
+        height: 32.h,
         thickness: 1.h,
         color: AppColors.lineAlternative,
       ),
@@ -189,14 +189,14 @@ class _ReportListTile extends StatelessWidget {
               report.programName,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: AppTypography.headline2.copyWith(color: AppColors.gray900),
+              style: AppTypography.button2.copyWith(color: AppColors.gray900),
             ),
             SizedBox(height: 6.h),
             Text(
               report.place.address,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: AppTypography.caption1.copyWith(color: AppColors.gray400),
+              style: AppTypography.caption1.copyWith(color: AppColors.gray500),
             ),
           ],
         ),

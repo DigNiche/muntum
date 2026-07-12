@@ -250,17 +250,13 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                         ),
                         SizedBox(height: 40.h),
                         Column(
-                          spacing: 10.h,
+                          spacing: 6.h,
                           children: [
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Container(
-                                  width: 70.w,
-                                  padding: EdgeInsets.only(
-                                    top: 4.h,
-                                    bottom: 4.h,
-                                  ),
+                                Padding(
+                                  padding: EdgeInsets.only(top: 1.0.h),
                                   child: Text(
                                     "위치",
                                     style: AppTypography.button2.copyWith(
@@ -268,56 +264,41 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                                     ),
                                   ),
                                 ),
-                                SizedBox(width: 20.w),
-                                Expanded(
-                                  child: Padding(
-                                    padding: EdgeInsets.only(
-                                      top: 4.h,
-                                      bottom: 4.h,
+                                SizedBox(width: 60.w),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      program.locationName,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: AppTypography.body1.copyWith(
+                                        color: AppColors.gray900,
+                                      ),
                                     ),
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                    SizedBox(height: 2.h),
+                                    Row(
                                       children: [
-                                        Text(
-                                          program.locationName,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: AppTypography.body1.copyWith(
-                                            color: AppColors.gray900,
+                                        SvgPicture.asset(
+                                          'assets/icons/location-filled.svg',
+                                          width: 16.w,
+                                          colorFilter: const ColorFilter.mode(
+                                            AppColors.gray400,
+                                            BlendMode.srcIn,
                                           ),
                                         ),
-                                        SizedBox(height: 2.h),
-                                        Row(
-                                          children: [
-                                            SvgPicture.asset(
-                                              'assets/icons/location-filled.svg',
-                                              width: 16.w,
-                                              colorFilter:
-                                                  const ColorFilter.mode(
-                                                    AppColors.gray400,
-                                                    BlendMode.srcIn,
-                                                  ),
-                                            ),
-                                            SizedBox(width: 2.w),
-                                            Expanded(
-                                              child: Text(
-                                                program.location['address'] ??
-                                                    '',
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: AppTypography.body3
-                                                    .copyWith(
-                                                      color: AppColors.gray600,
-                                                    ),
-                                              ),
-                                            ),
-                                          ],
+                                        SizedBox(width: 2.w),
+                                        Text(
+                                          program.location['address'] ?? '',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: AppTypography.body3.copyWith(
+                                            color: AppColors.gray600,
+                                          ),
                                         ),
                                       ],
                                     ),
-                                  ),
+                                  ],
                                 ),
                               ],
                             ),

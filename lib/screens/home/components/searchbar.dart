@@ -36,7 +36,7 @@ class SearchBarWidget extends StatefulWidget {
 
 class _SearchBarWidgetState extends State<SearchBarWidget> {
   final FocusNode _focusNode = FocusNode();
-  bool _isFocused = false;
+  bool isFocused = false;
 
   @override
   void initState() {
@@ -56,7 +56,7 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
 
   void _onFocusChange() {
     setState(() {
-      _isFocused = _focusNode.hasFocus;
+      isFocused = _focusNode.hasFocus;
     });
   }
 
@@ -120,9 +120,7 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
                             contentPadding: EdgeInsets.zero,
                             hintText: "새로운 곳을 발견해보세요.",
                             hintStyle: AppTypography.body2.copyWith(
-                              color: _isFocused
-                                  ? AppColors.gray900
-                                  : AppColors.gray500,
+                              color: AppColors.gray500,
                             ),
                             suffixIcon:
                                 widget.readOnly ||

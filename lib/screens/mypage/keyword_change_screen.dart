@@ -99,6 +99,7 @@ class _KeywordChangeScreenState extends State<KeywordChangeScreen> {
           ..addAll(_selectedKeywords);
         isEdit = false;
       });
+      showAppToast(context, '저장되었습니다');
     } catch (error) {
       if (!mounted) return;
       showAppToast(context, '$error');
