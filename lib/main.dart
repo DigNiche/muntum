@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_naver_map/flutter_naver_map.dart';
@@ -8,6 +9,7 @@ import 'package:muntum/gates/auth_gate.dart';
 Future<void> main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   await dotenv.load(fileName: ".env");
   final clientId = dotenv.env['NAVER_MAP_CLIENT_ID'] ?? '';
 
@@ -16,12 +18,12 @@ Future<void> main() async {
     onAuthFailed: (ex) {
       switch (ex) {
         case NQuotaExceededException(:final message):
-          print("사용량 초과 (message: $message)");
+          debugPrint("사용량 초과 (message: $message)");
           break;
         case NUnauthorizedClientException() ||
             NClientUnspecifiedException() ||
             NAnotherAuthFailedException():
-          print("인증 실패: $ex");
+          debugPrint("인증 실패: $ex");
           break;
       }
     },

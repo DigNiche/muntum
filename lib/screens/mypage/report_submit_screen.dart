@@ -68,6 +68,7 @@ class _ReportSubmitScreenState extends State<ReportSubmitScreen> {
 
       await SuggestionService().createSuggestion(
         programName: submittedReport.programName,
+        placeName: _selectedPlace!.name,
         address: _selectedPlace!.address,
         reason: submittedReport.reason,
       );

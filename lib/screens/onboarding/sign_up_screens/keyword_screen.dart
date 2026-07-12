@@ -70,7 +70,7 @@ class _KeywordScreenState extends State<KeywordScreen> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: false,
+      canPop: true,
       child: AnnotatedRegion<SystemUiOverlayStyle>(
         value: const SystemUiOverlayStyle(
           statusBarColor: Colors.transparent,
@@ -260,5 +260,9 @@ class _KeywordScreenState extends State<KeywordScreen> {
     }
   }
 
-  void _goBackSafely() {}
+  void _goBackSafely() {
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    }
+  }
 }

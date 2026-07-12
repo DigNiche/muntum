@@ -1,4 +1,6 @@
 class ReportPlace {
+  static const String _encodedSeparator = '\n';
+
   final String name;
   final String address;
   final double? latitude;
@@ -10,6 +12,49 @@ class ReportPlace {
     this.latitude,
     this.longitude,
   });
+
+  factory ReportPlace.fromSuggestionAddress({
+    String? venueName,
+    String? placeName,
+    required String address,
+  }) {
+    final explicitName =
+        (venueName?.trim().isNotEmpty == true ? venueName : placeName)?.trim();
+    final parsed = _parseEncodedAddress(address);
+    final parsedName = parsed.$1;
+    final parsedAddress = parsed.$2;
+
+    return ReportPlace(
+      name: explicitName?.isNotEmpty == true
+          ? explicitName!
+          : parsedName.isNotEmpty
+          ? parsedName
+          : parsedAddress,
+      address: parsedAddress,
+    );
+  }
+
+  String toSuggestionAddress() {
+    final trimmedName = name.trim();
+    final trimmedAddress = address.trim();
+    if (trimmedName.isEmpty || trimmedName == trimmedAddress) {
+      return trimmedAddress;
+    }
+    return '$trimmedName$_encodedSeparator$trimmedAddress';
+  }
+
+  static (String, String) _parseEncodedAddress(String value) {
+    final trimmed = value.trim();
+    final lines = trimmed
+        .split(_encodedSeparator)
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .toList();
+    if (lines.length >= 2) {
+      return (lines.first, lines.skip(1).join(' '));
+    }
+    return ('', trimmed);
+  }
 }
 
 class ReportModel {
@@ -51,16 +96,13 @@ class ReportModel {
       reviewedAt: DateTime.tryParse(json['reviewedAt'] as String? ?? ''),
       programName: json['programName'] as String? ?? '',
       reason: json['reason'] as String? ?? '',
-      place: ReportPlace(
-        name:
-            json['venueName'] as String? ??
-            json['placeName'] as String? ??
-            json['address'] as String? ??
-            '',
+      place: ReportPlace.fromSuggestionAddress(
+        venueName: json['venueName'] as String?,
+        placeName: json['placeName'] as String?,
         address:
-            json['address'] as String? ??
-            json['programAddress'] as String? ??
-            json['venueAddress'] as String? ??
+            (json['address'] as String?) ??
+            (json['programAddress'] as String?) ??
+            (json['venueAddress'] as String?) ??
             '',
       ),
       status: json['status'] as String? ?? 'PENDING',
@@ -74,7 +116,7 @@ class ReportModel {
   Map<String, dynamic> toCreateJson() {
     return {
       'programName': programName,
-      'address': place.address,
+      'address': place.toSuggestionAddress(),
       'reason': reason,
     };
   }

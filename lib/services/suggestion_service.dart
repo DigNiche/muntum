@@ -12,11 +12,20 @@ class SuggestionService {
     required String programName,
     required String address,
     required String reason,
+    String? placeName,
   }) async {
+    final suggestionAddress = ReportPlace(
+      name: placeName ?? '',
+      address: address,
+    ).toSuggestionAddress();
     final response = await _client.post(
       ApiEndpoints.suggestions,
       authorized: true,
-      body: {'programName': programName, 'address': address, 'reason': reason},
+      body: {
+        'programName': programName,
+        'address': suggestionAddress,
+        'reason': reason,
+      },
     );
     return ApiResponse.fromJson(
       response,
@@ -68,11 +77,20 @@ class SuggestionService {
     required String programName,
     required String address,
     required String reason,
+    String? placeName,
   }) async {
+    final suggestionAddress = ReportPlace(
+      name: placeName ?? '',
+      address: address,
+    ).toSuggestionAddress();
     final response = await _client.put(
       ApiEndpoints.suggestion(id),
       authorized: true,
-      body: {'programName': programName, 'address': address, 'reason': reason},
+      body: {
+        'programName': programName,
+        'address': suggestionAddress,
+        'reason': reason,
+      },
     );
     return ApiResponse.fromJson(
       response,

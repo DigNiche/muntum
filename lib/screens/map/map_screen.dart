@@ -427,6 +427,17 @@ class _MapScreenState extends State<MapScreen> {
       return;
     }
 
+    final previouslySelectedProgram = _selectedProgram;
+    if (previouslySelectedProgram != null) {
+      setState(() {
+        _selectedProgram = null;
+        _showSearchHereButton = false;
+      });
+      unawaited(
+        _setProgramMarkerSelected(previouslySelectedProgram, isSelected: false),
+      );
+    }
+
     final cameraPosition = await controller.getCameraPosition();
     await _refreshVisibleProgramsAndMarkers(
       controller,
@@ -673,13 +684,6 @@ class _MapScreenState extends State<MapScreen> {
               previousSelectedProgram: previousSelectedProgram,
               currentProgram: tappedProgram!,
               isCurrentSelected: !shouldDeselect,
-            ),
-          );
-          unawaited(
-            _refreshVisibleProgramsAndMarkers(
-              controller,
-              NLatLng(cluster.latitude, cluster.longitude),
-              useCurrentBounds: useCurrentBounds,
             ),
           );
         }

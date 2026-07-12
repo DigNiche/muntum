@@ -8,7 +8,6 @@ import 'package:muntum/constants/typography.dart';
 import 'package:muntum/screens/onboarding/components/text_field_widget.dart';
 import 'package:muntum/screens/onboarding/sign_up_screens/keyword_screen.dart';
 import 'package:muntum/services/user_service.dart';
-import 'package:muntum/utils/app_toast.dart';
 
 class NicknameScreen extends StatefulWidget {
   const NicknameScreen({super.key});
@@ -39,7 +38,7 @@ class _NicknameScreenState extends State<NicknameScreen> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: false,
+      canPop: true,
       child: AnnotatedRegion<SystemUiOverlayStyle>(
         value: SystemUiOverlayStyle(
           statusBarColor: Colors.transparent,
@@ -145,7 +144,6 @@ class _NicknameScreenState extends State<NicknameScreen> {
     } catch (error) {
       if (!mounted) return;
       setState(() => _isError = true);
-      showAppToast(context, '$error');
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -153,5 +151,9 @@ class _NicknameScreenState extends State<NicknameScreen> {
     }
   }
 
-  void _goBackSafely() {}
+  void _goBackSafely() {
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    }
+  }
 }

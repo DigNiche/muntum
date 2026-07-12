@@ -26,8 +26,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   final FocusNode _focusNode2 = FocusNode();
   bool _isError1 = false;
   bool _isError2 = false;
-  bool _obsecureText1 = false;
-  bool _obsecureText2 = false;
+  bool _obsecureText1 = true;
+  bool _obsecureText2 = true;
   bool _isLoading = false;
 
   @override
@@ -117,14 +117,17 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                                 ? 'assets/icons/visibility.svg'
                                 : 'assets/icons/visibility-false.svg',
                             width: 20.w,
-                            color: _isError1
-                                ? AppColors.gray700
-                                : !_obsecureText1 && !_isError1
-                                ? AppColors.primary400
-                                : AppColors.gray500,
+                            colorFilter: ColorFilter.mode(
+                              _isError1
+                                  ? AppColors.gray700
+                                  : !_obsecureText1 && !_isError1
+                                  ? AppColors.primary400
+                                  : AppColors.gray500,
+                              BlendMode.srcIn,
+                            ),
                           ),
                         ),
-                        errorText: '비밀번호가 조건에 맞지 않습니다.(8자 이상)',
+                        errorText: '영문, 숫자, 특수문자 포함 8자 이상이어야 합니다.',
                       ),
                       SizedBox(height: 12.h),
                       TextFieldWidget(
@@ -144,11 +147,14 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                                 ? 'assets/icons/visibility.svg'
                                 : 'assets/icons/visibility-false.svg',
                             width: 20.w,
-                            color: _isError2
-                                ? AppColors.gray700
-                                : !_obsecureText2 && !_isError2
-                                ? AppColors.primary400
-                                : AppColors.gray500,
+                            colorFilter: ColorFilter.mode(
+                              _isError2
+                                  ? AppColors.gray700
+                                  : !_obsecureText2 && !_isError2
+                                  ? AppColors.primary400
+                                  : AppColors.gray500,
+                              BlendMode.srcIn,
+                            ),
                           ),
                         ),
                         errorText: '비밀번호가 일치하지 않습니다.',
@@ -193,7 +199,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       return;
     }
 
-    if (_controller1.text.length < 8) {
+    if (!_isValidPassword(_controller1.text)) {
       setState(() {
         _isError1 = true;
         _isLoading = false;
@@ -222,5 +228,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  bool _isValidPassword(String password) {
+    return RegExp(
+      r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$',
+    ).hasMatch(password);
   }
 }

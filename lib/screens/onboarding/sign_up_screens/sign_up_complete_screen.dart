@@ -54,7 +54,7 @@ class SignUpCompleteScreen extends StatelessWidget {
                 ),
                 const Spacer(),
                 ButtonSolid(
-                  text: '로그인 하기',
+                  text: '로그인하기',
                   textColor: AppColors.gray900,
                   boxColor: AppColors.primary400,
                   onTap: () => _goToLogin(context),

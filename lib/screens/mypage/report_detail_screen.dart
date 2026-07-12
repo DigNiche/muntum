@@ -42,36 +42,39 @@ class ReportDetailScreen extends StatelessWidget {
                   SizedBox(height: 32.h),
                   Text(
                     '주소',
-                    style: AppTypography.button3.copyWith(
+                    style: AppTypography.caption2.copyWith(
                       color: AppColors.gray900,
                     ),
                   ),
-                  SizedBox(height: 8.h),
+                  SizedBox(height: 14.h),
                   Text(
                     displayPlaceName,
-                    style: AppTypography.body1.copyWith(
+                    style: AppTypography.body3.copyWith(
                       color: AppColors.gray900,
                     ),
                   ),
                   if (displayAddress.isNotEmpty) ...[
                     SizedBox(height: 6.h),
                     Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        SvgPicture.asset(
-                          'assets/icons/location-filled.svg',
-                          width: 16.w,
-                          colorFilter: const ColorFilter.mode(
-                            AppColors.gray400,
-                            BlendMode.srcIn,
+                        Padding(
+                          padding: EdgeInsets.only(top: 1.h),
+                          child: SvgPicture.asset(
+                            'assets/icons/location-filled.svg',
+                            width: 16.w,
+                            colorFilter: const ColorFilter.mode(
+                              AppColors.gray400,
+                              BlendMode.srcIn,
+                            ),
                           ),
                         ),
-                        SizedBox(width: 2.w),
+                        SizedBox(width: 4.w),
                         Expanded(
                           child: Text(
                             displayAddress,
-                            style: AppTypography.body3.copyWith(
-                              color: AppColors.gray600,
+                            style: AppTypography.caption1.copyWith(
+                              color: AppColors.gray500,
                             ),
                           ),
                         ),
@@ -99,16 +102,16 @@ class _ReportDetailSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
           title,
-          style: AppTypography.button3.copyWith(color: AppColors.gray900),
+          style: AppTypography.caption2.copyWith(color: AppColors.gray900),
         ),
-        SizedBox(height: 8.h),
+        SizedBox(height: 14.h),
         Text(
           body,
-          style: AppTypography.body1.copyWith(color: AppColors.gray900),
+          style: AppTypography.body3.copyWith(color: AppColors.gray900),
         ),
       ],
     );
