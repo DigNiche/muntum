@@ -31,10 +31,10 @@ void showAppToast(
             children: [
               if (showIcon)
                 Container(
-                  width: 24.w,
-                  height: 24.w,
+                  width: 16.r,
+                  height: 16.r,
                   decoration: BoxDecoration(
-                    color: isError ? AppColors.error : AppColors.primary500,
+                    color: isError ? AppColors.white : AppColors.primary500,
                     shape: BoxShape.circle,
                   ),
                   child: SvgPicture.asset(
@@ -42,7 +42,7 @@ void showAppToast(
                         ? 'assets/icons/error.svg'
                         : 'assets/icons/check.svg',
                     width: 14.r,
-                    color: AppColors.white,
+                    color: isError ? AppColors.error : AppColors.white,
                   ),
                 ),
               SizedBox(width: 10.w),

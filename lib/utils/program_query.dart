@@ -63,15 +63,17 @@ Iterable<String> _programSearchValues(ProgramModel program) sync* {
 }
 
 String _filterLabel(Filter filter) {
+  final programType = ProgramType.fromFilter(filter);
+  if (programType != null) return programType.label;
   return switch (filter) {
     Filter.nowHot => '지금핫한 지금 핫한',
     Filter.free => '무료',
     Filter.thisWeek => '이번주 이번 주',
     Filter.noReservation => '예약없이 예약 없이',
-    Filter.exhibition => '전시',
-    Filter.show => '공연',
-    Filter.experience => '체험',
-    Filter.festival => '축제',
+    Filter.exhibition ||
+    Filter.show ||
+    Filter.experience ||
+    Filter.festival => '',
   };
 }
 

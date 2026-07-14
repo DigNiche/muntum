@@ -891,10 +891,9 @@ class _MapScreenState extends State<MapScreen> {
                   _buildMapFilterChip(Filter.free, '무료'),
                   _buildMapFilterChip(Filter.thisWeek, '이번주'),
                   _buildMapFilterChip(Filter.noReservation, '예약없이'),
-                  _buildMapFilterChip(Filter.exhibition, '전시'),
-                  _buildMapFilterChip(Filter.show, '공연'),
-                  _buildMapFilterChip(Filter.experience, '체험'),
-                  _buildMapFilterChip(Filter.festival, '축제'),
+                  ...ProgramType.values.map(
+                    (type) => _buildMapFilterChip(type.filter, type.label),
+                  ),
                 ],
               ),
             ),

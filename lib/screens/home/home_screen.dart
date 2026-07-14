@@ -176,16 +176,13 @@ class _MyNichePageState extends State<MyNichePage> {
   }
 
   Filter? get _selectedFilterValue {
-    return switch (selectedFilter) {
-      '무료' => Filter.free,
-      '이번주' => Filter.thisWeek,
-      '예약없이' => Filter.noReservation,
-      '전시' => Filter.exhibition,
-      '공연' => Filter.show,
-      '체험' => Filter.experience,
-      '축제' => Filter.festival,
-      _ => null,
-    };
+    return ProgramType.fromLabel(selectedFilter)?.filter ??
+        switch (selectedFilter) {
+          '무료' => Filter.free,
+          '이번주' => Filter.thisWeek,
+          '예약없이' => Filter.noReservation,
+          _ => null,
+        };
   }
 
   void _handleScroll() {
@@ -276,10 +273,9 @@ class _MyNichePageState extends State<MyNichePage> {
                 _buildFilterChip('무료'),
                 _buildFilterChip('이번주'),
                 _buildFilterChip('예약없이'),
-                _buildFilterChip('전시'),
-                _buildFilterChip('공연'),
-                _buildFilterChip('체험'),
-                _buildFilterChip('축제'),
+                ...ProgramType.values.map(
+                  (type) => _buildFilterChip(type.label),
+                ),
               ],
             ),
             Expanded(

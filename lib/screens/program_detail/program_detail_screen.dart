@@ -29,10 +29,11 @@ class ProgramDetailScreen extends StatefulWidget {
 }
 
 class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
-  final PageController _posterController = PageController();
+  final PageController _posterController = PageController(initialPage: 1);
   late Future<ProgramModel> _programFuture;
   late Future<List<ProgramModel>> _recommendedFuture;
   int _currentPosterIndex = 0;
+  int? _pendingPosterJumpPage;
 
   @override
   void initState() {
@@ -189,21 +190,65 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                           child: SizedBox(
                             width: 350.w,
                             height: 467.h,
-                            child: PageView.builder(
-                              controller: _posterController,
-                              itemCount: program.images.isEmpty
-                                  ? 1
-                                  : program.images.length,
-                              onPageChanged: (index) {
-                                setState(() {
-                                  _currentPosterIndex = index;
+                            child: NotificationListener<ScrollEndNotification>(
+                              onNotification: (_) {
+                                final jumpPage = _pendingPosterJumpPage;
+                                if (jumpPage == null) return false;
+                                _pendingPosterJumpPage = null;
+                                WidgetsBinding.instance.addPostFrameCallback((
+                                  _,
+                                ) {
+                                  if (_posterController.hasClients) {
+                                    _posterController.jumpToPage(jumpPage);
+                                  }
                                 });
+                                return false;
                               },
-                              itemBuilder: (context, index) {
-                                return program.images.isEmpty
-                                    ? const ColoredBox(color: Color(0xff9DB6BE))
-                                    : program.images[index];
-                              },
+                              child: PageView.builder(
+                                controller: _posterController,
+                                physics: program.images.length <= 1
+                                    ? const NeverScrollableScrollPhysics()
+                                    : const PageScrollPhysics(),
+                                itemCount: program.images.length > 1
+                                    ? program.images.length + 2
+                                    : 3,
+                                onPageChanged: (index) {
+                                  final imageCount = program.images.length;
+                                  final actualIndex = imageCount <= 1
+                                      ? 0
+                                      : index == 0
+                                      ? imageCount - 1
+                                      : index == imageCount + 1
+                                      ? 0
+                                      : index - 1;
+                                  setState(() {
+                                    _currentPosterIndex = actualIndex;
+                                  });
+                                  _pendingPosterJumpPage = imageCount > 1
+                                      ? index == 0
+                                            ? imageCount
+                                            : index == imageCount + 1
+                                            ? 1
+                                            : null
+                                      : null;
+                                },
+                                itemBuilder: (context, index) {
+                                  if (program.images.isEmpty) {
+                                    return const ColoredBox(
+                                      color: Color(0xff9DB6BE),
+                                    );
+                                  }
+                                  if (program.images.length == 1) {
+                                    return program.images.first;
+                                  }
+                                  final imageIndex = index == 0
+                                      ? program.images.length - 1
+                                      : index == program.images.length + 1
+                                      ? 0
+                                      : index - 1;
+                                  return program.images[imageIndex];
+                                },
+                              ),
                             ),
                           ),
                         ),

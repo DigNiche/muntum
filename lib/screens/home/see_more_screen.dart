@@ -27,14 +27,13 @@ class SeeMoreScreen extends StatefulWidget {
 }
 
 class _SeeMoreScreenState extends State<SeeMoreScreen> {
-  static const _filterOptions = [
+  static final _filterOptions = [
     (filter: Filter.free, label: '무료'),
     (filter: Filter.thisWeek, label: '이번주'),
     (filter: Filter.noReservation, label: '예약없이'),
-    (filter: Filter.exhibition, label: '전시'),
-    (filter: Filter.show, label: '공연'),
-    (filter: Filter.experience, label: '체험'),
-    (filter: Filter.festival, label: '축제'),
+    ...ProgramType.values.map(
+      (type) => (filter: type.filter, label: type.label),
+    ),
   ];
 
   Filter? _selectedFilter;

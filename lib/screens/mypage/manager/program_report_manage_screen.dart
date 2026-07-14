@@ -147,7 +147,7 @@ class _ProgramReportManageScreenState extends State<ProgramReportManageScreen> {
               children: _ReportTab.values
                   .map(
                     (tab) => Padding(
-                      padding: EdgeInsets.only(right: 8.w),
+                      padding: EdgeInsets.only(right: 10.w),
                       child: _StatusTab(
                         label: tab.label,
                         selected: _selectedTab == tab,

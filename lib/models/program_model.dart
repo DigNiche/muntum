@@ -1,20 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:muntum/models/keyword_model.dart';
+import 'package:muntum/models/program_filter.dart';
+import 'package:muntum/models/program_type.dart';
 
-enum Filter {
-  nowHot,
-  free,
-  thisWeek,
-  noReservation,
-  exhibition,
-  show,
-  experience,
-  festival,
-}
+export 'package:muntum/models/program_filter.dart';
+export 'package:muntum/models/program_type.dart';
 
 class ProgramModel {
   final String id;
-  final String? programType;
+  final ProgramType? programType;
   // 제목
   final String title;
   // 한줄소개
@@ -104,7 +98,9 @@ class ProgramModel {
         .whereType<Map>()
         .map((item) => KeywordModel.fromJson(Map<String, dynamic>.from(item)))
         .toList();
-    final programType = json['programType'] as String?;
+    final programType = ProgramType.fromApiValue(
+      json['programType'] as String?,
+    );
     final free = json['free'] as bool? ?? false;
     final reserved = json['reserved'] as bool? ?? false;
     final ended =
@@ -191,23 +187,14 @@ class ProgramModel {
   }
 
   static List<Filter> _filtersFromApi({
-    required String? programType,
+    required ProgramType? programType,
     required bool free,
     required bool reserved,
   }) {
     final filters = <Filter>[];
     if (free) filters.add(Filter.free);
     if (!reserved) filters.add(Filter.noReservation);
-    switch (programType) {
-      case 'EXHIBITION':
-        filters.add(Filter.exhibition);
-      case 'PERFORMANCE':
-        filters.add(Filter.show);
-      case 'CLASS_EXPERIENCE':
-        filters.add(Filter.experience);
-      case 'FAIR':
-        filters.add(Filter.festival);
-    }
+    if (programType != null) filters.add(programType.filter);
     return filters;
   }
 
@@ -232,13 +219,34 @@ class ProgramModel {
   String get cardDateText {
     final formatted = _formatDateRange(startDate, endDate, compactYear: true);
     if (formatted.isNotEmpty) return formatted;
+    final openEnded = _formatOpenEndedMeta(
+      operatingPeriodMeta,
+      compactYear: true,
+    );
+    if (openEnded.isNotEmpty) return openEnded;
     return _formatStoredDateRange(startEndDates, compactYear: true);
   }
 
   String get detailDateText {
     final formatted = _formatDateRange(startDate, endDate, compactYear: false);
     if (formatted.isNotEmpty) return formatted;
+    final openEnded = _formatOpenEndedMeta(
+      operatingPeriodMeta,
+      compactYear: false,
+    );
+    if (openEnded.isNotEmpty) return openEnded;
     return _formatStoredDateRange(startEndDates, compactYear: false);
+  }
+
+  static String _formatOpenEndedMeta(
+    String value, {
+    required bool compactYear,
+  }) {
+    final trimmed = value.trim();
+    if (!RegExp(r'^\d{4}\.\d{2}\.\d{2}$').hasMatch(trimmed)) return '';
+    final start = _formatSingleDate(trimmed, compactYear: compactYear);
+    if (start.isEmpty) return '';
+    return compactYear ? '$start-상시' : '$start - 상시';
   }
 
   static String _formatStoredDateRange(

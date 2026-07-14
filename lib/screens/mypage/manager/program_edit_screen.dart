@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:dotted_decoration/dotted_decoration.dart';
@@ -37,14 +38,15 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
   late final TextEditingController _curationController;
   late final TextEditingController _venueController;
   late final TextEditingController _addressController;
-  late final TextEditingController _periodController;
+  late final TextEditingController _startDateController;
+  late final TextEditingController _endDateController;
   late final TextEditingController _hoursController;
   late final TextEditingController _priceController;
   late final TextEditingController _contactController;
   late final TextEditingController _urlController;
   late final TextEditingController _keywordsController;
 
-  late String _programType;
+  late ProgramType _programType;
   late bool _isReservationNeeded;
   late final List<String> _existingImageUrls;
   final List<XFile> _newImages = [];
@@ -73,8 +75,14 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
     _addressController = TextEditingController(
       text: program?.location['address'] ?? initialReport?.place.address ?? '',
     );
-    _periodController = TextEditingController(
-      text: _displayPeriod(program?.startDate ?? '', program?.endDate ?? ''),
+    final storedStartDate = program?.startDate.trim().isNotEmpty == true
+        ? program!.startDate
+        : _dateOnlyMeta(program?.operatingPeriodMeta ?? '');
+    _startDateController = TextEditingController(
+      text: _displayDate(storedStartDate),
+    );
+    _endDateController = TextEditingController(
+      text: _displayDate(program?.endDate ?? ''),
     );
     _hoursController = TextEditingController(
       text: program?.availableTime ?? '',
@@ -95,7 +103,7 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
     _keywordsController = TextEditingController(
       text: program?.keywords.take(3).join(', ') ?? '',
     );
-    _programType = program?.programType ?? 'EXHIBITION';
+    _programType = program?.programType ?? ProgramType.exhibition;
     _isReservationNeeded = program?.isReservationNeeded ?? false;
     _existingImageUrls = List<String>.from(
       program?.imageUrls.take(_maxImages) ?? const <String>[],
@@ -111,7 +119,8 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
     _curationController,
     _venueController,
     _addressController,
-    _periodController,
+    _startDateController,
+    _endDateController,
     _hoursController,
     _priceController,
     _contactController,
@@ -130,7 +139,8 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
     _curationController.dispose();
     _venueController.dispose();
     _addressController.dispose();
-    _periodController.dispose();
+    _startDateController.dispose();
+    _endDateController.dispose();
     _hoursController.dispose();
     _priceController.dispose();
     _contactController.dispose();
@@ -144,7 +154,7 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
   Future<void> _pickImages() async {
     final remaining = _maxImages - _imageCount;
     if (remaining <= 0) {
-      showAppToast(context, '사진은 최대 5장까지 업로드할 수 있어요.');
+      showAppToast(context, '사진은 최대 5장까지 업로드할 수 있어요.', isError: true);
       return;
     }
     final selected = await _imagePicker.pickMultiImage(imageQuality: 88);
@@ -180,7 +190,10 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
   Future<void> _save() async {
     if (_isSaving) return;
     final validationMessage = _validationMessage();
-    if (validationMessage != null) return;
+    if (validationMessage != null) {
+      showAppToast(context, validationMessage, isError: true);
+      return;
+    }
 
     setState(() => _isSaving = true);
     final temporaryFiles = <File>[];
@@ -228,19 +241,33 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
   }
 
   String? _validationMessage() {
+    if (_imageCount < 1) return '사진을 1장 이상 등록해주세요.';
     if (_titleController.text.trim().isEmpty) return '프로그램명을 입력해주세요.';
     if (_taglineController.text.trim().isEmpty) return '한줄소개를 입력해주세요.';
-    if (_curationController.text.trim().isEmpty) return '상세 내용을 입력해주세요.';
+    if (_curationController.text.trim().isEmpty) return '소개글을 입력해주세요.';
     if (_venueController.text.trim().isEmpty) return '장소명을 입력해주세요.';
     if (_addressController.text.trim().isEmpty) return '주소를 입력해주세요.';
+    final startDate = _apiDate(_startDateController.text);
+    if (startDate == null) {
+      return '시작일을 YYYY.MM.DD 형식으로 입력해주세요.';
+    }
+    final rawEndDate = _endDateController.text.trim();
+    final endDate = rawEndDate.isEmpty ? null : _apiDate(rawEndDate);
+    if (rawEndDate.isNotEmpty && endDate == null) {
+      return '마감일을 YYYY.MM.DD 형식으로 입력해주세요.';
+    }
+    if (endDate != null && _isAfter(startDate, endDate)) {
+      return '마감일은 시작일보다 빠를 수 없어요.';
+    }
+    if (_hoursController.text.trim().isEmpty) return '운영시간을 입력해주세요.';
+    if (_priceController.text.trim().isEmpty) return '가격을 입력해주세요.';
     final keywords = _keywordNames;
     if (keywords.isEmpty) return '키워드를 선택해주세요.';
     if (keywords.length > 3) return '키워드는 최대 3개까지 입력해주세요.';
-    if (_priceController.text.trim().isEmpty) return '가격을 입력해주세요.';
     return null;
   }
 
-  bool get _canSubmit => !_isSaving && _validationMessage() == null;
+  bool get _canSubmit => !_isSaving;
 
   List<String> get _keywordNames => _keywordsController.text
       .split(',')
@@ -250,11 +277,13 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
       .toList();
 
   Map<String, dynamic> _buildRequest() {
-    final rawPeriod = _periodController.text.trim();
-    final normalizedPeriod = _apiPeriod;
+    final startDate = _apiDate(_startDateController.text)!;
+    final endDate = _endDateController.text.trim().isEmpty
+        ? null
+        : _apiDate(_endDateController.text);
     final request = <String, dynamic>{
       'title': _titleController.text.trim(),
-      'programType': _programType,
+      'programType': _programType.apiValue,
       'tagline': _taglineController.text.trim(),
       'curation': _curationController.text.trim(),
       'reserved': _isReservationNeeded,
@@ -267,33 +296,19 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
       'address': _addressController.text.trim(),
       'officialUrl': _urlController.text.trim(),
       'operatingHours': _hoursController.text.trim(),
-      'operatingPeriodMeta': rawPeriod.isEmpty
-          ? widget.program?.operatingPeriodMeta ?? ''
-          : normalizedPeriod == null
-          ? rawPeriod
-          : '',
+      'operatingPeriod': endDate == null ? null : '$startDate - $endDate',
+      'operatingPeriodMeta': endDate == null ? startDate : '',
       'operatingHoursMeta': widget.program?.operatingHoursMeta ?? '',
       'inquiryContact': _contactController.text.trim(),
       'keywordNames': _keywordNames,
     };
-    if (normalizedPeriod != null) {
-      request['operatingPeriod'] = normalizedPeriod;
-    }
     return request;
   }
 
-  String? get _apiPeriod {
-    final value = _periodController.text.trim();
-    if (value.isEmpty) return null;
-    final match = RegExp(
-      r'^(\d{4}[.\/-]\d{2}[.\/-]\d{2})\s*[-~–]\s*'
-      r'(\d{4}[.\/-]\d{2}[.\/-]\d{2})$',
-    ).firstMatch(value);
-    if (match == null) return null;
-    final start = _apiDate(match.group(1) ?? '');
-    final end = _apiDate(match.group(2) ?? '');
-    if (start == null || end == null) return null;
-    return '$start - $end';
+  bool _isAfter(String start, String end) {
+    final startDate = DateTime.parse(start.replaceAll('.', '-'));
+    final endDate = DateTime.parse(end.replaceAll('.', '-'));
+    return startDate.isAfter(endDate);
   }
 
   Future<File> _downloadTemporaryImage(String url, int index) async {
@@ -331,16 +346,29 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
         '${parsed.day.toString().padLeft(2, '0')}';
   }
 
-  String _displayPeriod(String start, String end) {
-    if (start.trim().isEmpty && end.trim().isEmpty) return '';
-    if (start.trim().isEmpty || end.trim().isEmpty) return '';
-    return '${_displayDate(start)} - ${_displayDate(end)}';
+  String _dateOnlyMeta(String value) {
+    final trimmed = value.trim();
+    return RegExp(r'^\d{4}\.\d{2}\.\d{2}$').hasMatch(trimmed) ? trimmed : '';
   }
 
   String? _apiDate(String value) {
-    final normalized = value.trim().replaceAll('.', '-').replaceAll('/', '-');
+    final match = RegExp(
+      r'^(\d{4})\.(\d{2})\.(\d{2})$',
+    ).firstMatch(value.trim());
+    if (match == null) return null;
+    final year = int.parse(match.group(1)!);
+    final month = int.parse(match.group(2)!);
+    final day = int.parse(match.group(3)!);
+    final normalized =
+        '$year-${month.toString().padLeft(2, '0')}-'
+        '${day.toString().padLeft(2, '0')}';
     final parsed = DateTime.tryParse(normalized);
-    if (parsed == null) return null;
+    if (parsed == null ||
+        parsed.year != year ||
+        parsed.month != month ||
+        parsed.day != day) {
+      return null;
+    }
     return '${parsed.year}.${parsed.month.toString().padLeft(2, '0')}.'
         '${parsed.day.toString().padLeft(2, '0')}';
   }
@@ -389,203 +417,217 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.white,
-      body: Column(
-        children: [
-          SizedBox(height: 50.h),
-          AppBarWidget(
-            centerType: AppBarCenterType.text,
-            leadingIcon: 'close.svg',
-            center: _isCreating ? '새 프로그램 등록하기' : '수정',
-            onLeadingTap: () => Navigator.pop(context),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 80.h),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _sectionLabel('사진'),
-                  SizedBox(height: 10.h),
-                  SizedBox(
-                    height: 107.h,
-                    child: ListView(
-                      clipBehavior: Clip.none,
-                      padding: EdgeInsets.only(top: 5.h),
-                      scrollDirection: Axis.horizontal,
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+      child: Scaffold(
+        backgroundColor: AppColors.white,
+        body: Column(
+          children: [
+            SizedBox(height: 50.h),
+            AppBarWidget(
+              centerType: AppBarCenterType.text,
+              leadingIcon: 'close.svg',
+              center: _isCreating ? '새 프로그램 등록하기' : '수정',
+              onLeadingTap: () => Navigator.pop(context),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 80.h),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _sectionLabel('사진'),
+                    SizedBox(height: 10.h),
+                    SizedBox(
+                      height: 107.h,
+                      child: ListView(
+                        clipBehavior: Clip.none,
+                        padding: EdgeInsets.only(top: 5.h),
+                        scrollDirection: Axis.horizontal,
+                        children: [
+                          _ImageAddButton(
+                            count: _imageCount,
+                            maxCount: _maxImages,
+                            onTap: _pickImages,
+                          ),
+                          SizedBox(width: 8.w),
+                          ..._existingImageUrls.asMap().entries.map(
+                            (entry) => Padding(
+                              padding: EdgeInsets.only(right: 8.w),
+                              child: _EditableImage(
+                                image: Image.network(
+                                  entry.value,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, _, _) => const ColoredBox(
+                                    color: AppColors.gray100,
+                                  ),
+                                ),
+                                onRemove: () => _removeExistingImage(entry.key),
+                              ),
+                            ),
+                          ),
+                          ..._newImages.asMap().entries.map(
+                            (entry) => Padding(
+                              padding: EdgeInsets.only(right: 8.w),
+                              child: _EditableImage(
+                                image: Image.file(
+                                  File(entry.value.path),
+                                  fit: BoxFit.cover,
+                                ),
+                                onRemove: () => _removeNewImage(entry.key),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: 28.h),
+                    _ProgramTextField(
+                      label: '프로그램명',
+                      controller: _titleController,
+                      hintText: "프로그램명을 입력해주세요.",
+                    ),
+                    _ProgramTextField(
+                      label: '한줄소개',
+                      controller: _taglineController,
+                      maxLines: 4,
+                      hintText: "임팩트 있는 한 줄로 소개해주세요.",
+                    ),
+                    _sectionLabel('프로그램 유형'),
+                    SizedBox(height: 8.h),
+                    Wrap(
+                      spacing: 6.w,
+                      runSpacing: 6.h,
+                      children: ProgramType.values
+                          .map(
+                            (type) => _SelectionChip(
+                              text: type.label,
+                              selected: _programType == type,
+                              onTap: () => setState(() => _programType = type),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                    SizedBox(height: 28.h),
+                    _ProgramTextField(
+                      label: '소개글',
+                      controller: _curationController,
+                      maxLines: 8,
+                      hintText: "프로그램을 소개해주세요.",
+                    ),
+                    _ProgramTextField(
+                      label: '장소',
+                      hintText: '장소를 검색해주세요.',
+                      controller: _venueController,
+                      prefixIcon: SvgPicture.asset(
+                        'assets/icons/search.svg',
+                        color: AppColors.gray800,
+                      ),
+                      onPrefixIconTap: _selectPlace,
+                    ),
+                    _ProgramTextField(
+                      label: '주소',
+                      controller: _addressController,
+                      hintText: '장소를 검색하면 주소가 입력돼요.',
+                      readOnly: true,
+                      canRequestFocus: false,
+                      enableInteractiveSelection: false,
+                    ),
+                    _ProgramTextField(
+                      label: '시작일',
+                      hintText: '예: 2026.07.14',
+                      controller: _startDateController,
+                      keyboardType: TextInputType.datetime,
+                    ),
+                    _ProgramTextField(
+                      label: '마감일 (선택)',
+                      hintText: '예: 2026.07.14 / 미입력 시 상시로 표시돼요.',
+                      controller: _endDateController,
+                      keyboardType: TextInputType.datetime,
+                    ),
+                    _ProgramTextField(
+                      label: '운영 시간',
+                      controller: _hoursController,
+                      hintText: "예: 월-금 10:00~17:00",
+                      maxLines: 4,
+                      labelTrailing: GestureDetector(
+                        onTap: _showOperatingHoursGuide,
+                        child: Text(
+                          '작성방법',
+                          style: AppTypography.caption1.copyWith(
+                            color: AppColors.gray700,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                    ),
+                    _ProgramTextField(
+                      label: '가격',
+                      hintText: '예: 무료 / 15,000원 / 프로그램별 상이',
+                      controller: _priceController,
+                    ),
+                    _sectionLabel('사전 예약'),
+                    SizedBox(height: 10.h),
+                    Row(
                       children: [
-                        _ImageAddButton(
-                          count: _imageCount,
-                          maxCount: _maxImages,
-                          onTap: _pickImages,
+                        _SelectionChip(
+                          text: '필요',
+                          selected: _isReservationNeeded,
+                          onTap: () =>
+                              setState(() => _isReservationNeeded = true),
                         ),
                         SizedBox(width: 8.w),
-                        ..._existingImageUrls.asMap().entries.map(
-                          (entry) => Padding(
-                            padding: EdgeInsets.only(right: 8.w),
-                            child: _EditableImage(
-                              image: Image.network(
-                                entry.value,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, _, _) =>
-                                    const ColoredBox(color: AppColors.gray100),
-                              ),
-                              onRemove: () => _removeExistingImage(entry.key),
-                            ),
-                          ),
-                        ),
-                        ..._newImages.asMap().entries.map(
-                          (entry) => Padding(
-                            padding: EdgeInsets.only(right: 8.w),
-                            child: _EditableImage(
-                              image: Image.file(
-                                File(entry.value.path),
-                                fit: BoxFit.cover,
-                              ),
-                              onRemove: () => _removeNewImage(entry.key),
-                            ),
-                          ),
+                        _SelectionChip(
+                          text: '불필요',
+                          selected: !_isReservationNeeded,
+                          onTap: () =>
+                              setState(() => _isReservationNeeded = false),
                         ),
                       ],
                     ),
-                  ),
-                  SizedBox(height: 28.h),
-                  _ProgramTextField(
-                    label: '프로그램명',
-                    controller: _titleController,
-                    hintText: "프로그램명을 입력해주세요.",
-                  ),
-                  _ProgramTextField(
-                    label: '한줄소개',
-                    controller: _taglineController,
-                    maxLines: 4,
-                    hintText: "임팩트 있는 한 줄로 소개해주세요.",
-                  ),
-                  _sectionLabel('프로그램 유형'),
-                  SizedBox(height: 8.h),
-                  Wrap(
-                    spacing: 6.w,
-                    runSpacing: 6.h,
-                    children:
-                        const {
-                              'EXHIBITION': '전시',
-                              'PERFORMANCE': '공연',
-                              'CLASS_EXPERIENCE': '체험',
-                              'FAIR': '기타',
-                            }.entries
-                            .map(
-                              (entry) => _SelectionChip(
-                                text: entry.value,
-                                selected: _programType == entry.key,
-                                onTap: () =>
-                                    setState(() => _programType = entry.key),
-                              ),
-                            )
-                            .toList(),
-                  ),
-                  SizedBox(height: 28.h),
-                  _ProgramTextField(
-                    label: '소개글',
-                    controller: _curationController,
-                    maxLines: 8,
-                    hintText: "프로그램을 소개해주세요.",
-                  ),
-                  _ProgramTextField(
-                    label: '장소',
-                    hintText: '장소를 검색해주세요.',
-                    controller: _venueController,
-                    readOnly: true,
-                    onTap: _selectPlace,
-                    suffixIcon: Icons.chevron_right,
-                  ),
-                  _ProgramTextField(
-                    label: '주소',
-                    controller: _addressController,
-                  ),
-                  _ProgramTextField(
-                    label: '운영날짜/기간',
-                    hintText: '예: 2026.00.00 - 2026.00.00',
-                    controller: _periodController,
-                  ),
-                  _ProgramTextField(
-                    label: '운영 시간',
-                    controller: _hoursController,
-                    hintText: "예: 월-금 10:00~17:00",
-                    maxLines: 4,
-                    labelTrailing: GestureDetector(
-                      onTap: _showOperatingHoursGuide,
-                      child: Text(
-                        '작성방법',
-                        style: AppTypography.caption1.copyWith(
-                          color: AppColors.gray700,
-                          decoration: TextDecoration.underline,
-                        ),
+                    SizedBox(height: 26.h),
+                    _ProgramTextField(
+                      label: '키워드',
+                      hintText: '키워드를 선택해주세요.',
+                      controller: _keywordsController,
+                      readOnly: true,
+                      onTap: _selectKeywords,
+                      suffixIcon: SvgPicture.asset(
+                        'assets/icons/arrow_down.svg',
+                        color: AppColors.gray800,
                       ),
                     ),
-                  ),
-                  _ProgramTextField(
-                    label: '가격',
-                    hintText: '예: 무료 / 15,000원 / 프로그램별 상이',
-                    controller: _priceController,
-                  ),
-                  _sectionLabel('사전 예약'),
-                  SizedBox(height: 10.h),
-                  Row(
-                    children: [
-                      _SelectionChip(
-                        text: '필요',
-                        selected: _isReservationNeeded,
-                        onTap: () =>
-                            setState(() => _isReservationNeeded = true),
-                      ),
-                      SizedBox(width: 8.w),
-                      _SelectionChip(
-                        text: '불필요',
-                        selected: !_isReservationNeeded,
-                        onTap: () =>
-                            setState(() => _isReservationNeeded = false),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 26.h),
-                  _ProgramTextField(
-                    label: '키워드',
-                    hintText: '키워드를 선택해주세요.',
-                    controller: _keywordsController,
-                    readOnly: true,
-                    onTap: _selectKeywords,
-                    suffixIcon: Icons.arrow_drop_down,
-                  ),
-                  _ProgramTextField(
-                    label: '연락처 기재 (선택)',
-                    hintText: "연락처를 기재해주세요.",
-                    controller: _contactController,
-                  ),
-                  _ProgramTextField(
-                    label: '링크 (선택)',
-                    hintText: "링크를 첨부해주세요.",
-                    controller: _urlController,
-                  ),
-                ],
+                    _ProgramTextField(
+                      label: '연락처 기재 (선택)',
+                      hintText: "연락처를 기재해주세요.",
+                      controller: _contactController,
+                    ),
+                    _ProgramTextField(
+                      label: '링크 (선택)',
+                      hintText: "링크를 첨부해주세요.",
+                      controller: _urlController,
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: Container(
-        color: AppColors.white,
-        padding: EdgeInsets.fromLTRB(20.w, 0.h, 20.w, 48.h),
-        child: SizedBox(
-          height: 48.h,
-          child: ButtonSolid(
-            text: _isSaving
-                ? (_isCreating ? '등록 중' : '저장 중')
-                : (_isCreating ? '등록하기' : '저장'),
-            textColor: _canSubmit ? AppColors.white : AppColors.gray400,
-            boxColor: _canSubmit ? AppColors.black : AppColors.gray100,
-            padding: EdgeInsets.zero,
-            onTap: _canSubmit ? _save : null,
+          ],
+        ),
+        bottomNavigationBar: Container(
+          color: AppColors.white,
+          padding: EdgeInsets.fromLTRB(20.w, 0.h, 20.w, 48.h),
+          child: SizedBox(
+            height: 48.h,
+            child: ButtonSolid(
+              text: _isSaving
+                  ? (_isCreating ? '등록 중' : '저장 중')
+                  : (_isCreating ? '등록하기' : '저장'),
+              textColor: _canSubmit ? AppColors.white : AppColors.gray400,
+              boxColor: _canSubmit ? AppColors.black : AppColors.gray100,
+              padding: EdgeInsets.zero,
+              onTap: _canSubmit ? _save : null,
+            ),
           ),
         ),
       ),
@@ -609,7 +651,12 @@ class _ProgramTextField extends StatelessWidget {
     this.readOnly = false,
     this.onTap,
     this.suffixIcon,
+    this.prefixIcon,
+    this.onPrefixIconTap,
     this.labelTrailing,
+    this.keyboardType,
+    this.canRequestFocus = true,
+    this.enableInteractiveSelection = true,
   });
 
   final String label;
@@ -618,8 +665,13 @@ class _ProgramTextField extends StatelessWidget {
   final int maxLines;
   final bool readOnly;
   final VoidCallback? onTap;
-  final IconData? suffixIcon;
+  final Widget? suffixIcon;
+  final Widget? prefixIcon;
+  final VoidCallback? onPrefixIconTap;
   final Widget? labelTrailing;
+  final TextInputType? keyboardType;
+  final bool canRequestFocus;
+  final bool enableInteractiveSelection;
 
   @override
   Widget build(BuildContext context) {
@@ -641,7 +693,10 @@ class _ProgramTextField extends StatelessWidget {
           SizedBox(height: 10.h),
           TextField(
             controller: controller,
+            keyboardType: keyboardType,
             readOnly: readOnly,
+            canRequestFocus: canRequestFocus,
+            enableInteractiveSelection: enableInteractiveSelection,
             onTap: onTap,
             maxLines: maxLines,
             minLines: maxLines == 1 ? 1 : maxLines,
@@ -652,9 +707,23 @@ class _ProgramTextField extends StatelessWidget {
               hintStyle: AppTypography.body3.copyWith(color: AppColors.gray400),
               filled: true,
               fillColor: AppColors.white,
-              suffixIcon: suffixIcon != null
-                  ? Icon(suffixIcon, color: AppColors.gray400, size: 20.r)
+              prefixIcon: prefixIcon != null
+                  ? Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16.w,
+                        vertical: 12.h,
+                      ),
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: onPrefixIconTap,
+                        child: prefixIcon,
+                      ),
+                    )
                   : null,
+              suffixIcon: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                child: suffixIcon,
+              ),
               contentPadding: EdgeInsets.symmetric(
                 horizontal: 14.w,
                 vertical: 13.h,
@@ -728,6 +797,8 @@ class _KeywordPickerSheetState extends State<_KeywordPickerSheet> {
       .take(_maxSelection)
       .toSet();
   late final Future<List<String>> _keywords = _loadKeywords();
+  Timer? _limitToastTimer;
+  bool _limitToastVisible = false;
 
   Future<List<String>> _loadKeywords() async {
     final keywords = await KeywordService().fetchTaggedKeywords();
@@ -748,146 +819,221 @@ class _KeywordPickerSheetState extends State<_KeywordPickerSheet> {
       return;
     }
     if (_selected.length >= _maxSelection) {
+      _showLimitToast();
       return;
     }
     setState(() => _selected.add(keyword));
+  }
+
+  void _showLimitToast() {
+    _limitToastTimer?.cancel();
+    setState(() => _limitToastVisible = true);
+    _limitToastTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _limitToastVisible = false);
+    });
+  }
+
+  @override
+  void dispose() {
+    _limitToastTimer?.cancel();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       height: MediaQuery.sizeOf(context).height * 0.82,
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          20.w,
-          18.h,
-          20.w,
-          MediaQuery.paddingOf(context).bottom + 16.h,
-        ),
-        child: Column(
-          children: [
-            Row(
+      child: Stack(
+        children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              20.w,
+              0.h,
+              20.w,
+              MediaQuery.paddingOf(context).bottom + 16.h,
+            ),
+            child: Column(
               children: [
-                SizedBox(width: 24.r),
-                Expanded(
-                  child: Text(
-                    '키워드 선택',
-                    textAlign: TextAlign.center,
-                    style: AppTypography.title4.copyWith(
-                      color: AppColors.gray900,
-                    ),
+                SizedBox(
+                  height: 65.h,
+                  child: Row(
+                    children: [
+                      SizedBox(width: 24.r),
+                      Expanded(
+                        child: Text(
+                          '키워드 선택',
+                          textAlign: TextAlign.center,
+                          style: AppTypography.title4.copyWith(
+                            color: AppColors.gray900,
+                          ),
+                        ),
+                      ),
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => Navigator.pop(context),
+                        child: SizedBox(
+                          width: 24.r,
+                          height: 24.r,
+                          child: SvgPicture.asset(
+                            'assets/icons/close.svg',
+                            width: 21.r,
+                            color: AppColors.gray900,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => Navigator.pop(context),
-                  child: SizedBox(
-                    width: 24.r,
-                    height: 24.r,
-                    child: Icon(
-                      Icons.close,
-                      size: 21.r,
-                      color: AppColors.gray900,
-                    ),
+                SizedBox(height: 12.h),
+                Expanded(
+                  child: FutureBuilder<List<String>>(
+                    future: _keywords,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState != ConnectionState.done) {
+                        return const Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.gray900,
+                          ),
+                        );
+                      }
+                      if (snapshot.hasError) {
+                        return Center(
+                          child: Text(
+                            '키워드를 불러오지 못했어요.',
+                            style: AppTypography.caption2.copyWith(
+                              color: AppColors.gray500,
+                            ),
+                          ),
+                        );
+                      }
+                      final keywords = snapshot.data ?? const [];
+                      return ListView.separated(
+                        padding: EdgeInsets.zero,
+                        itemCount: keywords.length,
+                        separatorBuilder: (_, _) => SizedBox(height: 4.h),
+                        itemBuilder: (context, index) {
+                          final keyword = keywords[index];
+                          final selected = _selected.contains(keyword);
+                          return GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () => _toggle(keyword),
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(vertical: 8.h),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 20.r,
+                                    height: 20.r,
+                                    padding: EdgeInsets.all(2.r),
+                                    decoration: BoxDecoration(
+                                      color: selected
+                                          ? AppColors.gray900
+                                          : AppColors.gray100,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: SvgPicture.asset(
+                                      selected
+                                          ? 'assets/icons/check.svg'
+                                          : 'assets/icons/plus.svg',
+                                      color: selected
+                                          ? AppColors.white
+                                          : AppColors.gray500,
+                                    ),
+                                  ),
+                                  SizedBox(width: 12.w),
+                                  Expanded(
+                                    child: Text(
+                                      keyword,
+                                      style: AppTypography.body1.copyWith(
+                                        color: AppColors.gray900,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+                SizedBox(height: 12.h),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48.h,
+                  child: ButtonSolid(
+                    text: '(${_selected.length}/$_maxSelection) 완료',
+                    textColor: _selected.isEmpty
+                        ? AppColors.gray500
+                        : AppColors.white,
+                    boxColor: _selected.isEmpty
+                        ? AppColors.gray100
+                        : AppColors.black,
+                    padding: EdgeInsets.zero,
+                    onTap: _selected.isEmpty
+                        ? null
+                        : () => Navigator.pop(
+                            context,
+                            _selected.take(_maxSelection).toList(),
+                          ),
                   ),
                 ),
               ],
             ),
-            SizedBox(height: 20.h),
-            Expanded(
-              child: FutureBuilder<List<String>>(
-                future: _keywords,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState != ConnectionState.done) {
-                    return const Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.gray900,
-                      ),
-                    );
-                  }
-                  if (snapshot.hasError) {
-                    return Center(
-                      child: Text(
-                        '키워드를 불러오지 못했어요.',
-                        style: AppTypography.caption2.copyWith(
-                          color: AppColors.gray500,
+          ),
+          IgnorePointer(
+            child: AnimatedOpacity(
+              opacity: _limitToastVisible ? 1 : 0,
+              duration: const Duration(milliseconds: 160),
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: Container(
+                  margin: EdgeInsets.fromLTRB(
+                    20.w,
+                    0,
+                    20.w,
+                    MediaQuery.paddingOf(context).bottom + 76.h,
+                  ),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16.w,
+                    vertical: 14.h,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.dimStrong.withValues(alpha: 0.82),
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 18.r,
+                        height: 18.r,
+                        decoration: const BoxDecoration(
+                          color: AppColors.error,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.priority_high,
+                          color: AppColors.white,
+                          size: 13.r,
                         ),
                       ),
-                    );
-                  }
-                  final keywords = snapshot.data ?? const [];
-                  return ListView.separated(
-                    padding: EdgeInsets.zero,
-                    itemCount: keywords.length,
-                    separatorBuilder: (_, _) => SizedBox(height: 4.h),
-                    itemBuilder: (context, index) {
-                      final keyword = keywords[index];
-                      final selected = _selected.contains(keyword);
-                      return GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () => _toggle(keyword),
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(vertical: 8.h),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 20.r,
-                                height: 20.r,
-                                decoration: BoxDecoration(
-                                  color: selected
-                                      ? AppColors.gray900
-                                      : AppColors.gray100,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  selected ? Icons.check : Icons.add,
-                                  size: 14.r,
-                                  color: selected
-                                      ? AppColors.white
-                                      : AppColors.gray500,
-                                ),
-                              ),
-                              SizedBox(width: 12.w),
-                              Expanded(
-                                child: Text(
-                                  keyword,
-                                  style: AppTypography.body3.copyWith(
-                                    color: AppColors.gray900,
-                                  ),
-                                ),
-                              ),
-                            ],
+                      SizedBox(width: 10.w),
+                      Expanded(
+                        child: Text(
+                          '키워드는 최대 3개까지 선택할 수 있어요.',
+                          style: AppTypography.button3.copyWith(
+                            color: AppColors.white,
                           ),
                         ),
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
-            SizedBox(height: 12.h),
-            SizedBox(
-              width: double.infinity,
-              height: 48.h,
-              child: ButtonSolid(
-                text: '(${_selected.length}/$_maxSelection) 완료',
-                textColor: _selected.isEmpty
-                    ? AppColors.gray500
-                    : AppColors.white,
-                boxColor: _selected.isEmpty
-                    ? AppColors.gray100
-                    : AppColors.black,
-                padding: EdgeInsets.zero,
-                onTap: _selected.isEmpty
-                    ? null
-                    : () => Navigator.pop(
-                        context,
-                        _selected.take(_maxSelection).toList(),
                       ),
+                    ],
+                  ),
+                ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

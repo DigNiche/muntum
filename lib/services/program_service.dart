@@ -28,10 +28,10 @@ extension FilterApi on Filter {
     Filter.free => 'FREE',
     Filter.thisWeek => 'THIS_WEEK',
     Filter.noReservation => 'NO_RESERVATION',
-    Filter.exhibition => 'EXHIBITION',
-    Filter.show => 'PERFORMANCE',
-    Filter.experience => 'CLASS_EXPERIENCE',
-    Filter.festival => 'FAIR',
+    Filter.exhibition ||
+    Filter.show ||
+    Filter.experience ||
+    Filter.festival => ProgramType.fromFilter(this)?.apiValue,
   };
 }
 

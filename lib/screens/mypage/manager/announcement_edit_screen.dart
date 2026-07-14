@@ -87,55 +87,59 @@ class _AnnouncementEditScreenState extends State<AnnouncementEditScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.white,
-      body: Column(
-        children: [
-          SizedBox(height: 50.h),
-          AppBarWidget(
-            centerType: AppBarCenterType.text,
-            leadingIcon: 'close.svg',
-            center: _isCreating ? '공지사항 등록' : '수정',
-            onLeadingTap: () => Navigator.pop(context),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 110.h),
-              child: Column(
-                children: [
-                  _AnnouncementField(
-                    label: '제목',
-                    hintText: '제목을 입력하세요.',
-                    controller: _titleController,
-                  ),
-                  SizedBox(height: 28.h),
-                  _AnnouncementField(
-                    label: '상세 내용',
-                    hintText: '내용을 입력하세요.',
-                    controller: _contentController,
-                    maxLines: 8,
-                  ),
-                ],
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+      child: Scaffold(
+        backgroundColor: AppColors.white,
+        body: Column(
+          children: [
+            SizedBox(height: 50.h),
+            AppBarWidget(
+              centerType: AppBarCenterType.text,
+              leadingIcon: 'close.svg',
+              center: _isCreating ? '공지사항 등록' : '수정',
+              onLeadingTap: () => Navigator.pop(context),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 110.h),
+                child: Column(
+                  children: [
+                    _AnnouncementField(
+                      label: '제목',
+                      hintText: '제목을 입력하세요.',
+                      controller: _titleController,
+                    ),
+                    SizedBox(height: 28.h),
+                    _AnnouncementField(
+                      label: '상세 내용',
+                      hintText: '내용을 입력하세요.',
+                      controller: _contentController,
+                      maxLines: 8,
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Container(
-          color: AppColors.white,
-          padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 16.h),
-          child: SizedBox(
-            height: 48.h,
-            child: ButtonSolid(
-              text: _isSaving
-                  ? (_isCreating ? '등록 중' : '저장 중')
-                  : (_isCreating ? '등록하기' : '수정 하기'),
-              textColor: _canSubmit ? AppColors.white : AppColors.gray400,
-              boxColor: _canSubmit ? AppColors.black : AppColors.gray100,
-              padding: EdgeInsets.zero,
-              onTap: _canSubmit ? _submit : null,
+          ],
+        ),
+        bottomNavigationBar: SafeArea(
+          top: false,
+          child: Container(
+            color: AppColors.white,
+            padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 16.h),
+            child: SizedBox(
+              height: 48.h,
+              child: ButtonSolid(
+                text: _isSaving
+                    ? (_isCreating ? '등록 중' : '저장 중')
+                    : (_isCreating ? '등록하기' : '수정 하기'),
+                textColor: _canSubmit ? AppColors.white : AppColors.gray400,
+                boxColor: _canSubmit ? AppColors.black : AppColors.gray100,
+                padding: EdgeInsets.zero,
+                onTap: _canSubmit ? _submit : null,
+              ),
             ),
           ),
         ),
