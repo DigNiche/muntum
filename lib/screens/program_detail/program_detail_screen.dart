@@ -46,7 +46,10 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
       return widget.program;
     }
     try {
-      final detail = await ProgramService().fetchProgram(widget.program.id);
+      final detail = await ProgramService().fetchProgram(
+        widget.program.id,
+        authorized: true,
+      );
       detail.isBookmark = ProgramScrapStore.instance.isScrapped(detail);
       return detail;
     } catch (_) {
@@ -265,40 +268,52 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                                   ),
                                 ),
                                 SizedBox(width: 60.w),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      program.locationName,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: AppTypography.body1.copyWith(
-                                        color: AppColors.gray900,
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        program.locationName,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: AppTypography.body1.copyWith(
+                                          color: AppColors.gray900,
+                                        ),
                                       ),
-                                    ),
-                                    SizedBox(height: 2.h),
-                                    Row(
-                                      children: [
-                                        SvgPicture.asset(
-                                          'assets/icons/location-filled.svg',
-                                          width: 16.w,
-                                          colorFilter: const ColorFilter.mode(
-                                            AppColors.gray400,
-                                            BlendMode.srcIn,
+                                      SizedBox(height: 2.h),
+                                      Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Padding(
+                                            padding: EdgeInsets.only(top: 2.h),
+                                            child: SvgPicture.asset(
+                                              'assets/icons/location-filled.svg',
+                                              width: 16.w,
+                                              colorFilter:
+                                                  const ColorFilter.mode(
+                                                    AppColors.gray400,
+                                                    BlendMode.srcIn,
+                                                  ),
+                                            ),
                                           ),
-                                        ),
-                                        SizedBox(width: 2.w),
-                                        Text(
-                                          program.location['address'] ?? '',
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: AppTypography.body3.copyWith(
-                                            color: AppColors.gray600,
+                                          SizedBox(width: 2.w),
+                                          Expanded(
+                                            child: Text(
+                                              program.location['address'] ?? '',
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: AppTypography.body3
+                                                  .copyWith(
+                                                    color: AppColors.gray600,
+                                                  ),
+                                            ),
                                           ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
+                                        ],
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ],
                             ),

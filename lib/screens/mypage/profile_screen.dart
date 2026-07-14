@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/components/button_solid.dart';
+import 'package:muntum/components/label.dart';
 import 'package:muntum/components/page_header.dart';
 import 'package:muntum/components/popup_widget.dart';
 import 'package:muntum/constants/border_radius.dart';
@@ -12,6 +13,10 @@ import 'package:muntum/screens/mypage/account_mange_screen.dart';
 import 'package:muntum/screens/mypage/announcement_screen.dart';
 import 'package:muntum/screens/mypage/components/profile_menu_item.dart';
 import 'package:muntum/screens/mypage/keyword_change_screen.dart';
+import 'package:muntum/screens/mypage/manager/announcement_manage_screen.dart';
+import 'package:muntum/screens/mypage/manager/program_manage_screen.dart';
+import 'package:muntum/screens/mypage/manager/program_report_manage_screen.dart';
+import 'package:muntum/screens/mypage/manager/user_manage_screen.dart';
 import 'package:muntum/screens/mypage/nickname_change_screen.dart';
 import 'package:muntum/screens/mypage/reportlist_screen.dart';
 import 'package:muntum/screens/mypage/report_submit_screen.dart';
@@ -21,6 +26,7 @@ import 'package:muntum/screens/mypage/terms_screen.dart';
 import 'package:muntum/screens/mypage/version_info_screen.dart';
 import 'package:muntum/screens/onboarding/login_screen.dart';
 import 'package:muntum/services/suggestion_service.dart';
+import 'package:muntum/stores/auth_state.dart';
 import 'package:muntum/services/taste_service.dart';
 import 'package:muntum/stores/user_preference_store.dart';
 
@@ -157,151 +163,195 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               if (!isLoggedIn)
                 const Expanded(child: _GuestProfileContent())
-              else ...[
-                // Profile
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 20.w,
-                    vertical: 24.h,
-                  ),
-                  child: Column(
-                    spacing: 16.h,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          SvgPicture.asset(
-                            'assets/profile_image.svg',
-                            width: 56.r,
-                            height: 56.r,
+              else
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        // Profile
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 20.w,
+                            vertical: 24.h,
                           ),
-                          SizedBox(width: 16.w),
-                          Expanded(
-                            child: FutureBuilder<String?>(
-                              future: _nicknameFuture,
-                              builder: (context, snapshot) {
-                                return Text(
-                                  snapshot.data ?? "문화발굴단",
-                                  style: AppTypography.title4,
-                                );
-                              },
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: _handleNicknameEdit,
-                            child: SvgPicture.asset(
-                              'assets/icons/edit.svg',
-                              width: 18.w,
-                              colorFilter: const ColorFilter.mode(
-                                AppColors.gray400,
-                                BlendMode.srcIn,
+                          child: Column(
+                            spacing: 16.h,
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  SvgPicture.asset(
+                                    'assets/profile_image.svg',
+                                    width: 56.r,
+                                    height: 56.r,
+                                  ),
+                                  SizedBox(width: 16.w),
+                                  Expanded(
+                                    child: FutureBuilder<String?>(
+                                      future: _nicknameFuture,
+                                      builder: (context, snapshot) {
+                                        return Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Flexible(
+                                              child: Text(
+                                                snapshot.data ?? "문화발굴단",
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: AppTypography.title4,
+                                              ),
+                                            ),
+                                            if (AuthState.instance.isAdmin)
+                                              Padding(
+                                                padding: EdgeInsets.only(
+                                                  left: 6.w,
+                                                ),
+                                                child: const Label(
+                                                  labelType: LabelType.admin,
+                                                  text: '관리자',
+                                                ),
+                                              ),
+                                          ],
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                  GestureDetector(
+                                    onTap: _handleNicknameEdit,
+                                    child: SvgPicture.asset(
+                                      'assets/icons/edit.svg',
+                                      width: 18.w,
+                                      colorFilter: const ColorFilter.mode(
+                                        AppColors.gray400,
+                                        BlendMode.srcIn,
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(width: 8.w),
+                                ],
                               ),
-                            ),
-                          ),
-                          SizedBox(width: 8.w),
-                        ],
-                      ),
-                      Container(
-                        padding: EdgeInsets.symmetric(vertical: 6.h),
-                        decoration: BoxDecoration(
-                          color: Color(0xfff8f8f8),
-                          borderRadius: BorderRadius.circular(
-                            AppBorderRadius.radius_10,
+                              Container(
+                                padding: EdgeInsets.symmetric(vertical: 6.h),
+                                decoration: BoxDecoration(
+                                  color: Color(0xfff8f8f8),
+                                  borderRadius: BorderRadius.circular(
+                                    AppBorderRadius.radius_10,
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    StatCard(
+                                      title: '키워드',
+                                      number: '',
+                                      numberWidget: FutureBuilder<int>(
+                                        future: _keywordCountFuture,
+                                        builder: (context, snapshot) {
+                                          return Text(
+                                            '${snapshot.data ?? 0}',
+                                            style: AppTypography.headline1,
+                                          );
+                                        },
+                                      ),
+                                      onTap: () async {
+                                        await pushToScreen(
+                                          context,
+                                          KeywordChangeScreen(),
+                                        );
+                                        if (mounted) _reloadProfile();
+                                      },
+                                    ),
+                                    Container(
+                                      width: 2.w,
+                                      color: AppColors.gray200,
+                                      height: 30.h,
+                                    ),
+                                    StatCard(
+                                      title: '제보내역',
+                                      number: '',
+                                      numberWidget: FutureBuilder<int>(
+                                        future: _reportCountFuture,
+                                        builder: (context, snapshot) {
+                                          return Text(
+                                            '${snapshot.data ?? 0}',
+                                            style: AppTypography.headline1,
+                                          );
+                                        },
+                                      ),
+                                      onTap: () async {
+                                        await pushToScreen(
+                                          context,
+                                          ReportListScreen(),
+                                        );
+                                        if (mounted) _reloadProfile();
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        child: Row(
-                          children: [
-                            StatCard(
-                              title: '키워드',
-                              number: '',
-                              numberWidget: FutureBuilder<int>(
-                                future: _keywordCountFuture,
-                                builder: (context, snapshot) {
-                                  return Text(
-                                    '${snapshot.data ?? 0}',
-                                    style: AppTypography.headline1,
+                        Container(
+                          height: 8.h,
+                          color: AppColors.lineAlternative,
+                        ),
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 20.w,
+                            vertical: 4.h,
+                          ),
+                          child: Column(
+                            children: [
+                              ProfileMenuItem(
+                                text: '제보하기',
+                                onTap: () async {
+                                  await pushToScreen(
+                                    context,
+                                    ReportSubmitScreen(),
+                                  );
+                                  if (mounted) _reloadProfile();
+                                },
+                              ),
+                              ProfileMenuItem(
+                                text: '계정관리',
+                                onTap: () {
+                                  pushToScreen(context, AccountMangeScreen());
+                                },
+                              ),
+                              ProfileMenuItem(
+                                text: '공지사항',
+                                onTap: () {
+                                  pushToScreen(
+                                    context,
+                                    const AnnouncementScreen(),
                                   );
                                 },
                               ),
-                              onTap: () async {
-                                await pushToScreen(
-                                  context,
-                                  KeywordChangeScreen(),
-                                );
-                                if (mounted) _reloadProfile();
-                              },
-                            ),
-                            Container(
-                              width: 2.w,
-                              color: AppColors.gray200,
-                              height: 30.h,
-                            ),
-                            StatCard(
-                              title: '제보내역',
-                              number: '',
-                              numberWidget: FutureBuilder<int>(
-                                future: _reportCountFuture,
-                                builder: (context, snapshot) {
-                                  return Text(
-                                    '${snapshot.data ?? 0}',
-                                    style: AppTypography.headline1,
+                              ProfileMenuItem(
+                                text: '이용약관',
+                                onTap: () {
+                                  pushToScreen(context, const TermsScreen());
+                                },
+                              ),
+                              ProfileMenuItem(
+                                text: '버전정보',
+                                onTap: () {
+                                  pushToScreen(
+                                    context,
+                                    const VersionInfoScreen(),
                                   );
                                 },
                               ),
-                              onTap: () async {
-                                await pushToScreen(context, ReportListScreen());
-                                if (mounted) _reloadProfile();
-                              },
-                            ),
-                          ],
+                              if (AuthState.instance.isAdmin)
+                                const _AdminMenuSection(),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-                Container(height: 8.h, color: AppColors.lineAlternative),
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 20.w,
-                    vertical: 4.h,
-                  ),
-                  child: Column(
-                    children: [
-                      ProfileMenuItem(
-                        text: '제보하기',
-                        onTap: () async {
-                          await pushToScreen(context, ReportSubmitScreen());
-                          if (mounted) _reloadProfile();
-                        },
-                      ),
-                      ProfileMenuItem(
-                        text: '계정관리',
-                        onTap: () {
-                          pushToScreen(context, AccountMangeScreen());
-                        },
-                      ),
-                      ProfileMenuItem(
-                        text: '공지사항',
-                        onTap: () {
-                          pushToScreen(context, const AnnouncementScreen());
-                        },
-                      ),
-                      ProfileMenuItem(
-                        text: '이용약관',
-                        onTap: () {
-                          pushToScreen(context, const TermsScreen());
-                        },
-                      ),
-                      ProfileMenuItem(
-                        text: '버전정보',
-                        onTap: () {
-                          pushToScreen(context, const VersionInfoScreen());
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ],
             ],
           ),
         );
@@ -368,6 +418,51 @@ Future<T?> pushToScreen<T>(BuildContext context, Widget screen) {
     context,
     MaterialPageRoute(builder: (context) => screen),
   );
+}
+
+class _AdminMenuSection extends StatelessWidget {
+  const _AdminMenuSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(top: 24.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '관리자 메뉴',
+            style: AppTypography.headline2.copyWith(color: AppColors.gray500),
+          ),
+          ProfileMenuItem(
+            onTap: () {
+              pushToScreen(context, ProgramManageScreen());
+            },
+            text: '프로그램 관리',
+          ),
+          ProfileMenuItem(
+            onTap: () {
+              pushToScreen(context, ProgramReportManageScreen());
+            },
+            text: '프로그램 제보 관리',
+          ),
+          ProfileMenuItem(
+            onTap: () {
+              pushToScreen(context, AnnouncementManageScreen());
+            },
+            text: '공지사항 관리',
+          ),
+          ProfileMenuItem(
+            onTap: () {
+              pushToScreen(context, UserManageScreen());
+            },
+            text: '사용자 관리',
+          ),
+          SizedBox(height: 24.h),
+        ],
+      ),
+    );
+  }
 }
 
 Future<bool> _loadIsLoggedIn() async {

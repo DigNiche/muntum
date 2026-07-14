@@ -52,6 +52,7 @@ class AuthService {
       userId: session.userId,
       email: session.email,
       nickname: session.nickname,
+      role: session.role,
     );
     return session;
   }
@@ -74,6 +75,7 @@ class AuthService {
       userId: session.userId,
       email: session.email,
       nickname: session.nickname,
+      role: session.role,
     );
     return session;
   }

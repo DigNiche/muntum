@@ -17,15 +17,7 @@ class ApiClient {
   bool _isRefreshing = false;
 
   Uri _uri(String path, [Map<String, dynamic>? queryParameters]) {
-    final baseUrl = ApiConfig.baseUrl;
-    if (baseUrl.isEmpty) {
-      throw const ApiException(
-        message:
-            'API_BASE_URL이 설정되지 않았습니다. .env 또는 --dart-define으로 Base URL을 넣어주세요.',
-      );
-    }
-
-    final uri = Uri.parse('$baseUrl$path');
+    final uri = Uri.parse('${ApiConfig.baseUrl}$path');
     final filteredQuery = <String, dynamic>{};
     queryParameters?.forEach((key, value) {
       if (value == null) return;
@@ -98,6 +90,135 @@ class ApiClient {
       queryParameters: queryParameters,
       authorized: authorized,
     );
+  }
+
+  Future<Map<String, dynamic>> putMultipart(
+    String path, {
+    required Map<String, dynamic> jsonPart,
+    String jsonFieldName = 'program',
+    List<String> filePaths = const [],
+    String fileFieldName = 'images',
+    bool authorized = false,
+  }) {
+    return _sendMultipart(
+      'PUT',
+      path,
+      jsonPart: jsonPart,
+      jsonFieldName: jsonFieldName,
+      filePaths: filePaths,
+      fileFieldName: fileFieldName,
+      authorized: authorized,
+    );
+  }
+
+  Future<Map<String, dynamic>> postMultipart(
+    String path, {
+    required Map<String, dynamic> jsonPart,
+    String jsonFieldName = 'program',
+    List<String> filePaths = const [],
+    String fileFieldName = 'images',
+    bool authorized = false,
+  }) {
+    return _sendMultipart(
+      'POST',
+      path,
+      jsonPart: jsonPart,
+      jsonFieldName: jsonFieldName,
+      filePaths: filePaths,
+      fileFieldName: fileFieldName,
+      authorized: authorized,
+    );
+  }
+
+  Future<Map<String, dynamic>> _sendMultipart(
+    String method,
+    String path, {
+    required Map<String, dynamic> jsonPart,
+    required String jsonFieldName,
+    required List<String> filePaths,
+    required String fileFieldName,
+    required bool authorized,
+    bool retryOnUnauthorized = true,
+  }) async {
+    final boundary =
+        'muntum-${DateTime.now().microsecondsSinceEpoch.toRadixString(16)}';
+    final request = await _httpClient.openUrl(method, _uri(path));
+    request.headers.set('Accept', 'application/json');
+    request.headers.set(
+      'Content-Type',
+      'multipart/form-data; boundary=$boundary',
+    );
+    if (authorized) {
+      final accessToken = _tokenStore.accessToken;
+      if (accessToken != null && accessToken.isNotEmpty) {
+        request.headers.set('Authorization', 'Bearer $accessToken');
+      }
+    }
+
+    void addText(String value) => request.add(utf8.encode(value));
+
+    addText('--$boundary\r\n');
+    addText('Content-Disposition: form-data; name="$jsonFieldName"\r\n');
+    addText('Content-Type: application/json; charset=utf-8\r\n\r\n');
+    addText(jsonEncode(jsonPart));
+    addText('\r\n');
+
+    for (final path in filePaths) {
+      final file = File(path);
+      if (!await file.exists()) continue;
+      final filename = Uri.file(path).pathSegments.last.replaceAll('"', '');
+      addText('--$boundary\r\n');
+      addText(
+        'Content-Disposition: form-data; name="$fileFieldName"; '
+        'filename="$filename"\r\n',
+      );
+      addText('Content-Type: ${_imageContentType(filename)}\r\n\r\n');
+      request.add(await file.readAsBytes());
+      addText('\r\n');
+    }
+    addText('--$boundary--\r\n');
+
+    final response = await request.close();
+    final statusCode = response.statusCode;
+    final responseBody = await utf8.decodeStream(response);
+
+    if (statusCode == 401 &&
+        authorized &&
+        retryOnUnauthorized &&
+        await _refreshToken()) {
+      return _sendMultipart(
+        method,
+        path,
+        jsonPart: jsonPart,
+        jsonFieldName: jsonFieldName,
+        filePaths: filePaths,
+        fileFieldName: fileFieldName,
+        authorized: authorized,
+        retryOnUnauthorized: false,
+      );
+    }
+
+    final decoded = _decode(responseBody);
+    if (statusCode < 200 || statusCode >= 300) {
+      throw ApiException(
+        statusCode: statusCode,
+        code: decoded['error'] as String? ?? decoded['code'] as String?,
+        message: decoded['message'] as String? ?? 'API 요청에 실패했습니다.',
+        body: decoded,
+      );
+    }
+    return decoded;
+  }
+
+  String _imageContentType(String filename) {
+    final extension = filename.toLowerCase().split('.').last;
+    return switch (extension) {
+      'png' => 'image/png',
+      'gif' => 'image/gif',
+      'webp' => 'image/webp',
+      'heic' || 'heif' => 'image/heic',
+      _ => 'image/jpeg',
+    };
   }
 
   Future<Map<String, dynamic>> _send(
@@ -187,6 +308,7 @@ class ApiClient {
         userId: auth.userId,
         email: auth.email,
         nickname: auth.nickname,
+        role: auth.role,
       );
       return true;
     } catch (_) {

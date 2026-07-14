@@ -174,13 +174,58 @@ class ProgramService {
     ).data;
   }
 
-  Future<ProgramModel> fetchProgram(String id) async {
-    final response = await _client.get(ApiEndpoints.program(id));
+  Future<ProgramModel> fetchProgram(
+    String id, {
+    bool authorized = false,
+  }) async {
+    final response = await _client.get(
+      ApiEndpoints.program(id),
+      authorized: authorized,
+    );
     return ApiResponse.fromJson(
       response,
       (data) =>
           ProgramModel.fromJson(data as Map<String, dynamic>? ?? const {}),
     ).data;
+  }
+
+  Future<ProgramModel> updateProgram({
+    required String id,
+    required Map<String, dynamic> program,
+    List<String> imagePaths = const [],
+  }) async {
+    final response = await _client.putMultipart(
+      ApiEndpoints.program(id),
+      jsonPart: program,
+      filePaths: imagePaths,
+      authorized: true,
+    );
+    return ApiResponse.fromJson(
+      response,
+      (data) =>
+          ProgramModel.fromJson(data as Map<String, dynamic>? ?? const {}),
+    ).data;
+  }
+
+  Future<ProgramModel> createProgram({
+    required Map<String, dynamic> program,
+    List<String> imagePaths = const [],
+  }) async {
+    final response = await _client.postMultipart(
+      ApiEndpoints.programs,
+      jsonPart: program,
+      filePaths: imagePaths,
+      authorized: true,
+    );
+    return ApiResponse.fromJson(
+      response,
+      (data) =>
+          ProgramModel.fromJson(data as Map<String, dynamic>? ?? const {}),
+    ).data;
+  }
+
+  Future<void> deleteProgram(String id) async {
+    await _client.delete(ApiEndpoints.program(id), authorized: true);
   }
 
   Future<List<String>> fetchThumbnailUrls() async {

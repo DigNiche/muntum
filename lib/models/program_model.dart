@@ -29,12 +29,16 @@ class ProgramModel {
   final String startEndDates;
   // 장소명
   final String locationName;
+  final String venueMeta;
   // 장소 (위도경도)
   final Map<String, String> location;
   // 시간
   final String availableTime;
+  final String operatingPeriodMeta;
+  final String operatingHoursMeta;
   // 가격
   final String cost;
+  final bool isFree;
   // 사전예약
   final bool isReservationNeeded;
   // 전화번호
@@ -69,9 +73,13 @@ class ProgramModel {
     required this.keywords,
     required this.startEndDates,
     required this.locationName,
+    this.venueMeta = '',
     required this.location,
     required this.availableTime,
+    this.operatingPeriodMeta = '',
+    this.operatingHoursMeta = '',
     required this.cost,
+    this.isFree = false,
     required this.isReservationNeeded,
     required this.phoneNumber,
     required this.link,
@@ -125,13 +133,17 @@ class ProgramModel {
       startDate: startDate,
       endDate: endDate,
       locationName: json['venueName'] as String? ?? '',
+      venueMeta: json['venueMeta'] as String? ?? '',
       location: {
         'address': json['address'] as String? ?? '',
         'latitude': '${json['latitude'] ?? ''}',
         'longitude': '${json['longitude'] ?? ''}',
       },
       availableTime: json['operatingHours'] as String? ?? '',
-      cost: json['price'] as String? ?? (free ? '무료' : ''),
+      operatingPeriodMeta: json['operatingPeriodMeta'] as String? ?? '',
+      operatingHoursMeta: json['operatingHoursMeta'] as String? ?? '',
+      cost: free ? '무료' : json['price'] as String? ?? '',
+      isFree: free,
       isReservationNeeded: reserved,
       phoneNumber: json['inquiryContact'] as String? ?? '',
       link: json['officialUrl'] as String? ?? '',

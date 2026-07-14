@@ -9,7 +9,9 @@ import 'package:muntum/data/report_place_search_repository.dart';
 import 'package:muntum/models/report_model.dart';
 
 class ReportPlaceSearchScreen extends StatefulWidget {
-  const ReportPlaceSearchScreen({super.key});
+  const ReportPlaceSearchScreen({super.key, this.allowDirectInput = true});
+
+  final bool allowDirectInput;
 
   @override
   State<ReportPlaceSearchScreen> createState() =>
@@ -228,7 +230,9 @@ class _ReportPlaceSearchScreenState extends State<ReportPlaceSearchScreen> {
                     results: _results,
                     hasNoResult: hasNoResult,
                     isSearching: _isSearching,
-                    onDirectInput: _openDirectInputSheet,
+                    onDirectInput: widget.allowDirectInput
+                        ? _openDirectInputSheet
+                        : null,
                   )
                 : Center(
                     child: Text(
@@ -249,7 +253,7 @@ class _SearchResultBody extends StatelessWidget {
   final List<ReportPlace> results;
   final bool hasNoResult;
   final bool isSearching;
-  final VoidCallback onDirectInput;
+  final VoidCallback? onDirectInput;
 
   const _SearchResultBody({
     required this.results,
@@ -282,23 +286,28 @@ class _SearchResultBody extends StatelessWidget {
               '검색된 장소가 없어요.',
               style: AppTypography.caption2.copyWith(color: AppColors.gray400),
             ),
-            SizedBox(height: 16.h),
-            GestureDetector(
-              onTap: onDirectInput,
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(6.r),
-                  border: Border.all(color: AppColors.lineStrong),
-                ),
-                child: Text(
-                  '직접 입력하기',
-                  style: AppTypography.button4.copyWith(
-                    color: AppColors.gray900,
+            if (onDirectInput != null) ...[
+              SizedBox(height: 16.h),
+              GestureDetector(
+                onTap: onDirectInput,
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16.w,
+                    vertical: 10.h,
+                  ),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(6.r),
+                    border: Border.all(color: AppColors.lineStrong),
+                  ),
+                  child: Text(
+                    '직접 입력하기',
+                    style: AppTypography.button4.copyWith(
+                      color: AppColors.gray900,
+                    ),
                   ),
                 ),
               ),
-            ),
+            ],
           ],
         ),
       );

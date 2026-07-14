@@ -1,4 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:muntum/stores/auth_state.dart';
 
 class TokenStore {
   TokenStore._();
@@ -15,8 +16,16 @@ class TokenStore {
     String? userId,
     String? email,
     String? nickname,
+    String? role,
   }) async {
     _accessToken = accessToken;
+    AuthState.instance.replace(
+      accessToken: accessToken,
+      userId: userId,
+      email: email,
+      nickname: nickname,
+      role: role,
+    );
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('refreshToken', refreshToken);
     if (userId != null) {
@@ -33,6 +42,11 @@ class TokenStore {
       await prefs.setString('nickname', nickname);
     } else {
       await prefs.remove('nickname');
+    }
+    if (role != null && role.isNotEmpty) {
+      await prefs.setString('role', role);
+    } else {
+      await prefs.remove('role');
     }
   }
 
@@ -51,23 +65,38 @@ class TokenStore {
     return prefs.getString('nickname');
   }
 
+  Future<String?> readRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('role');
+  }
+
   Future<void> saveProfile({
     String? userId,
     String? email,
     String? nickname,
+    String? role,
   }) async {
+    AuthState.instance.update(
+      userId: userId,
+      email: email,
+      nickname: nickname,
+      role: role,
+    );
     final prefs = await SharedPreferences.getInstance();
     if (userId != null) await prefs.setString('userId', userId);
     if (email != null) await prefs.setString('email', email);
     if (nickname != null) await prefs.setString('nickname', nickname);
+    if (role != null) await prefs.setString('role', role);
   }
 
   Future<void> clear() async {
     _accessToken = null;
+    AuthState.instance.clear();
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('refreshToken');
     await prefs.remove('userId');
     await prefs.remove('email');
     await prefs.remove('nickname');
+    await prefs.remove('role');
   }
 }

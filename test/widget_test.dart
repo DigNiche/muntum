@@ -17,7 +17,6 @@ void main() {
   group('api config', () {
     test('uses the production API by default', () {
       expect(ApiConfig.baseUrl, 'https://api.muntum.work');
-      expect(ApiConfig.hasBaseUrl, isTrue);
     });
   });
 

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class AuthSession {
   final String tokenType;
   final String accessToken;
@@ -7,6 +9,7 @@ class AuthSession {
   final String userId;
   final String email;
   final String? nickname;
+  final String? role;
 
   const AuthSession({
     required this.tokenType,
@@ -17,19 +20,36 @@ class AuthSession {
     required this.userId,
     required this.email,
     this.nickname,
+    this.role,
   });
 
   factory AuthSession.fromJson(Map<String, dynamic> json) {
+    final accessToken = json['accessToken'] as String? ?? '';
     return AuthSession(
       tokenType: json['tokenType'] as String? ?? 'Bearer',
-      accessToken: json['accessToken'] as String? ?? '',
+      accessToken: accessToken,
       accessExpiresIn: (json['accessExpiresIn'] as num? ?? 0).toInt(),
       refreshToken: json['refreshToken'] as String? ?? '',
       refreshExpiresIn: (json['refreshExpiresIn'] as num? ?? 0).toInt(),
       userId: json['userId'] as String? ?? '',
       email: json['email'] as String? ?? '',
       nickname: json['nickname'] as String?,
+      role: json['role'] as String? ?? _roleFromAccessToken(accessToken),
     );
+  }
+
+  static String? _roleFromAccessToken(String token) {
+    final parts = token.split('.');
+    if (parts.length < 2) return null;
+    try {
+      final normalized = base64Url.normalize(parts[1]);
+      final decoded = utf8.decode(base64Url.decode(normalized));
+      final payload = jsonDecode(decoded);
+      if (payload is! Map<String, dynamic>) return null;
+      return payload['role'] as String?;
+    } catch (_) {
+      return null;
+    }
   }
 }
 

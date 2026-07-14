@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 
-void showAppToast(BuildContext context, String message) {
+void showAppToast(
+  BuildContext context,
+  String message, {
+  bool isError = false,
+  bool showIcon = true,
+}) {
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
     ..showSnackBar(
@@ -23,15 +29,22 @@ void showAppToast(BuildContext context, String message) {
           ),
           child: Row(
             children: [
-              Container(
-                width: 24.w,
-                height: 24.w,
-                decoration: const BoxDecoration(
-                  color: AppColors.primary500,
-                  shape: BoxShape.circle,
+              if (showIcon)
+                Container(
+                  width: 24.w,
+                  height: 24.w,
+                  decoration: BoxDecoration(
+                    color: isError ? AppColors.error : AppColors.primary500,
+                    shape: BoxShape.circle,
+                  ),
+                  child: SvgPicture.asset(
+                    isError
+                        ? 'assets/icons/error.svg'
+                        : 'assets/icons/check.svg',
+                    width: 14.r,
+                    color: AppColors.white,
+                  ),
                 ),
-                child: Icon(Icons.check, color: AppColors.white, size: 14.sp),
-              ),
               SizedBox(width: 10.w),
               Expanded(
                 child: Text(

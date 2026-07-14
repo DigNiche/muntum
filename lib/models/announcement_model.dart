@@ -4,6 +4,7 @@ class AnnouncementModel {
   final String content;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final DateTime? deletedAt;
 
   const AnnouncementModel({
     required this.id,
@@ -11,6 +12,7 @@ class AnnouncementModel {
     required this.content,
     this.createdAt,
     this.updatedAt,
+    this.deletedAt,
   });
 
   factory AnnouncementModel.fromJson(Map<String, dynamic> json) {
@@ -20,6 +22,7 @@ class AnnouncementModel {
       content: json['contents'] as String? ?? json['content'] as String? ?? '',
       createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
       updatedAt: DateTime.tryParse(json['updatedAt'] as String? ?? ''),
+      deletedAt: DateTime.tryParse(json['deletedAt'] as String? ?? ''),
     );
   }
 }

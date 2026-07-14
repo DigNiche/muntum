@@ -64,12 +64,11 @@ class _AnnouncementDetailScreenState extends State<AnnouncementDetailScreen> {
                     ),
                   );
                 }
-
                 final announcement = snapshot.data ?? widget.announcement;
                 return SingleChildScrollView(
                   padding: EdgeInsets.fromLTRB(20.w, 36.h, 20.w, 48.h),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
                         announcement.title.isEmpty

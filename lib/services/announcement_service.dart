@@ -24,12 +24,55 @@ class AnnouncementService {
     ).data;
   }
 
-  Future<AnnouncementModel> fetchAnnouncement(String id) async {
-    final response = await _client.get(ApiEndpoints.announcement(id));
+  Future<AnnouncementModel> fetchAnnouncement(
+    String id, {
+    bool authorized = false,
+  }) async {
+    final response = await _client.get(
+      ApiEndpoints.announcement(id),
+      authorized: authorized,
+    );
     return ApiResponse.fromJson(
       response,
       (data) =>
           AnnouncementModel.fromJson(data as Map<String, dynamic>? ?? const {}),
     ).data;
+  }
+
+  Future<AnnouncementModel> createAnnouncement({
+    required String title,
+    required String content,
+  }) async {
+    final response = await _client.post(
+      ApiEndpoints.announcements,
+      authorized: true,
+      body: {'title': title, 'contents': content},
+    );
+    return ApiResponse.fromJson(
+      response,
+      (data) =>
+          AnnouncementModel.fromJson(data as Map<String, dynamic>? ?? const {}),
+    ).data;
+  }
+
+  Future<AnnouncementModel> updateAnnouncement({
+    required String id,
+    required String title,
+    required String content,
+  }) async {
+    final response = await _client.put(
+      ApiEndpoints.announcement(id),
+      authorized: true,
+      body: {'title': title, 'contents': content},
+    );
+    return ApiResponse.fromJson(
+      response,
+      (data) =>
+          AnnouncementModel.fromJson(data as Map<String, dynamic>? ?? const {}),
+    ).data;
+  }
+
+  Future<void> deleteAnnouncement(String id) async {
+    await _client.delete(ApiEndpoints.announcement(id), authorized: true);
   }
 }
