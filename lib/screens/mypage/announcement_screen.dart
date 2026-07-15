@@ -15,16 +15,48 @@ class AnnouncementScreen extends StatefulWidget {
 }
 
 class _AnnouncementScreenState extends State<AnnouncementScreen> {
-  late Future<List<AnnouncementModel>> _announcementsFuture;
+  final ScrollController _scrollController = ScrollController();
+  final List<AnnouncementModel> _announcements = [];
+  int _nextPage = 0;
+  bool _hasNextPage = true;
+  bool _isLoading = false;
+  bool _loadedOnce = false;
 
   @override
   void initState() {
     super.initState();
-    _announcementsFuture = _loadAnnouncements();
+    _scrollController.addListener(_onScroll);
+    _loadAnnouncements();
   }
 
-  Future<List<AnnouncementModel>> _loadAnnouncements() async {
-    return (await AnnouncementService().fetchAnnouncements(size: 100)).content;
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.extentAfter < 500) _loadAnnouncements();
+  }
+
+  Future<void> _loadAnnouncements() async {
+    if (_isLoading || !_hasNextPage) return;
+    setState(() => _isLoading = true);
+    try {
+      final response = await AnnouncementService().fetchAnnouncements(
+        page: _nextPage,
+        size: 20,
+      );
+      if (!mounted) return;
+      setState(() {
+        _announcements.addAll(response.content);
+        _hasNextPage = response.hasMore;
+        _nextPage = response.page + 1;
+        _loadedOnce = true;
+      });
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   String _formatDate(DateTime? date) {
@@ -46,17 +78,14 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
             onLeadingTap: () => Navigator.pop(context),
           ),
           Expanded(
-            child: FutureBuilder<List<AnnouncementModel>>(
-              future: _announcementsFuture,
-              builder: (context, snapshot) {
-                final announcements =
-                    snapshot.data ?? const <AnnouncementModel>[];
-                if (snapshot.connectionState != ConnectionState.done) {
+            child: Builder(
+              builder: (context) {
+                if (!_loadedOnce && _isLoading) {
                   return const Center(
                     child: CircularProgressIndicator(color: AppColors.gray900),
                   );
                 }
-                if (announcements.isEmpty) {
+                if (_announcements.isEmpty) {
                   return Center(
                     child: Text(
                       '등록된 공지사항이 없어요.',
@@ -67,9 +96,17 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
                   );
                 }
                 return ListView.separated(
+                  controller: _scrollController,
                   padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 32.h),
                   itemBuilder: (context, index) {
-                    final announcement = announcements[index];
+                    if (index == _announcements.length) {
+                      return const Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.gray900,
+                        ),
+                      );
+                    }
+                    final announcement = _announcements[index];
                     return GestureDetector(
                       behavior: HitTestBehavior.opaque,
                       onTap: () {
@@ -114,7 +151,7 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
                     thickness: 1.h,
                     color: AppColors.lineStrong,
                   ),
-                  itemCount: announcements.length,
+                  itemCount: _announcements.length + (_isLoading ? 1 : 0),
                 );
               },
             ),

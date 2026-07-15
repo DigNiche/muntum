@@ -16,7 +16,7 @@ publish_to: "none" # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.2+2
+version: 1.0.3+0
 
 environment:
   sdk: ^3.12.2
@@ -47,10 +47,13 @@ dependencies:
   package_info_plus: ^10.2.0
   image_picker: ^1.1.2
   dotted_decoration: ^2.0.0
+  firebase_core: ^4.12.1
+  firebase_analytics: ^12.4.5
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_launcher_icons: ^0.14.4
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -68,11 +71,24 @@ flutter_native_splash:
     color: "#0A0A0A"
     image: assets/splash_android12.png
 
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path_android: assets/appicon/Android.png
+  image_path_ios: assets/appicon/IOS.png
+  remove_alpha_ios: true
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
 # The following section is specific to Flutter packages.
 flutter:
+  config:
+    # iOS dependencies are managed by CocoaPods. Keeping Flutter's generated
+    # Swift package enabled as well can leave its deployment target at 13.0,
+    # which conflicts with Firebase's iOS 15.0 minimum.
+    enable-swift-package-manager: false
+
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
@@ -85,6 +101,7 @@ flutter:
     - assets/lottie/
     - assets/login_image.svg
     - assets/profile_image.svg
+    - assets/appicon/
     - .env
 
   # An image asset can refer to one or more resolution-specific "variants", see

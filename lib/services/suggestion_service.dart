@@ -64,6 +64,21 @@ class SuggestionService {
     ).data;
   }
 
+  Future<PageResponse<ReportModel>> fetchManagerDeletedSuggestions({
+    int page = 0,
+    int size = 20,
+  }) async {
+    final response = await _client.get(
+      ApiEndpoints.managerDeletedSuggestions,
+      authorized: true,
+      queryParameters: {'page': page, 'size': size},
+    );
+    return ApiResponse.fromJson(
+      response,
+      (data) => PageResponse.fromJson(data, ReportModel.fromJson),
+    ).data;
+  }
+
   Future<ReportModel> fetchSuggestion(String id) async {
     final response = await _client.get(ApiEndpoints.suggestion(id));
     return ApiResponse.fromJson(

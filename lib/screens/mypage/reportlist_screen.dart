@@ -19,18 +19,57 @@ class ReportListScreen extends StatefulWidget {
 }
 
 class _ReportListScreenState extends State<ReportListScreen> {
-  late Future<List<ReportModel>> _reportsFuture;
   late Future<String> _nicknameFuture;
+  final ScrollController _scrollController = ScrollController();
+  final List<ReportModel> _reports = [];
+  int _nextPage = 0;
+  int _totalElements = 0;
+  bool _hasNextPage = true;
+  bool _isLoading = false;
+  bool _loadedOnce = false;
 
   @override
   void initState() {
     super.initState();
-    _reportsFuture = _loadReports();
     _nicknameFuture = _loadNickname();
+    _scrollController.addListener(_onScroll);
+    _loadReports(reset: true);
   }
 
-  Future<List<ReportModel>> _loadReports() async {
-    return (await SuggestionService().fetchMySuggestions(size: 100)).content;
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.extentAfter < 500) _loadReports();
+  }
+
+  Future<void> _loadReports({bool reset = false}) async {
+    if (_isLoading || (!reset && !_hasNextPage)) return;
+    if (reset) {
+      _nextPage = 0;
+      _hasNextPage = true;
+    }
+    setState(() => _isLoading = true);
+    try {
+      final response = await SuggestionService().fetchMySuggestions(
+        page: _nextPage,
+        size: 20,
+      );
+      if (!mounted) return;
+      setState(() {
+        if (reset) _reports.clear();
+        _reports.addAll(response.content);
+        _totalElements = response.totalElements;
+        _hasNextPage = response.hasMore;
+        _nextPage = response.page + 1;
+        _loadedOnce = true;
+      });
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   Future<String> _loadNickname() async {
@@ -45,9 +84,7 @@ class _ReportListScreenState extends State<ReportListScreen> {
       MaterialPageRoute(builder: (context) => const ReportSubmitScreen()),
     );
     if (mounted) {
-      setState(() {
-        _reportsFuture = _loadReports();
-      });
+      _loadReports(reset: true);
     }
   }
 
@@ -74,16 +111,14 @@ class _ReportListScreenState extends State<ReportListScreen> {
             onLeadingTap: () => Navigator.pop(context),
           ),
           Expanded(
-            child: FutureBuilder<List<ReportModel>>(
-              future: _reportsFuture,
-              builder: (context, snapshot) {
-                final reports = snapshot.data ?? const <ReportModel>[];
-                if (snapshot.connectionState != ConnectionState.done) {
+            child: Builder(
+              builder: (context) {
+                if (!_loadedOnce && _isLoading) {
                   return const Center(
                     child: CircularProgressIndicator(color: AppColors.gray900),
                   );
                 }
-                if (reports.isEmpty) {
+                if (_reports.isEmpty) {
                   return _EmptyReportContent(onReportTap: _openReportSubmit);
                 }
                 return FutureBuilder<String>(
@@ -93,7 +128,10 @@ class _ReportListScreenState extends State<ReportListScreen> {
                       children: [
                         Expanded(
                           child: _ReportListContent(
-                            reports: reports,
+                            reports: _reports,
+                            totalElements: _totalElements,
+                            controller: _scrollController,
+                            isLoading: _isLoading,
                             nickname: nicknameSnapshot.data ?? '문화발굴단',
                             onReportTap: _openReportDetail,
                           ),
@@ -123,11 +161,17 @@ class _ReportListScreenState extends State<ReportListScreen> {
 
 class _ReportListContent extends StatelessWidget {
   final List<ReportModel> reports;
+  final int totalElements;
+  final ScrollController controller;
+  final bool isLoading;
   final String nickname;
   final ValueChanged<ReportModel> onReportTap;
 
   const _ReportListContent({
     required this.reports,
+    required this.totalElements,
+    required this.controller,
+    required this.isLoading,
     required this.nickname,
     required this.onReportTap,
   });
@@ -135,19 +179,25 @@ class _ReportListContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView.separated(
+      controller: controller,
       padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 24.h),
       itemBuilder: (context, index) {
+        if (index == reports.length) {
+          return const Center(
+            child: CircularProgressIndicator(color: AppColors.gray900),
+          );
+        }
         if (index == 0) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '알려지지 않은 프로그램 ${reports.length}개,\n$nickname님이 👀발견했어요!',
+                '알려지지 않은 프로그램 $totalElements개,\n$nickname님이 👀발견했어요!',
                 style: AppTypography.title3.copyWith(color: AppColors.gray900),
               ),
               SizedBox(height: 40.h),
               Text(
-                '제보내역 ${reports.length}개',
+                '제보내역 $totalElements개',
                 style: AppTypography.headline2.copyWith(
                   color: AppColors.gray500,
                 ),
@@ -164,7 +214,7 @@ class _ReportListContent extends StatelessWidget {
         thickness: 1.h,
         color: AppColors.lineAlternative,
       ),
-      itemCount: reports.length,
+      itemCount: reports.length + (isLoading ? 1 : 0),
     );
   }
 }

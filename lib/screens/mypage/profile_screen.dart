@@ -434,6 +434,7 @@ class _AdminMenuSection extends StatelessWidget {
             '관리자 메뉴',
             style: AppTypography.headline2.copyWith(color: AppColors.gray500),
           ),
+          SizedBox(height: 8.h),
           ProfileMenuItem(
             onTap: () {
               pushToScreen(context, ProgramManageScreen());

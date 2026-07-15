@@ -106,7 +106,10 @@ class MapProgramBottomPanel extends StatelessWidget {
                     controller: scrollController,
                     padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 20.h),
                     itemBuilder: (context, index) {
-                      return HorizontalCard(program: programs[index]);
+                      return HorizontalCard(
+                        program: programs[index],
+                        entrySource: 'map',
+                      );
                     },
                     separatorBuilder: (context, index) =>
                         SizedBox(height: 12.h),

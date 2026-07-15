@@ -64,8 +64,6 @@ class TextFieldWidget extends StatelessWidget {
             ),
             decoration: InputDecoration(
               isDense: true,
-              errorStyle: const TextStyle(height: 0, fontSize: 0),
-              errorText: isError ? '' : null,
               filled: true,
               fillColor: AppColors.white.withValues(alpha: 0.1),
               hintText: hintText,
@@ -78,10 +76,9 @@ class TextFieldWidget extends StatelessWidget {
                 padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 16.h),
                 child: suffixIcon,
               ),
-              suffixIconConstraints: BoxConstraints(
-                minWidth: 40.w,
-                minHeight: 48.h,
-              ),
+              suffixIconConstraints: suffixIcon == null
+                  ? null
+                  : BoxConstraints(minWidth: 40.w, minHeight: 48.h),
               contentPadding: EdgeInsets.symmetric(
                 horizontal: 16.w,
                 vertical: 0,
@@ -90,23 +87,23 @@ class TextFieldWidget extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppBorderRadius.radius_8),
                 borderSide: BorderSide.none,
               ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppBorderRadius.radius_8),
+                borderSide: isError
+                    ? BorderSide(
+                        color: AppColors.error.withValues(alpha: 0.5),
+                        width: 2.w,
+                      )
+                    : BorderSide.none,
+              ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppBorderRadius.radius_8),
-                borderSide: BorderSide(color: AppColors.primary700, width: 2.w),
-              ),
-              errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppBorderRadius.radius_8),
-                borderSide: BorderSide(
-                  color: AppColors.error.withValues(alpha: 0.5),
-                  width: 2.w,
-                ),
-              ),
-              focusedErrorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppBorderRadius.radius_8),
-                borderSide: BorderSide(
-                  color: AppColors.error.withValues(alpha: 0.5),
-                  width: 2.w,
-                ),
+                borderSide: isError
+                    ? BorderSide(
+                        color: AppColors.error.withValues(alpha: 0.5),
+                        width: 2.w,
+                      )
+                    : BorderSide(color: AppColors.primary700, width: 2.w),
               ),
             ),
           ),

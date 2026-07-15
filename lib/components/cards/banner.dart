@@ -7,8 +7,13 @@ import 'package:muntum/screens/program_detail/program_detail_screen.dart';
 
 class BannerCard extends StatelessWidget {
   final ProgramModel program;
+  final String entrySource;
 
-  const BannerCard({super.key, required this.program});
+  const BannerCard({
+    super.key,
+    required this.program,
+    this.entrySource = 'unknown',
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +22,8 @@ class BannerCard extends StatelessWidget {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => ProgramDetailScreen(program: program),
+            builder: (context) =>
+                ProgramDetailScreen(program: program, entrySource: entrySource),
           ),
         );
       },

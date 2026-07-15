@@ -156,7 +156,7 @@ class ProgramService {
     required double longitude,
     double radiusKm = 5,
     int page = 0,
-    int size = 100,
+    int size = 20,
   }) async {
     final response = await _client.get(
       ApiEndpoints.programsNearby,

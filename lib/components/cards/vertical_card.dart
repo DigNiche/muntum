@@ -13,12 +13,14 @@ class VerticalCard extends StatelessWidget {
   final ProgramModel program;
   final double? width;
   final int titleMaxLines;
+  final String entrySource;
 
   const VerticalCard({
     super.key,
     required this.program,
     this.width,
     this.titleMaxLines = 1,
+    this.entrySource = 'unknown',
   });
 
   @override
@@ -31,7 +33,10 @@ class VerticalCard extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => ProgramDetailScreen(program: program),
+              builder: (context) => ProgramDetailScreen(
+                program: program,
+                entrySource: entrySource,
+              ),
             ),
           );
         },
@@ -75,7 +80,11 @@ class VerticalCard extends StatelessWidget {
                   right: 0,
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
-                    onTap: () => toggleProgramScrap(context, program),
+                    onTap: () => toggleProgramScrap(
+                      context,
+                      program,
+                      entrySource: entrySource,
+                    ),
                     child: ListenableBuilder(
                       listenable: ProgramScrapStore.instance,
                       builder: (context, _) {

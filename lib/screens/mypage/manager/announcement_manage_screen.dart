@@ -83,7 +83,7 @@ class _AnnouncementManageScreenState extends State<AnnouncementManageScreen> {
           ),
         );
         _nextPage = response.page + 1;
-        _hasNext = response.hasNext || !response.last;
+        _hasNext = response.hasMore;
         _errorMessage = null;
       });
     } catch (error) {

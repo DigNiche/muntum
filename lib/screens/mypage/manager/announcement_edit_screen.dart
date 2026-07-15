@@ -134,7 +134,7 @@ class _AnnouncementEditScreenState extends State<AnnouncementEditScreen> {
               child: ButtonSolid(
                 text: _isSaving
                     ? (_isCreating ? '등록 중' : '저장 중')
-                    : (_isCreating ? '등록하기' : '수정 하기'),
+                    : (_isCreating ? '등록하기' : '수정하기'),
                 textColor: _canSubmit ? AppColors.white : AppColors.gray400,
                 boxColor: _canSubmit ? AppColors.black : AppColors.gray100,
                 padding: EdgeInsets.zero,

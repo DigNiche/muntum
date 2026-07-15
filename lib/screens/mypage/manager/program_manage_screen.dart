@@ -106,7 +106,7 @@ class _ProgramManageScreenState extends State<ProgramManageScreen> {
         _programs.addAll(response.content);
         _totalElements = response.totalElements;
         _nextPage = response.page + 1;
-        _hasNext = response.hasNext || !response.last;
+        _hasNext = response.hasMore;
         _errorMessage = null;
       });
     } on ApiException catch (error) {
@@ -128,7 +128,12 @@ class _ProgramManageScreenState extends State<ProgramManageScreen> {
   void _openProgram(ProgramModel program) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => ProgramDetailScreen(program: program)),
+      MaterialPageRoute(
+        builder: (_) => ProgramDetailScreen(
+          program: program,
+          entrySource: 'admin_program_management',
+        ),
+      ),
     );
   }
 
@@ -369,7 +374,7 @@ class _ProgramSearchField extends StatelessWidget {
         cursorColor: AppColors.gray900,
         style: AppTypography.body1.copyWith(color: AppColors.gray900),
         decoration: InputDecoration(
-          hintText: '프로그램 명, 키워드로 검색하기',
+          hintText: '프로그램명, 소개글, 장소로 검색하기',
           hintStyle: AppTypography.body1.copyWith(color: AppColors.gray400),
           prefixIcon: Padding(
             padding: EdgeInsets.all(15.r),

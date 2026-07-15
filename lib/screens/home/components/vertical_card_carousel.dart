@@ -5,8 +5,13 @@ import 'package:muntum/models/program_model.dart';
 
 class VerticalCardCarousel extends StatefulWidget {
   final List<ProgramModel> programs;
+  final String entrySource;
 
-  const VerticalCardCarousel({super.key, required this.programs});
+  const VerticalCardCarousel({
+    super.key,
+    required this.programs,
+    this.entrySource = 'all',
+  });
 
   @override
   State<VerticalCardCarousel> createState() => _VerticalCardCarouselState();
@@ -26,7 +31,10 @@ class _VerticalCardCarouselState extends State<VerticalCardCarousel> {
         itemBuilder: (context, index) {
           return SizedBox(
             width: 160.w,
-            child: VerticalCard(program: widget.programs[index]),
+            child: VerticalCard(
+              program: widget.programs[index],
+              entrySource: widget.entrySource,
+            ),
           );
         },
       ),

@@ -27,6 +27,7 @@ class SeeMoreScreen extends StatefulWidget {
 }
 
 class _SeeMoreScreenState extends State<SeeMoreScreen> {
+  static const int _pageSize = 20;
   static final _filterOptions = [
     (filter: Filter.free, label: '무료'),
     (filter: Filter.thisWeek, label: '이번주'),
@@ -37,38 +38,86 @@ class _SeeMoreScreenState extends State<SeeMoreScreen> {
   ];
 
   Filter? _selectedFilter;
-  late Future<List<ProgramModel>> _programsFuture;
+  final ScrollController _scrollController = ScrollController();
+  List<ProgramModel> _programs = const [];
+  int _nextPage = 0;
+  int _totalElements = 0;
+  bool _hasNextPage = true;
+  bool _isLoading = false;
+  int _requestId = 0;
 
   @override
   void initState() {
     super.initState();
-    _programsFuture = _loadPrograms();
+    _scrollController.addListener(_handleScroll);
+    _loadPrograms(reset: true);
   }
 
-  Future<List<ProgramModel>> _loadPrograms() async {
+  Future<void> _loadPrograms({required bool reset}) async {
+    if (!reset && (_isLoading || !_hasNextPage)) return;
+    final requestId = reset ? ++_requestId : _requestId;
+    final requestedPage = reset ? 0 : _nextPage;
+    setState(() {
+      _isLoading = true;
+      if (reset) {
+        _programs = const [];
+        _nextPage = 0;
+        _totalElements = 0;
+        _hasNextPage = true;
+      }
+    });
     final service = ProgramService();
-    final chip = _selectedFilter?.apiChip;
-    final page = widget.type == SeeMoreType.endingThisMonth
-        ? await service.fetchClosingSoon(page: 0, size: 100)
-        : await service.fetchHotKeywordPrograms(
-            chip: _selectedFilter,
-            page: 0,
-            size: 100,
-          );
-
-    if (widget.type == SeeMoreType.endingThisMonth && chip != null) {
-      return page.content
-          .where((program) => program.filters.contains(_selectedFilter))
-          .toList();
+    try {
+      final page = widget.type == SeeMoreType.endingThisMonth
+          ? await service.fetchClosingSoon(
+              chip: _selectedFilter,
+              page: requestedPage,
+              size: _pageSize,
+            )
+          : await service.fetchHotKeywordPrograms(
+              chip: _selectedFilter,
+              page: requestedPage,
+              size: _pageSize,
+            );
+      if (!mounted || requestId != _requestId) return;
+      final merged = <String, ProgramModel>{
+        if (!reset)
+          for (final program in _programs) program.id: program,
+        for (final program in page.content) program.id: program,
+      }.values.toList();
+      setState(() {
+        _programs = merged;
+        _nextPage = requestedPage + 1;
+        _totalElements = page.totalElements;
+        _hasNextPage = page.hasMore;
+      });
+    } finally {
+      if (mounted && requestId == _requestId) {
+        setState(() => _isLoading = false);
+      }
     }
-    return page.content;
+  }
+
+  void _handleScroll() {
+    if (_scrollController.position.extentAfter < 400.h) {
+      _loadPrograms(reset: false);
+    }
   }
 
   void _toggleFilter(Filter filter) {
     setState(() {
       _selectedFilter = _selectedFilter == filter ? null : filter;
-      _programsFuture = _loadPrograms();
     });
+    _loadPrograms(reset: true);
+    if (_scrollController.hasClients) _scrollController.jumpTo(0);
+  }
+
+  @override
+  void dispose() {
+    _scrollController
+      ..removeListener(_handleScroll)
+      ..dispose();
+    super.dispose();
   }
 
   Widget _buildFilterChip(Filter filter, String label) {
@@ -115,24 +164,18 @@ class _SeeMoreScreenState extends State<SeeMoreScreen> {
               ),
             Padding(
               padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 12.h),
-              child: FutureBuilder<List<ProgramModel>>(
-                future: _programsFuture,
-                builder: (context, snapshot) {
-                  return Text(
-                    '프로그램 ${(snapshot.data ?? const <ProgramModel>[]).length}개',
-                    style: AppTypography.headline2.copyWith(
-                      color: AppColors.gray900,
-                    ),
-                  );
-                },
+              child: Text(
+                '프로그램 ${_totalElements > 0 ? _totalElements : _programs.length}개',
+                style: AppTypography.headline2.copyWith(
+                  color: AppColors.gray900,
+                ),
               ),
             ),
             Expanded(
-              child: FutureBuilder<List<ProgramModel>>(
-                future: _programsFuture,
-                builder: (context, snapshot) {
-                  final programs = snapshot.data ?? const <ProgramModel>[];
-                  if (snapshot.connectionState != ConnectionState.done) {
+              child: Builder(
+                builder: (context) {
+                  final programs = _programs;
+                  if (_isLoading && programs.isEmpty) {
                     return const Center(
                       child: CircularProgressIndicator(
                         color: AppColors.gray900,
@@ -150,10 +193,27 @@ class _SeeMoreScreenState extends State<SeeMoreScreen> {
                     );
                   }
                   return ListView.separated(
+                    controller: _scrollController,
                     padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 24.h),
-                    itemCount: programs.length,
-                    itemBuilder: (context, index) =>
-                        HorizontalCard(program: programs[index]),
+                    itemCount: programs.length + (_isLoading ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (index == programs.length) {
+                        return Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12.h),
+                          child: const Center(
+                            child: CircularProgressIndicator(
+                              color: AppColors.gray900,
+                            ),
+                          ),
+                        );
+                      }
+                      return HorizontalCard(
+                        program: programs[index],
+                        entrySource: widget.type == SeeMoreType.allPrograms
+                            ? 'all_collection'
+                            : 'all_closing_soon',
+                      );
+                    },
                     separatorBuilder: (_, _) => SizedBox(height: 16.h),
                   );
                 },

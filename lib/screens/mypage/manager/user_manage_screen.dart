@@ -96,7 +96,7 @@ class _UserManageScreenState extends State<UserManageScreen> {
         _users.addAll(response.content);
         _totalElements = response.totalElements;
         _nextPage = response.page + 1;
-        _hasNext = response.hasNext || !response.last;
+        _hasNext = response.hasMore;
         _errorMessage = null;
       });
     } on ApiException catch (error) {

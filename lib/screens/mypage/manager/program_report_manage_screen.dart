@@ -11,12 +11,13 @@ import 'package:muntum/services/suggestion_service.dart';
 
 enum _ReportTab {
   pending(label: '미등록', apiStatus: 'PENDING'),
-  approved(label: '등록완료', apiStatus: 'APPROVED');
+  approved(label: '등록완료', apiStatus: 'APPROVED'),
+  deleted(label: '삭제됨');
 
-  const _ReportTab({required this.label, required this.apiStatus});
+  const _ReportTab({required this.label, this.apiStatus});
 
   final String label;
-  final String apiStatus;
+  final String? apiStatus;
 }
 
 class ProgramReportManageScreen extends StatefulWidget {
@@ -88,18 +89,23 @@ class _ProgramReportManageScreenState extends State<ProgramReportManageScreen> {
     final requestedTab = _selectedTab;
 
     try {
-      final response = await _service.fetchManagerSuggestions(
-        status: requestedTab.apiStatus,
-        page: reset ? 0 : _nextPage,
-        size: _pageSize,
-      );
+      final response = requestedTab == _ReportTab.deleted
+          ? await _service.fetchManagerDeletedSuggestions(
+              page: reset ? 0 : _nextPage,
+              size: _pageSize,
+            )
+          : await _service.fetchManagerSuggestions(
+              status: requestedTab.apiStatus,
+              page: reset ? 0 : _nextPage,
+              size: _pageSize,
+            );
       if (!mounted || requestId != _requestId) return;
 
       setState(() {
         if (reset) _reports.clear();
         _reports.addAll(response.content);
         _nextPage = response.page + 1;
-        _hasNext = response.hasNext || !response.last;
+        _hasNext = response.hasMore;
         _errorMessage = null;
       });
     } on ApiException catch (error) {
@@ -122,7 +128,11 @@ class _ProgramReportManageScreenState extends State<ProgramReportManageScreen> {
     final changed = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder: (_) => ReportDetailScreen(report: report, managerMode: true),
+        builder: (_) => ReportDetailScreen(
+          report: report,
+          managerMode: true,
+          deletedMode: _selectedTab == _ReportTab.deleted,
+        ),
       ),
     );
     if (mounted && changed == true) await _loadReports(reset: true);
@@ -181,9 +191,11 @@ class _ProgramReportManageScreenState extends State<ProgramReportManageScreen> {
 
     if (_reports.isEmpty) {
       return _ReportMessageState(
-        message: _selectedTab == _ReportTab.pending
-            ? '미등록 제보가 없어요.'
-            : '등록 완료된 제보가 없어요.',
+        message: switch (_selectedTab) {
+          _ReportTab.pending => '미등록 제보가 없어요.',
+          _ReportTab.approved => '등록 완료된 제보가 없어요.',
+          _ReportTab.deleted => '삭제된 제보가 없어요.',
+        },
       );
     }
 

@@ -1,5 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:muntum/stores/auth_state.dart';
+import 'package:muntum/services/analytics_service.dart';
 
 class TokenStore {
   TokenStore._();
@@ -48,6 +49,7 @@ class TokenStore {
     } else {
       await prefs.remove('role');
     }
+    await AnalyticsService.instance.setUserId(userId);
   }
 
   Future<String?> readRefreshToken() async {
@@ -98,5 +100,6 @@ class TokenStore {
     await prefs.remove('email');
     await prefs.remove('nickname');
     await prefs.remove('role');
+    await AnalyticsService.instance.setUserId(null);
   }
 }

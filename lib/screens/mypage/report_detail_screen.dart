@@ -14,11 +14,13 @@ import 'package:muntum/utils/app_toast.dart';
 class ReportDetailScreen extends StatefulWidget {
   final ReportModel report;
   final bool managerMode;
+  final bool deletedMode;
 
   const ReportDetailScreen({
     super.key,
     required this.report,
     this.managerMode = false,
+    this.deletedMode = false,
   });
 
   @override
@@ -102,7 +104,7 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
             center: '제보 내용',
             leadingIcon: 'arrow_left.svg',
             onLeadingTap: () => Navigator.pop(context),
-            trailing: widget.managerMode
+            trailing: widget.managerMode && !widget.deletedMode
                 ? GestureDetector(
                     onTap: _confirmDelete,
                     behavior: HitTestBehavior.opaque,
@@ -179,7 +181,7 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
               ),
             ),
           ),
-          if (widget.managerMode)
+          if (widget.managerMode && !widget.deletedMode)
             SafeArea(
               top: false,
               minimum: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 24.h),

@@ -20,6 +20,7 @@ class ScrapService {
   Future<PageResponse<ProgramModel>> fetchMyScraps({
     int page = 0,
     int size = 20,
+    bool syncStore = true,
   }) async {
     final response = await _client.get(
       ApiEndpoints.myScraps,
@@ -33,10 +34,12 @@ class ScrapService {
     for (final program in pageResponse.content) {
       program.isBookmark = true;
     }
-    ProgramScrapStore.instance.replaceScrappedPrograms(
-      pageResponse.content,
-      notify: false,
-    );
+    if (syncStore) {
+      ProgramScrapStore.instance.replaceScrappedPrograms(
+        pageResponse.content,
+        notify: false,
+      );
+    }
     return pageResponse;
   }
 }

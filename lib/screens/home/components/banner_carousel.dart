@@ -6,8 +6,13 @@ import 'package:muntum/models/program_model.dart';
 
 class BannerCarousel extends StatefulWidget {
   final List<ProgramModel> programs;
+  final String entrySource;
 
-  const BannerCarousel({super.key, required this.programs});
+  const BannerCarousel({
+    super.key,
+    required this.programs,
+    this.entrySource = 'all_banner',
+  });
 
   @override
   State<BannerCarousel> createState() => _BannerCarouselState();
@@ -60,6 +65,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
             itemBuilder: (context, index) {
               return BannerCard(
                 program: widget.programs[index % widget.programs.length],
+                entrySource: widget.entrySource,
               );
             },
           ),

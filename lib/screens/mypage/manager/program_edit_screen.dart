@@ -48,8 +48,7 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
 
   late ProgramType _programType;
   late bool _isReservationNeeded;
-  late final List<String> _existingImageUrls;
-  final List<XFile> _newImages = [];
+  late final List<_ProgramImageItem> _images;
   bool _imagesChanged = false;
   bool _isSaving = false;
 
@@ -105,9 +104,9 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
     );
     _programType = program?.programType ?? ProgramType.exhibition;
     _isReservationNeeded = program?.isReservationNeeded ?? false;
-    _existingImageUrls = List<String>.from(
-      program?.imageUrls.take(_maxImages) ?? const <String>[],
-    );
+    _images = (program?.imageUrls.take(_maxImages) ?? const <String>[])
+        .map(_ProgramImageItem.network)
+        .toList();
     for (final controller in _formControllers) {
       controller.addListener(_onFormChanged);
     }
@@ -149,7 +148,7 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
     super.dispose();
   }
 
-  int get _imageCount => _existingImageUrls.length + _newImages.length;
+  int get _imageCount => _images.length;
 
   Future<void> _pickImages() async {
     final remaining = _maxImages - _imageCount;
@@ -160,29 +159,26 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
     final selected = await _imagePicker.pickMultiImage(imageQuality: 88);
     if (!mounted || selected.isEmpty) return;
     setState(() {
-      _newImages.addAll(selected.take(remaining));
+      _images.addAll(selected.take(remaining).map(_ProgramImageItem.local));
       _imagesChanged = true;
     });
   }
 
-  void _removeExistingImage(int index) {
+  void _removeImage(int index) {
     if (!_isCreating && _imageCount <= 1) {
       showAppToast(context, '사진을 1장 이상 남겨주세요.');
       return;
     }
     setState(() {
-      _existingImageUrls.removeAt(index);
+      _images.removeAt(index);
       _imagesChanged = true;
     });
   }
 
-  void _removeNewImage(int index) {
-    if (!_isCreating && _imageCount <= 1) {
-      showAppToast(context, '사진을 1장 이상 남겨주세요.');
-      return;
-    }
+  void _reorderImage(int oldIndex, int newIndex) {
     setState(() {
-      _newImages.removeAt(index);
+      final image = _images.removeAt(oldIndex);
+      _images.insert(newIndex, image);
       _imagesChanged = true;
     });
   }
@@ -200,17 +196,21 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
     try {
       final imagePaths = <String>[];
       if (_isCreating) {
-        imagePaths.addAll(_newImages.map((image) => image.path));
+        imagePaths.addAll(_images.map((image) => image.localFile!.path));
       } else if (_imagesChanged) {
-        for (var index = 0; index < _existingImageUrls.length; index++) {
-          final file = await _downloadTemporaryImage(
-            _existingImageUrls[index],
-            index,
-          );
-          temporaryFiles.add(file);
-          imagePaths.add(file.path);
+        for (var index = 0; index < _images.length; index++) {
+          final image = _images[index];
+          if (image.localFile != null) {
+            imagePaths.add(image.localFile!.path);
+          } else {
+            final file = await _downloadTemporaryImage(
+              image.networkUrl!,
+              index,
+            );
+            temporaryFiles.add(file);
+            imagePaths.add(file.path);
+          }
         }
-        imagePaths.addAll(_newImages.map((image) => image.path));
       }
 
       if (_isCreating) {
@@ -441,42 +441,49 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
                     SizedBox(height: 10.h),
                     SizedBox(
                       height: 107.h,
-                      child: ListView(
-                        clipBehavior: Clip.none,
-                        padding: EdgeInsets.only(top: 5.h),
-                        scrollDirection: Axis.horizontal,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _ImageAddButton(
                             count: _imageCount,
                             maxCount: _maxImages,
                             onTap: _pickImages,
                           ),
-                          SizedBox(width: 8.w),
-                          ..._existingImageUrls.asMap().entries.map(
-                            (entry) => Padding(
-                              padding: EdgeInsets.only(right: 8.w),
-                              child: _EditableImage(
-                                image: Image.network(
-                                  entry.value,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, _, _) => const ColoredBox(
-                                    color: AppColors.gray100,
+                          if (_images.isNotEmpty) SizedBox(width: 8.w),
+                          Expanded(
+                            child: ReorderableListView.builder(
+                              clipBehavior: Clip.none,
+                              padding: EdgeInsets.only(top: 5.h),
+                              scrollDirection: Axis.horizontal,
+                              buildDefaultDragHandles: false,
+                              itemCount: _images.length,
+                              onReorderItem: _reorderImage,
+                              proxyDecorator: (child, index, animation) =>
+                                  Material(
+                                    color: Colors.transparent,
+                                    elevation: 0,
+                                    child: ScaleTransition(
+                                      scale: Tween<double>(
+                                        begin: 1,
+                                        end: 1.06,
+                                      ).animate(animation),
+                                      child: child,
+                                    ),
                                   ),
-                                ),
-                                onRemove: () => _removeExistingImage(entry.key),
-                              ),
-                            ),
-                          ),
-                          ..._newImages.asMap().entries.map(
-                            (entry) => Padding(
-                              padding: EdgeInsets.only(right: 8.w),
-                              child: _EditableImage(
-                                image: Image.file(
-                                  File(entry.value.path),
-                                  fit: BoxFit.cover,
-                                ),
-                                onRemove: () => _removeNewImage(entry.key),
-                              ),
+                              itemBuilder: (context, index) {
+                                final item = _images[index];
+                                return Padding(
+                                  key: ObjectKey(item),
+                                  padding: EdgeInsets.only(right: 8.w),
+                                  child: ReorderableDelayedDragStartListener(
+                                    index: index,
+                                    child: _EditableImage(
+                                      image: item.buildImage(),
+                                      onRemove: () => _removeImage(index),
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
                           ),
                         ],
@@ -538,13 +545,11 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
                       label: '시작일',
                       hintText: '예: 2026.07.14',
                       controller: _startDateController,
-                      keyboardType: TextInputType.datetime,
                     ),
                     _ProgramTextField(
                       label: '마감일 (선택)',
                       hintText: '예: 2026.07.14 / 미입력 시 상시로 표시돼요.',
                       controller: _endDateController,
-                      keyboardType: TextInputType.datetime,
                     ),
                     _ProgramTextField(
                       label: '운영 시간',
@@ -600,7 +605,7 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
                     ),
                     _ProgramTextField(
                       label: '연락처 기재 (선택)',
-                      hintText: "연락처를 기재해주세요.",
+                      hintText: "예: 02-123-4567",
                       controller: _contactController,
                     ),
                     _ProgramTextField(
@@ -654,7 +659,6 @@ class _ProgramTextField extends StatelessWidget {
     this.prefixIcon,
     this.onPrefixIconTap,
     this.labelTrailing,
-    this.keyboardType,
     this.canRequestFocus = true,
     this.enableInteractiveSelection = true,
   });
@@ -669,7 +673,6 @@ class _ProgramTextField extends StatelessWidget {
   final Widget? prefixIcon;
   final VoidCallback? onPrefixIconTap;
   final Widget? labelTrailing;
-  final TextInputType? keyboardType;
   final bool canRequestFocus;
   final bool enableInteractiveSelection;
 
@@ -693,7 +696,6 @@ class _ProgramTextField extends StatelessWidget {
           SizedBox(height: 10.h),
           TextField(
             controller: controller,
-            keyboardType: keyboardType,
             readOnly: readOnly,
             canRequestFocus: canRequestFocus,
             enableInteractiveSelection: enableInteractiveSelection,
@@ -720,10 +722,15 @@ class _ProgramTextField extends StatelessWidget {
                       ),
                     )
                   : null,
-              suffixIcon: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-                child: suffixIcon,
-              ),
+              suffixIcon: suffixIcon == null
+                  ? null
+                  : Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16.w,
+                        vertical: 12.h,
+                      ),
+                      child: suffixIcon,
+                    ),
               contentPadding: EdgeInsets.symmetric(
                 horizontal: 14.w,
                 vertical: 13.h,
@@ -1055,7 +1062,7 @@ class _OperatingHoursGuideSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: MediaQuery.sizeOf(context).height * 0.55,
+      height: MediaQuery.sizeOf(context).height * 0.6,
       child: Padding(
         padding: EdgeInsets.fromLTRB(
           20.w,
@@ -1109,9 +1116,31 @@ class _OperatingHoursGuideSheet extends StatelessWidget {
                 onTap: () => Navigator.pop(context),
               ),
             ),
+            SizedBox(height: 20.h),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ProgramImageItem {
+  _ProgramImageItem.network(this.networkUrl) : localFile = null;
+
+  _ProgramImageItem.local(this.localFile) : networkUrl = null;
+
+  final String? networkUrl;
+  final XFile? localFile;
+
+  Widget buildImage() {
+    final file = localFile;
+    if (file != null) {
+      return Image.file(File(file.path), fit: BoxFit.cover);
+    }
+    return Image.network(
+      networkUrl!,
+      fit: BoxFit.cover,
+      errorBuilder: (_, _, _) => const ColoredBox(color: AppColors.gray100),
     );
   }
 }

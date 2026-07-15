@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
@@ -15,14 +16,20 @@ import 'package:muntum/models/program_model.dart';
 import 'package:muntum/screens/home/components/section_header.dart';
 import 'package:muntum/screens/mypage/report_submit_screen.dart';
 import 'package:muntum/services/program_service.dart';
+import 'package:muntum/services/analytics_service.dart';
 import 'package:muntum/stores/program_scrap_store.dart';
 import 'package:muntum/utils/program_scrap.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ProgramDetailScreen extends StatefulWidget {
   final ProgramModel program;
+  final String entrySource;
 
-  const ProgramDetailScreen({super.key, required this.program});
+  const ProgramDetailScreen({
+    super.key,
+    required this.program,
+    this.entrySource = 'unknown',
+  });
 
   @override
   State<ProgramDetailScreen> createState() => _ProgramDetailScreenState();
@@ -38,6 +45,18 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
   @override
   void initState() {
     super.initState();
+    unawaited(
+      AnalyticsService.instance.logProgramDetailView(
+        program: widget.program,
+        entrySource: widget.entrySource,
+      ),
+    );
+    unawaited(
+      AnalyticsService.instance.logScreenView(
+        screenName: 'program_detail',
+        screenClass: 'ProgramDetailScreen',
+      ),
+    );
     _programFuture = _loadProgram();
     _recommendedFuture = _loadRecommendedPrograms();
   }
@@ -130,7 +149,11 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                   Navigator.pop(context);
                 },
                 trailing: GestureDetector(
-                  onTap: () => toggleProgramScrap(context, program),
+                  onTap: () => toggleProgramScrap(
+                    context,
+                    program,
+                    entrySource: widget.entrySource,
+                  ),
                   child: ListenableBuilder(
                     listenable: ProgramScrapStore.instance,
                     builder: (context, _) {
@@ -293,72 +316,64 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                               : program.detail,
                           onTapLink: (href) {
                             if (href.isEmpty) return;
-                            _launchExternalUrl(href);
+                            _launchExternalUrl(
+                              program,
+                              href,
+                              linkType: 'markdown_link',
+                            );
                           },
                         ),
                         SizedBox(height: 40.h),
                         Column(
                           spacing: 6.h,
                           children: [
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            Column(
                               children: [
-                                Padding(
-                                  padding: EdgeInsets.only(top: 1.0.h),
-                                  child: Text(
-                                    "위치",
-                                    style: AppTypography.button2.copyWith(
-                                      color: AppColors.gray900,
+                                Row(
+                                  spacing: 60.w,
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      "위치",
+                                      style: AppTypography.button2.copyWith(
+                                        color: AppColors.gray900,
+                                      ),
                                     ),
-                                  ),
+                                    Text(
+                                      program.locationName,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: AppTypography.body1.copyWith(
+                                        color: AppColors.gray900,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                SizedBox(width: 60.w),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        program.locationName,
-                                        maxLines: 1,
+                                SizedBox(height: 2.h),
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    SizedBox(width: 85.w),
+                                    SvgPicture.asset(
+                                      'assets/icons/location-filled.svg',
+                                      width: 16.w,
+                                      colorFilter: const ColorFilter.mode(
+                                        AppColors.gray400,
+                                        BlendMode.srcIn,
+                                      ),
+                                    ),
+                                    SizedBox(width: 2.w),
+                                    Expanded(
+                                      child: Text(
+                                        program.location['address'] ?? '',
+                                        maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
-                                        style: AppTypography.body1.copyWith(
-                                          color: AppColors.gray900,
+                                        style: AppTypography.body3.copyWith(
+                                          color: AppColors.gray600,
                                         ),
                                       ),
-                                      SizedBox(height: 2.h),
-                                      Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Padding(
-                                            padding: EdgeInsets.only(top: 2.h),
-                                            child: SvgPicture.asset(
-                                              'assets/icons/location-filled.svg',
-                                              width: 16.w,
-                                              colorFilter:
-                                                  const ColorFilter.mode(
-                                                    AppColors.gray400,
-                                                    BlendMode.srcIn,
-                                                  ),
-                                            ),
-                                          ),
-                                          SizedBox(width: 2.w),
-                                          Expanded(
-                                            child: Text(
-                                              program.location['address'] ?? '',
-                                              maxLines: 2,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: AppTypography.body3
-                                                  .copyWith(
-                                                    color: AppColors.gray600,
-                                                  ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
@@ -378,14 +393,19 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                             ProgramRelatedInfoDescription(
                               title: '관련정보',
                               body: program.phoneNumber,
-                              onTapContact: _launchRelatedInfo,
+                              onTapContact: (value) =>
+                                  _launchRelatedInfo(program, value),
                             ),
                             ProgramDescription(
                               title: '링크',
-                              body: program.link.isEmpty ? '' : '링크',
+                              body: program.link.isEmpty ? '' : '바로가기',
                               onTap: program.link.isEmpty
                                   ? null
-                                  : () => _launchExternalUrl(program.link),
+                                  : () => _launchExternalUrl(
+                                      program,
+                                      program.link,
+                                      linkType: 'website',
+                                    ),
                             ),
                           ],
                         ),
@@ -446,6 +466,7 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                               padding: EdgeInsets.zero,
                               itemBuilder: (context, index) => HorizontalCard(
                                 program: recommendedPrograms[index],
+                                entrySource: 'detail_recommendation',
                               ),
                               separatorBuilder: (context, index) =>
                                   SizedBox(height: 12.h),
@@ -466,29 +487,48 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
     );
   }
 
-  Future<void> _launchExternalUrl(String rawUrl) async {
+  Future<void> _launchExternalUrl(
+    ProgramModel program,
+    String rawUrl, {
+    required String linkType,
+  }) async {
     final normalized =
         rawUrl.startsWith('http://') || rawUrl.startsWith('https://')
         ? rawUrl
         : 'https://$rawUrl';
     final uri = Uri.tryParse(normalized);
     if (uri == null) return;
+    await AnalyticsService.instance.logExternalLinkClick(
+      program: program,
+      entrySource: widget.entrySource,
+      linkType: linkType,
+    );
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
-  Future<void> _launchPhone(String phoneNumber) async {
+  Future<void> _launchPhone(ProgramModel program, String phoneNumber) async {
     final normalized = phoneNumber.replaceAll(RegExp(r'[^0-9+]'), '');
     if (normalized.isEmpty) return;
+    await AnalyticsService.instance.logExternalLinkClick(
+      program: program,
+      entrySource: widget.entrySource,
+      linkType: 'phone',
+    );
     await launchUrl(
       Uri(scheme: 'tel', path: normalized),
       mode: LaunchMode.externalApplication,
     );
   }
 
-  Future<void> _launchEmail(String email) async {
+  Future<void> _launchEmail(ProgramModel program, String email) async {
     final normalized = _extractEmail(email);
     if (normalized == null) return;
 
+    await AnalyticsService.instance.logExternalLinkClick(
+      program: program,
+      entrySource: widget.entrySource,
+      linkType: 'email',
+    );
     final uri = Uri(scheme: 'mailto', path: normalized);
     final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!launched) {
@@ -496,12 +536,12 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
     }
   }
 
-  Future<void> _launchRelatedInfo(String value) async {
+  Future<void> _launchRelatedInfo(ProgramModel program, String value) async {
     if (_extractEmail(value) != null) {
-      await _launchEmail(value);
+      await _launchEmail(program, value);
       return;
     }
-    await _launchPhone(value);
+    await _launchPhone(program, value);
   }
 
   String? _extractEmail(String value) {
@@ -525,6 +565,7 @@ class ProgramDetailMarkdownBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // developer.log(markdown);
     final normalizedMarkdown = markdown.replaceAll(
       RegExp(r'\n\s*---\s*\n'),
       '\n\n',
@@ -614,26 +655,28 @@ class ProgramDescription extends StatelessWidget {
       decoration: onTap == null ? null : TextDecoration.underline,
     );
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 70.w,
-          padding: EdgeInsets.only(top: 4.h, bottom: 4.h),
-          child: Text(
-            title,
-            style: AppTypography.button2.copyWith(color: AppColors.gray900),
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 4.0.h),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 70.w,
+            child: Text(
+              title,
+              style: AppTypography.button2.copyWith(color: AppColors.gray900),
+            ),
           ),
-        ),
-        SizedBox(width: 20.w),
-        Expanded(
-          child: GestureDetector(
-            onTap: onTap,
-            behavior: HitTestBehavior.opaque,
-            child: Text(displayBody, style: bodyStyle, softWrap: true),
+          SizedBox(width: 20.w),
+          Expanded(
+            child: GestureDetector(
+              onTap: onTap,
+              behavior: HitTestBehavior.opaque,
+              child: Text(displayBody, style: bodyStyle, softWrap: true),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -654,21 +697,20 @@ class ProgramRelatedInfoDescription extends StatelessWidget {
   Widget build(BuildContext context) {
     final contacts = _splitContacts(body);
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 70.w,
-          padding: EdgeInsets.only(top: 4.h, bottom: 4.h),
-          child: Text(
-            title,
-            style: AppTypography.button2.copyWith(color: AppColors.gray900),
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 4.h),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 70.w,
+            child: Text(
+              title,
+              style: AppTypography.button2.copyWith(color: AppColors.gray900),
+            ),
           ),
-        ),
-        SizedBox(width: 20.w),
-        Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(top: 4.h, bottom: 4.h),
+          SizedBox(width: 20.w),
+          Expanded(
             child: contacts.isEmpty
                 ? Text(
                     '정보 없음',
@@ -703,8 +745,8 @@ class ProgramRelatedInfoDescription extends StatelessWidget {
                     ],
                   ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

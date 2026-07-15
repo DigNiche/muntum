@@ -225,6 +225,7 @@ class _PrivacyPolicyContent extends StatelessWidget {
             '지도 서비스 이용 시: 이용자가 위치 권한을 허용한 경우 현재 위치',
             '문의 또는 제보 시: 이메일 주소, 이름 또는 닉네임, 이용자가 자발적으로 입력한 내용',
             '서비스 이용 과정에서 생성되는 정보: 인증 토큰, 접속 일시, 앱 버전, 오류 로그 등 서비스 운영에 필요한 기술적 정보',
+            '서비스 이용 분석 시: 앱 사용 기록, 화면 조회 기록, 기능 클릭 기록, 세션 정보, 앱 이용 및 체류시간, 앱 인스턴스 식별자, 기기 유형, 운영체제 정보, 앱 버전. 로그인한 경우 이메일이나 닉네임이 아닌 서비스 내부 회원 식별자가 함께 처리될 수 있습니다.',
           ],
           numbered: true,
         ),
@@ -236,6 +237,7 @@ class _PrivacyPolicyContent extends StatelessWidget {
             '이용자 문의 응대 및 고객 지원',
             '공지사항 전달 및 서비스 관련 안내',
             '서비스 안정성 확보, 오류 확인 및 부정 이용 방지',
+            '서비스 이용 현황 분석, 사용자 경험 파악, 기능 및 서비스 개선',
             '법령상 의무 이행 및 분쟁 대응',
           ],
         ),
@@ -244,6 +246,7 @@ class _PrivacyPolicyContent extends StatelessWidget {
           paragraphs: [
             '회원의 개인정보는 원칙적으로 회원 탈퇴 시 지체 없이 파기됩니다.',
             '다만, 관련 법령에 따라 보관이 필요한 정보는 해당 법령에서 정한 기간 동안 보관될 수 있습니다.',
+            'Google Analytics for Firebase를 통해 수집되는 사용자 단위 및 이벤트 단위 데이터는 수집일로부터 최대 14개월 동안 보관한 후 삭제합니다. 개인을 직접 식별할 수 없도록 집계된 통계 및 보고서는 서비스 개선을 위해 더 오래 보관될 수 있습니다.',
             '보유 기간이 지나거나 처리 목적이 달성된 개인정보는 복구가 불가능한 방법으로 안전하게 파기합니다.',
           ],
         ),
@@ -261,6 +264,7 @@ class _PrivacyPolicyContent extends StatelessWidget {
           bullets: [
             'Amazon Web Services (AWS): 서비스 서버 및 데이터 보관',
             'CloudFront (AWS): 콘텐츠 전송 네트워크(CDN) 제공',
+            'Google LLC: Google Analytics for Firebase를 통한 앱 이용 현황 분석 및 통계 제공',
           ],
         ),
         _TermsSection(
@@ -280,7 +284,17 @@ class _PrivacyPolicyContent extends StatelessWidget {
           ],
         ),
         _TermsSection(
-          title: '제 8 조 (개인정보 보호를 위한 조치)',
+          title: '제 8 조 (Google Analytics for Firebase의 사용)',
+          paragraphs: [
+            '‘문틈 앱’은 서비스 이용 현황을 분석하고 사용자 경험과 기능을 개선하기 위해 Google LLC가 제공하는 Google Analytics for Firebase를 사용합니다.',
+            '이 과정에서 앱 사용 기록, 화면 조회 기록, 기능 클릭 기록, 세션 정보, 앱 이용 및 체류시간, 앱 인스턴스 식별자, 기기 유형, 운영체제 정보, 앱 버전 등이 자동으로 수집될 수 있습니다. 로그인한 이용자의 경우 이메일이나 닉네임이 아닌 서비스 내부 회원 식별자가 분석 정보와 연결될 수 있습니다.',
+            'Google은 ‘문틈 앱’을 대신하여 분석 서비스를 제공하는 처리 수탁자로서 해당 데이터를 처리합니다. Google의 데이터 처리에 관한 자세한 내용은 Google 개인정보처리방침(https://policies.google.com/privacy) 및 Firebase 개인정보 보호 및 보안 안내(https://firebase.google.com/support/privacy)에서 확인할 수 있습니다.',
+            '분석 데이터는 수집일로부터 최대 14개월 동안 보관한 후 삭제합니다. 다만 개인을 직접 식별할 수 없도록 집계된 통계 및 보고서는 서비스 개선을 위해 더 오래 보관될 수 있습니다.',
+            '이용자는 앱 사용을 중단하고 앱을 삭제하여 이후의 분석 정보 수집을 중단할 수 있습니다. 이미 수집된 분석 정보의 삭제 또는 처리 정지를 원하는 경우 개인정보 관련 문의처로 요청할 수 있으며, 요청자 확인 후 관련 법령과 Google의 데이터 삭제 절차에 따라 처리합니다.',
+          ],
+        ),
+        _TermsSection(
+          title: '제 9 조 (개인정보 보호를 위한 조치)',
           bullets: [
             '이용자의 비밀번호는 복호화가 어려운 방식으로 암호화하여 저장합니다.',
             '앱과 서버 간 통신에는 HTTPS를 적용하여 전송 구간을 보호합니다.',
@@ -290,13 +304,13 @@ class _PrivacyPolicyContent extends StatelessWidget {
           ],
         ),
         _TermsSection(
-          title: '제 9 조 (개인정보 처리방침 변경)',
+          title: '제 10 조 (개인정보 처리방침 변경)',
           paragraphs: [
             '본 개인정보 처리방침은 관련 법령 또는 서비스 내용 변경에 따라 수정될 수 있습니다. 중요한 변경 사항이 있는 경우 서비스 내 공지 등을 통해 안내합니다.',
           ],
         ),
         _TermsSection(
-          title: '제 10 조 (개인정보 관련 문의처)',
+          title: '제 11 조 (개인정보 관련 문의처)',
           paragraphs: ['개인정보와 관련된 문의는 아래로 연락해 주세요.'],
           bullets: ['이메일: muntum510@gmail.com'],
           isLast: true,

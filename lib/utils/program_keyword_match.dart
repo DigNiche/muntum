@@ -26,6 +26,9 @@ int programKeywordMatchLevel(
   return programKeywordMatchCount(program, selectedKeywords).clamp(0, 3);
 }
 
+/// Utility retained for isolated displays/tests that explicitly need a local
+/// ordering. The My Taste feed itself must keep the order returned by
+/// `GET /api/v1/taste/me` and does not call this function.
 List<ProgramModel> sortProgramsByKeywordMatch(
   Iterable<ProgramModel> programs,
   Iterable<String> selectedKeywords,
@@ -35,9 +38,7 @@ List<ProgramModel> sortProgramsByKeywordMatch(
     final leftScore = programKeywordMatchCount(left.$2, selectedKeywords);
     final rightScore = programKeywordMatchCount(right.$2, selectedKeywords);
     final scoreCompare = rightScore.compareTo(leftScore);
-    if (scoreCompare != 0) {
-      return scoreCompare;
-    }
+    if (scoreCompare != 0) return scoreCompare;
     return left.$1.compareTo(right.$1);
   });
   return indexedPrograms.map((item) => item.$2).toList();

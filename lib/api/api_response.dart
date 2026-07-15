@@ -28,6 +28,11 @@ class PageResponse<T> {
   final bool hasPrevious;
   final bool hasNext;
 
+  /// Backend versions have used both `hasNext` and Spring's `last` field.
+  /// Treat either representation as authoritative so pagination does not stop
+  /// after the first page when one of the fields is omitted.
+  bool get hasMore => hasNext || !last;
+
   const PageResponse({
     required this.content,
     required this.page,

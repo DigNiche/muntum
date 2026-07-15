@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart' hide FilterChip;
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/api/token_store.dart';
+import 'package:muntum/api/api_response.dart';
 import 'package:muntum/components/button_solid.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
@@ -18,9 +21,9 @@ import 'package:muntum/screens/home/search_screen.dart';
 import 'package:muntum/screens/home/see_more_screen.dart';
 import 'package:muntum/screens/onboarding/login_screen.dart';
 import 'package:muntum/services/program_service.dart';
+import 'package:muntum/services/analytics_service.dart';
 import 'package:muntum/services/taste_service.dart';
 import 'package:muntum/stores/user_preference_store.dart';
-import 'package:muntum/utils/program_keyword_match.dart';
 
 enum ScreenTypes { myNiche, entire }
 
@@ -40,6 +43,21 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     screenType = widget.initialScreenType;
+    unawaited(
+      AnalyticsService.instance.logHomeTabView(
+        screenType == ScreenTypes.myNiche ? 'my_taste' : 'all',
+      ),
+    );
+  }
+
+  void _selectScreen(ScreenTypes nextScreen) {
+    if (screenType == nextScreen) return;
+    setState(() => screenType = nextScreen);
+    unawaited(
+      AnalyticsService.instance.logHomeTabView(
+        nextScreen == ScreenTypes.myNiche ? 'my_taste' : 'all',
+      ),
+    );
   }
 
   @override
@@ -72,18 +90,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       ? AppColors.white
                       : AppColors.gray300,
                   onFirstTextTap: () {
-                    setState(() {
-                      screenType = ScreenTypes.myNiche;
-                    });
+                    _selectScreen(ScreenTypes.myNiche);
                   },
                   secondText: '전체',
                   secondTextColor: isMyNiche
                       ? AppColors.gray600
                       : AppColors.black,
                   onSecondTextTap: () {
-                    setState(() {
-                      screenType = ScreenTypes.entire;
-                    });
+                    _selectScreen(ScreenTypes.entire);
                   },
                   icon: GestureDetector(
                     onTap: () {
@@ -130,10 +144,15 @@ class MyNichePage extends StatefulWidget {
 }
 
 class _MyNichePageState extends State<MyNichePage> {
+  static const int _pageSize = 20;
   final ScrollController _scrollController = ScrollController();
   String? selectedFilter;
   bool _showScrollToTopButton = false;
-  late Future<List<ProgramModel>> _programsFuture;
+  List<ProgramModel> _programs = const [];
+  int _nextPage = 0;
+  bool _hasNextPage = true;
+  bool _isLoadingPrograms = false;
+  int _programRequestId = 0;
   late Future<bool> _isLoggedInFuture;
 
   @override
@@ -142,30 +161,56 @@ class _MyNichePageState extends State<MyNichePage> {
     _scrollController.addListener(_handleScroll);
     UserPreferenceStore.instance.addListener(_reloadProgramsByKeyword);
     _isLoggedInFuture = _isLoggedIn();
-    _programsFuture = _loadPrograms();
+    _loadPrograms(reset: true);
   }
 
-  Future<List<ProgramModel>> _loadPrograms() async {
+  Future<PageResponse<ProgramModel>> _loadProgramsPage(int page) async {
     final selectedFilterValue = _selectedFilterValue;
     final isLoggedIn = await _isLoggedIn();
     if (!isLoggedIn) {
-      final programs = (await ProgramService().fetchPrograms(
+      return ProgramService().fetchPrograms(
         chip: selectedFilterValue,
-        size: 100,
-      )).content;
-      return sortProgramsByKeywordMatch(
-        programs,
-        UserPreferenceStore.instance.selectedKeywords,
+        page: page,
+        size: _pageSize,
       );
     }
-    final programs = (await TasteService().fetchTastePrograms(
+    return TasteService().fetchTastePrograms(
       chip: selectedFilterValue?.apiChip,
-      size: 100,
-    )).content;
-    return sortProgramsByKeywordMatch(
-      programs,
-      UserPreferenceStore.instance.selectedKeywords,
+      page: page,
+      size: _pageSize,
     );
+  }
+
+  Future<void> _loadPrograms({required bool reset}) async {
+    if (!reset && (_isLoadingPrograms || !_hasNextPage)) return;
+    final requestId = reset ? ++_programRequestId : _programRequestId;
+    final requestedPage = reset ? 0 : _nextPage;
+    setState(() {
+      _isLoadingPrograms = true;
+      if (reset) {
+        _programs = const [];
+        _nextPage = 0;
+        _hasNextPage = true;
+      }
+    });
+    try {
+      final response = await _loadProgramsPage(requestedPage);
+      if (!mounted || requestId != _programRequestId) return;
+      final merged = <String, ProgramModel>{
+        if (!reset)
+          for (final program in _programs) program.id: program,
+        for (final program in response.content) program.id: program,
+      }.values.toList();
+      setState(() {
+        _programs = merged;
+        _nextPage = requestedPage + 1;
+        _hasNextPage = response.hasMore;
+      });
+    } finally {
+      if (mounted && requestId == _programRequestId) {
+        setState(() => _isLoadingPrograms = false);
+      }
+    }
   }
 
   Future<bool> _isLoggedIn() async {
@@ -192,6 +237,9 @@ class _MyNichePageState extends State<MyNichePage> {
         _showScrollToTopButton = shouldShow;
       });
     }
+    if (_scrollController.position.extentAfter < 500.h) {
+      _loadPrograms(reset: false);
+    }
   }
 
   Future<void> _scrollToTop() async {
@@ -211,16 +259,16 @@ class _MyNichePageState extends State<MyNichePage> {
     }
     setState(() {
       _isLoggedInFuture = _isLoggedIn();
-      _programsFuture = _loadPrograms();
     });
+    _loadPrograms(reset: true);
   }
 
   void _onFilterTap(String filter) {
     setState(() {
       selectedFilter = (selectedFilter == filter ? null : filter);
       _showScrollToTopButton = false;
-      _programsFuture = _loadPrograms();
     });
+    _loadPrograms(reset: true);
     if (_scrollController.hasClients) {
       _scrollController.jumpTo(0);
     }
@@ -282,12 +330,10 @@ class _MyNichePageState extends State<MyNichePage> {
               child: Stack(
                 children: [
                   Positioned.fill(
-                    child: FutureBuilder<List<ProgramModel>>(
-                      future: _programsFuture,
-                      builder: (context, snapshot) {
-                        final programs =
-                            snapshot.data ?? const <ProgramModel>[];
-                        if (snapshot.connectionState != ConnectionState.done) {
+                    child: Builder(
+                      builder: (context) {
+                        final programs = _programs;
+                        if (_isLoadingPrograms && programs.isEmpty) {
                           return const Center(
                             child: CircularProgressIndicator(
                               color: AppColors.gray900,
@@ -309,14 +355,29 @@ class _MyNichePageState extends State<MyNichePage> {
                               SizedBox(height: 40.h),
                           controller: _scrollController,
                           padding: EdgeInsets.zero,
-                          itemCount: programs.length,
+                          itemCount:
+                              programs.length +
+                              (_isLoadingPrograms && _hasNextPage ? 1 : 0),
                           itemBuilder: (context, index) {
+                            if (index == programs.length) {
+                              return Padding(
+                                padding: EdgeInsets.symmetric(vertical: 16.h),
+                                child: const Center(
+                                  child: CircularProgressIndicator(
+                                    color: AppColors.gray900,
+                                  ),
+                                ),
+                              );
+                            }
                             final isLast = index == programs.length - 1;
                             return Padding(
                               padding: EdgeInsets.only(
                                 bottom: isLast ? 40.h : 0,
                               ),
-                              child: CurationCard(program: programs[index]),
+                              child: CurationCard(
+                                program: programs[index],
+                                entrySource: 'my_taste',
+                              ),
                             );
                           },
                         );
@@ -466,7 +527,7 @@ class _EntirePageState extends State<EntirePage> {
         return ListView(
           padding: EdgeInsets.zero,
           children: [
-            BannerCarousel(programs: data.banners),
+            BannerCarousel(programs: data.banners, entrySource: 'all_banner'),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 20.w),
               child: Column(
@@ -488,14 +549,20 @@ class _EntirePageState extends State<EntirePage> {
                     },
                   ),
                   SizedBox(height: 8.h),
-                  VerticalCardCarousel(programs: data.all),
+                  VerticalCardCarousel(
+                    programs: data.all,
+                    entrySource: 'all_collection',
+                  ),
                   SectionHeader1(
                     text: '지금 주목받는',
                     buttonName: '',
                     onButtonTap: () {},
                   ),
                   SizedBox(height: 8.h),
-                  VerticalCardCarousel(programs: data.hot),
+                  VerticalCardCarousel(
+                    programs: data.hot,
+                    entrySource: 'all_hot',
+                  ),
                   SectionHeader1(
                     text: '이번달에 끝나는',
                     buttonName: '전체보기',
@@ -511,7 +578,10 @@ class _EntirePageState extends State<EntirePage> {
                     },
                   ),
                   SizedBox(height: 8.h),
-                  VerticalCardCarousel(programs: data.closingSoon),
+                  VerticalCardCarousel(
+                    programs: data.closingSoon,
+                    entrySource: 'all_closing_soon',
+                  ),
                 ],
               ),
             ),

@@ -39,6 +39,8 @@ class ApiEndpoints {
   static const suggestions = '/api/v1/suggestions';
   static const mySuggestions = '/api/v1/suggestions/me';
   static const managerSuggestions = '/api/v1/suggestions/manager';
+  static const managerDeletedSuggestions =
+      '/api/v1/suggestions/manager/del-suggestion';
   static String suggestion(String id) => '/api/v1/suggestions/$id';
   static String suggestionStatus(String id) => '/api/v1/suggestions/$id/status';
 

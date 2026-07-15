@@ -25,13 +25,20 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
+  static const int _searchPageSize = 20;
   static const String _guestRecentSearchesKey = 'recent_searches';
   static const String _userRecentSearchesKeyPrefix = 'recent_searches_user';
   List<String> _recentSearches = [];
   final TextEditingController _searchController = TextEditingController();
   String searchText = '';
   final List<String> _selectedKeywords = [];
-  Future<List<ProgramModel>>? _searchResultFuture;
+  final ScrollController _resultScrollController = ScrollController();
+  List<ProgramModel> _searchResults = const [];
+  int _nextSearchPage = 0;
+  int _searchTotalElements = 0;
+  bool _hasNextSearchPage = true;
+  bool _isLoadingSearch = false;
+  int _searchRequestId = 0;
   late Future<List<String>> _popularKeywordsFuture;
   late Future<List<String>> _allKeywordsFuture;
 
@@ -41,6 +48,7 @@ class _SearchScreenState extends State<SearchScreen> {
     _popularKeywordsFuture = _loadPopularKeywords();
     _allKeywordsFuture = _loadAllKeywords();
     _loadRecentSearches();
+    _resultScrollController.addListener(_handleResultScroll);
   }
 
   Future<List<String>> _loadPopularKeywords() async {
@@ -140,8 +148,8 @@ class _SearchScreenState extends State<SearchScreen> {
     }
     setState(() {
       searchText = trimmedText;
-      _searchResultFuture = _loadSearchResults();
     });
+    _loadSearchResults(reset: true);
     await _addRecentSearch(trimmedText);
   }
 
@@ -152,8 +160,8 @@ class _SearchScreenState extends State<SearchScreen> {
       }
       searchText = _selectedKeywords.join(', ');
       _searchController.clear();
-      _searchResultFuture = _loadSearchResults();
     });
+    _loadSearchResults(reset: true);
   }
 
   void _showKeywordSelectionModal() {
@@ -308,9 +316,8 @@ class _SearchScreenState extends State<SearchScreen> {
                                             ..addAll(modalSelectedKeywords);
                                           searchText = joinedKeywords;
                                           _searchController.clear();
-                                          _searchResultFuture =
-                                              _loadSearchResults();
                                         });
+                                        _loadSearchResults(reset: true);
                                         Navigator.pop(context);
                                       },
                                 child: Container(
@@ -384,6 +391,9 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   void dispose() {
+    _resultScrollController
+      ..removeListener(_handleResultScroll)
+      ..dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -409,7 +419,8 @@ class _SearchScreenState extends State<SearchScreen> {
               setState(() {
                 searchText = '';
                 _selectedKeywords.clear();
-                _searchResultFuture = null;
+                _searchResults = const [];
+                _searchTotalElements = 0;
               });
             },
             selectedKeywords: _selectedKeywords,
@@ -417,16 +428,17 @@ class _SearchScreenState extends State<SearchScreen> {
                 ? _showKeywordSelectionModal
                 : null,
             onKeywordDeleted: (keyword) {
+              final shouldReload = _selectedKeywords.length > 1;
               setState(() {
                 _selectedKeywords.remove(keyword);
                 searchText = _selectedKeywords.join(', ');
                 if (_selectedKeywords.isEmpty) {
                   searchText = '';
-                  _searchResultFuture = null;
-                } else {
-                  _searchResultFuture = _loadSearchResults();
+                  _searchResults = const [];
+                  _searchTotalElements = 0;
                 }
               });
+              if (shouldReload) _loadSearchResults(reset: true);
             },
             searchAutofocus: true,
           ),
@@ -538,8 +550,8 @@ class _SearchScreenState extends State<SearchScreen> {
                     onTap: () {
                       _searchController.text = _recentSearches[index];
                       searchText = _recentSearches[index];
-                      _searchResultFuture = _loadSearchResults();
                       setState(() {});
+                      _loadSearchResults(reset: true);
                     },
                     child: RecentSearchWidget(
                       text: _recentSearches[index],
@@ -577,33 +589,65 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  Future<List<ProgramModel>> _loadSearchResults() async {
-    final service = ProgramService();
-    final query = _selectedKeywords.isEmpty ? searchText : '';
-
-    if (_selectedKeywords.isNotEmpty) {
-      return (await service.fetchPrograms(
-        keywordNames: _selectedKeywords,
-        size: 100,
-      )).content;
+  Future<void> _loadSearchResults({required bool reset}) async {
+    if (!reset && (_isLoadingSearch || !_hasNextSearchPage)) return;
+    final requestId = reset ? ++_searchRequestId : _searchRequestId;
+    final requestedPage = reset ? 0 : _nextSearchPage;
+    setState(() {
+      _isLoadingSearch = true;
+      if (reset) {
+        _searchResults = const [];
+        _nextSearchPage = 0;
+        _searchTotalElements = 0;
+        _hasNextSearchPage = true;
+      }
+    });
+    try {
+      final service = ProgramService();
+      final query = _selectedKeywords.isEmpty ? searchText : '';
+      final response = _selectedKeywords.isNotEmpty
+          ? await service.fetchPrograms(
+              keywordNames: _selectedKeywords,
+              page: requestedPage,
+              size: _searchPageSize,
+            )
+          : await service.fetchPrograms(
+              search: query,
+              page: requestedPage,
+              size: _searchPageSize,
+              authorized: await _usesApiRecentSearches(),
+            );
+      if (!mounted || requestId != _searchRequestId) return;
+      final merged = <String, ProgramModel>{
+        if (!reset)
+          for (final program in _searchResults) program.id: program,
+        for (final program in response.content) program.id: program,
+      }.values.toList();
+      setState(() {
+        _searchResults = merged;
+        _nextSearchPage = response.page + 1;
+        _searchTotalElements = response.totalElements;
+        _hasNextSearchPage = response.hasMore;
+      });
+    } finally {
+      if (mounted && requestId == _searchRequestId) {
+        setState(() => _isLoadingSearch = false);
+      }
     }
+  }
 
-    return (await service.fetchPrograms(
-      search: query,
-      size: 100,
-      authorized: await _usesApiRecentSearches(),
-    )).content;
+  void _handleResultScroll() {
+    if (_resultScrollController.position.extentAfter < 400.h) {
+      _loadSearchResults(reset: false);
+    }
   }
 
   Widget _searchSubmitScreen() {
-    final future = _searchResultFuture ?? _loadSearchResults();
-    _searchResultFuture = future;
     return Expanded(
-      child: FutureBuilder<List<ProgramModel>>(
-        future: future,
-        builder: (context, snapshot) {
-          final results = snapshot.data ?? const <ProgramModel>[];
-          if (snapshot.connectionState != ConnectionState.done) {
+      child: Builder(
+        builder: (context) {
+          final results = _searchResults;
+          if (_isLoadingSearch && results.isEmpty) {
             return const Center(
               child: CircularProgressIndicator(color: AppColors.gray900),
             );
@@ -621,21 +665,39 @@ class _SearchScreenState extends State<SearchScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SectionHeader3(text: '프로그램 ${results.length}개', buttonName: ''),
+                SectionHeader3(
+                  text:
+                      '프로그램 ${_searchTotalElements > 0 ? _searchTotalElements : results.length}개',
+                  buttonName: '',
+                ),
                 SizedBox(height: 12.h),
                 Expanded(
                   child: ListView.separated(
+                    controller: _resultScrollController,
                     padding: EdgeInsets.zero,
                     itemBuilder: (context, index) {
+                      if (index == results.length) {
+                        return Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12.h),
+                          child: const Center(
+                            child: CircularProgressIndicator(
+                              color: AppColors.gray900,
+                            ),
+                          ),
+                        );
+                      }
                       final isLast = index == results.length - 1;
                       return Padding(
                         padding: EdgeInsets.only(bottom: isLast ? 40.h : 0),
-                        child: HorizontalCard(program: results[index]),
+                        child: HorizontalCard(
+                          program: results[index],
+                          entrySource: 'search',
+                        ),
                       );
                     },
                     separatorBuilder: (context, index) =>
                         SizedBox(height: 12.h),
-                    itemCount: results.length,
+                    itemCount: results.length + (_isLoadingSearch ? 1 : 0),
                   ),
                 ),
               ],

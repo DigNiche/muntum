@@ -42,7 +42,6 @@ class _MapScreenState extends State<MapScreen> {
   List<ProgramModel> _visiblePrograms = [];
   Filter? _selectedFilter;
   ProgramModel? _selectedProgram;
-  String _mapSearchQuery = '';
   NaverMapController? _mapController;
   NLatLng? _currentLocation;
   NLatLng? _initialMapCenter;
@@ -221,21 +220,24 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Future<List<ProgramModel>> _getProgramsWithinRadius(NLatLng center) async {
-    final programs = await _fetchMapCandidatePrograms();
-    _mapPrograms = programs;
-
-    final visiblePrograms = programs.where((program) {
-      final latitude = program.latitude;
-      final longitude = program.longitude;
-      if (latitude == null || longitude == null) return false;
-      return isWithinRadius(
-        centerLatitude: center.latitude,
-        centerLongitude: center.longitude,
-        targetLatitude: latitude,
-        targetLongitude: longitude,
-        radiusMeters: _searchRadiusMeters,
+    final service = ProgramService();
+    final programs = <ProgramModel>[];
+    var page = 0;
+    var hasNext = true;
+    while (hasNext) {
+      final response = await service.fetchNearbyPrograms(
+        latitude: center.latitude,
+        longitude: center.longitude,
+        radiusKm: _searchRadiusMeters / 1000,
+        page: page,
+        size: 20,
       );
-    }).toList();
+      programs.addAll(response.content);
+      hasNext = response.hasMore;
+      page = response.page + 1;
+    }
+    _mapPrograms = programs;
+    final visiblePrograms = List<ProgramModel>.from(programs);
 
     visiblePrograms.sort((a, b) {
       final aDistance = _distanceInMeters(
@@ -258,16 +260,17 @@ class _MapScreenState extends State<MapScreen> {
   Future<List<ProgramModel>> _getProgramsInCurrentMapBounds(
     NaverMapController controller,
   ) async {
-    final programs = await _fetchMapCandidatePrograms();
-    _mapPrograms = programs;
     final bounds = await controller.getContentBounds(withPadding: false);
-
-    final visiblePrograms = programs.where((program) {
-      final latitude = program.latitude;
-      final longitude = program.longitude;
-      if (latitude == null || longitude == null) return false;
-      return bounds.containsPoint(NLatLng(latitude, longitude));
-    }).toList();
+    final selectedFilter = _selectedFilter;
+    final response = await ProgramService().fetchMapPrograms(
+      southWestLatitude: bounds.southWest.latitude,
+      southWestLongitude: bounds.southWest.longitude,
+      northEastLatitude: bounds.northEast.latitude,
+      northEastLongitude: bounds.northEast.longitude,
+      chip: selectedFilter == Filter.nowHot ? 'HOT' : selectedFilter?.apiChip,
+    );
+    final visiblePrograms = response.content;
+    _mapPrograms = visiblePrograms;
 
     visiblePrograms.sort((a, b) {
       final center = bounds.center;
@@ -298,25 +301,6 @@ class _MapScreenState extends State<MapScreen> {
     return visiblePrograms;
   }
 
-  Future<List<ProgramModel>> _fetchMapCandidatePrograms() async {
-    final service = ProgramService();
-    try {
-      if (_selectedFilter == Filter.nowHot) {
-        return (await service.fetchHotPrograms(size: 100)).content;
-      }
-      return (await service.fetchPrograms(
-        search: _mapSearchQuery.isEmpty ? null : _mapSearchQuery,
-        chip: _selectedFilter,
-        size: 100,
-      )).content;
-    } catch (error) {
-      if (mounted) {
-        showAppToast(context, '$error');
-      }
-      return const <ProgramModel>[];
-    }
-  }
-
   void _openSearchScreen() {
     Navigator.push(
       context,
@@ -327,7 +311,6 @@ class _MapScreenState extends State<MapScreen> {
   Future<void> _toggleMapFilter(Filter filter) async {
     setState(() {
       _selectedFilter = _selectedFilter == filter ? null : filter;
-      _mapSearchQuery = '';
       _searchbarController.clear();
     });
     await _refreshAtCurrentMapCenter();

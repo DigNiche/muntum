@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "514548253111",
+    "project_id": "muntum-9e227",
+    "storage_bucket": "muntum-9e227.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:514548253111:android:6927dcd4d6a53d01d9a832",
+        "android_client_info": {
+          "package_name": "com.DigNiche.muntum"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC9RjUyWZGea8ZedDaNTXXsN-80guka204"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

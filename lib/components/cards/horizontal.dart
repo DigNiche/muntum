@@ -11,8 +11,13 @@ import 'package:muntum/utils/program_scrap.dart';
 
 class HorizontalCard extends StatelessWidget {
   final ProgramModel program;
+  final String entrySource;
 
-  const HorizontalCard({super.key, required this.program});
+  const HorizontalCard({
+    super.key,
+    required this.program,
+    this.entrySource = 'unknown',
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +26,8 @@ class HorizontalCard extends StatelessWidget {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => ProgramDetailScreen(program: program),
+            builder: (context) =>
+                ProgramDetailScreen(program: program, entrySource: entrySource),
           ),
         );
       },
@@ -57,7 +63,11 @@ class HorizontalCard extends StatelessWidget {
                     ),
                     GestureDetector(
                       behavior: HitTestBehavior.opaque,
-                      onTap: () => toggleProgramScrap(context, program),
+                      onTap: () => toggleProgramScrap(
+                        context,
+                        program,
+                        entrySource: entrySource,
+                      ),
                       child: Padding(
                         padding: EdgeInsets.all(4.r),
                         child: ListenableBuilder(

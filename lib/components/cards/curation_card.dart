@@ -13,20 +13,30 @@ import 'package:muntum/utils/program_scrap.dart';
 
 class CurationCard extends StatelessWidget {
   final ProgramModel program;
+  final String entrySource;
 
-  const CurationCard({super.key, required this.program});
+  const CurationCard({
+    super.key,
+    required this.program,
+    this.entrySource = 'my_taste',
+  });
 
   @override
   Widget build(BuildContext context) {
-    return SecondCurationCard(program: program);
+    return SecondCurationCard(program: program, entrySource: entrySource);
   }
 }
 
 // My Niche Page
 class SecondCurationCard extends StatelessWidget {
   final ProgramModel program;
+  final String entrySource;
 
-  const SecondCurationCard({super.key, required this.program});
+  const SecondCurationCard({
+    super.key,
+    required this.program,
+    this.entrySource = 'my_taste',
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +45,8 @@ class SecondCurationCard extends StatelessWidget {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => ProgramDetailScreen(program: program),
+            builder: (context) =>
+                ProgramDetailScreen(program: program, entrySource: entrySource),
           ),
         );
       },
@@ -67,7 +78,11 @@ class SecondCurationCard extends StatelessWidget {
                 ),
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
-                  onTap: () => toggleProgramScrap(context, program),
+                  onTap: () => toggleProgramScrap(
+                    context,
+                    program,
+                    entrySource: entrySource,
+                  ),
                   child: ListenableBuilder(
                     listenable: ProgramScrapStore.instance,
                     builder: (context, _) {
