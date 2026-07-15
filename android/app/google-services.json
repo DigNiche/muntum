@@ -7,6 +7,25 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:514548253111:android:e588a33d9882c373d9a832",
+        "android_client_info": {
+          "package_name": "co.digniche.muntum"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC9RjUyWZGea8ZedDaNTXXsN-80guka204"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:514548253111:android:6927dcd4d6a53d01d9a832",
         "android_client_info": {
           "package_name": "com.DigNiche.muntum"

@@ -166,7 +166,7 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
 
   void _removeImage(int index) {
     if (!_isCreating && _imageCount <= 1) {
-      showAppToast(context, '사진을 1장 이상 남겨주세요.');
+      showAppToast(context, '사진을 1장 이상 남겨주세요.', isError: true);
       return;
     }
     setState(() {

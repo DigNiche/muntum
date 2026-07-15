@@ -1,4 +1,4 @@
-package com.DigNiche.muntum
+package co.digniche.muntum
 
 import io.flutter.embedding.android.FlutterActivity
 

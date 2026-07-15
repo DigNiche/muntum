@@ -51,7 +51,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyC9RjUyWZGea8ZedDaNTXXsN-80guka204',
-    appId: '1:514548253111:android:6927dcd4d6a53d01d9a832',
+    appId: '1:514548253111:android:e588a33d9882c373d9a832',
     messagingSenderId: '514548253111',
     projectId: 'muntum-9e227',
     storageBucket: 'muntum-9e227.firebasestorage.app',
