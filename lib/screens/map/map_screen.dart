@@ -567,7 +567,11 @@ class _MapScreenState extends State<MapScreen> {
     if (!mounted) {
       return;
     }
-    await _refreshVisibleProgramsAndMarkers(controller, center);
+    await _refreshVisibleProgramsAndMarkers(
+      controller,
+      center,
+      useCurrentBounds: true,
+    );
   }
 
   NLatLngBounds _boundsAround(NLatLng center, double radiusMeters) {
@@ -684,6 +688,15 @@ class _MapScreenState extends State<MapScreen> {
     final markers = <NMarker>{};
     final programMarkerRefs = <String, NMarker>{};
 
+    await Future.wait(
+      clusters
+          .where((cluster) => cluster.programs.length == 1)
+          .map((cluster) => _precacheMarkerImage(cluster.programs.first)),
+    );
+    if (!mounted) {
+      return;
+    }
+
     for (final cluster in clusters) {
       if (!mounted) {
         return;
@@ -692,13 +705,6 @@ class _MapScreenState extends State<MapScreen> {
       final markerId = isCluster
           ? 'cluster_${cluster.programs.map(_markerIdFor).join('_')}'
           : _markerIdFor(cluster.programs.first);
-
-      if (!isCluster) {
-        await _precacheMarkerImage(cluster.programs.first);
-        if (!mounted) {
-          return;
-        }
-      }
 
       final isSelectedSingleMarker =
           !isCluster &&
