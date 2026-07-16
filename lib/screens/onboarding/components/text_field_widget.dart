@@ -76,9 +76,10 @@ class TextFieldWidget extends StatelessWidget {
                 padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 16.h),
                 child: suffixIcon,
               ),
-              suffixIconConstraints: suffixIcon == null
-                  ? null
-                  : BoxConstraints(minWidth: 40.w, minHeight: 48.h),
+              suffixIconConstraints: BoxConstraints(
+                minWidth: 40.w,
+                minHeight: 48.h,
+              ),
               contentPadding: EdgeInsets.symmetric(
                 horizontal: 16.w,
                 vertical: 0,

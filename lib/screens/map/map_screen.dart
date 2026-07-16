@@ -46,15 +46,20 @@ class _MapScreenState extends State<MapScreen> {
   NLatLng? _currentLocation;
   NLatLng? _initialMapCenter;
   final Map<String, NMarker> _programMarkerRefs = {};
+  final Map<String, Future<NOverlayImage>> _programMarkerIconFutures = {};
+  final Map<int, Future<NOverlayImage>> _clusterMarkerIconFutures = {};
   Future<NOverlayImage>? _currentLocationIconFuture;
   Timer? _currentLocationPulseTimer;
   Future<void> _markerRefreshQueue = Future<void>.value();
+  double? _renderedClusterThresholdMeters;
 
   bool _locationInitializationStarted = false;
   bool _initialLocationResolved = false;
   bool _isLocating = false;
+  bool _isSearchingCurrentArea = false;
   bool _isLocationPermissionPopupVisible = false;
   int _markerRefreshGeneration = 0;
+  int _selectionGeneration = 0;
 
   static const double _sheetMinSize = 0.26;
   static const double _sheetMaxSize = 0.78;
@@ -352,8 +357,14 @@ class _MapScreenState extends State<MapScreen> {
     List<ProgramModel> programs,
     double zoom,
   ) {
-    final clusters = <_ProgramCluster>[];
     final thresholdMeters = _clusterThresholdMeters(zoom);
+    if (thresholdMeters == 0) {
+      return programs
+          .map((program) => _ProgramCluster(programs: [program]))
+          .toList();
+    }
+
+    final clusters = <_ProgramCluster>[];
 
     for (final program in programs) {
       _ProgramCluster? targetCluster;
@@ -383,8 +394,8 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   double _clusterThresholdMeters(double zoom) {
-    if (zoom < 12) return 900;
-    if (zoom < 13.5) return 450;
+    if (zoom < 12) return 1000;
+    if (zoom < 13.5) return 800;
     if (zoom < 15) return 120;
     if (zoom < 16) return 40;
     if (zoom < 17) return 12;
@@ -406,27 +417,40 @@ class _MapScreenState extends State<MapScreen> {
 
   Future<void> _searchProgramsInCurrentMapArea() async {
     final controller = _mapController;
-    if (controller == null) {
+    if (controller == null || _isSearchingCurrentArea) {
       return;
     }
 
     final previouslySelectedProgram = _selectedProgram;
-    if (previouslySelectedProgram != null) {
-      setState(() {
+    setState(() {
+      _isSearchingCurrentArea = true;
+      if (previouslySelectedProgram != null) {
         _selectedProgram = null;
-        _showSearchHereButton = false;
-      });
+        _selectionGeneration++;
+      }
+      _showSearchHereButton = true;
+    });
+    if (previouslySelectedProgram != null) {
       unawaited(
         _setProgramMarkerSelected(previouslySelectedProgram, isSelected: false),
       );
     }
 
-    final cameraPosition = await controller.getCameraPosition();
-    await _refreshVisibleProgramsAndMarkers(
-      controller,
-      cameraPosition.target,
-      useCurrentBounds: true,
-    );
+    try {
+      final cameraPosition = await controller.getCameraPosition();
+      await _refreshVisibleProgramsAndMarkers(
+        controller,
+        cameraPosition.target,
+        useCurrentBounds: true,
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSearchingCurrentArea = false;
+          _showSearchHereButton = false;
+        });
+      }
+    }
   }
 
   Future<void> _moveToCurrentLocation() async {
@@ -595,16 +619,70 @@ class _MapScreenState extends State<MapScreen> {
     NLatLng center, {
     required bool useCurrentBounds,
   }) async {
-    final cameraPosition = await controller.getCameraPosition();
-    final previouslySelectedProgramKey = _selectedProgram == null
-        ? null
-        : _programSelectionKey(_selectedProgram!);
-    _programMarkerRefs.clear();
     final visiblePrograms = useCurrentBounds
         ? await _getProgramsInCurrentMapBounds(controller)
         : await _getProgramsWithinRadius(center);
-    final clusters = _clusterPrograms(visiblePrograms, cameraPosition.zoom);
+    final cameraPosition = await controller.getCameraPosition();
+    await _renderProgramMarkers(
+      controller,
+      visiblePrograms,
+      cameraPosition.zoom,
+      updateProgramList: true,
+    );
+  }
+
+  Future<void> _refreshClustersFromCache() async {
+    final controller = _mapController;
+    if (controller == null || _mapPrograms.isEmpty) {
+      return;
+    }
+
+    final currentCameraPosition = await controller.getCameraPosition();
+    if (_renderedClusterThresholdMeters ==
+        _clusterThresholdMeters(currentCameraPosition.zoom)) {
+      return;
+    }
+
+    final requestGeneration = ++_markerRefreshGeneration;
+    final previousRefresh = _markerRefreshQueue;
+    final refresh = () async {
+      await previousRefresh;
+      if (!mounted || requestGeneration != _markerRefreshGeneration) {
+        return;
+      }
+      final cameraPosition = await controller.getCameraPosition();
+      if (_renderedClusterThresholdMeters ==
+          _clusterThresholdMeters(cameraPosition.zoom)) {
+        return;
+      }
+      await _renderProgramMarkers(
+        controller,
+        List<ProgramModel>.from(_mapPrograms),
+        cameraPosition.zoom,
+        updateProgramList: false,
+      );
+    }();
+
+    _markerRefreshQueue = refresh.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace _) {},
+    );
+    await refresh;
+  }
+
+  Future<void> _renderProgramMarkers(
+    NaverMapController controller,
+    List<ProgramModel> programs,
+    double zoom, {
+    required bool updateProgramList,
+  }) async {
+    final selectionGeneration = _selectionGeneration;
+    final previouslySelectedProgramKey = _selectedProgram == null
+        ? null
+        : _programSelectionKey(_selectedProgram!);
+    final clusters = _clusterPrograms(programs, zoom);
     final markers = <NMarker>{};
+    final programMarkerRefs = <String, NMarker>{};
 
     for (final cluster in clusters) {
       if (!mounted) {
@@ -627,23 +705,28 @@ class _MapScreenState extends State<MapScreen> {
           _programSelectionKey(cluster.programs.first) ==
               previouslySelectedProgramKey;
 
+      if (!context.mounted) {
+        return;
+      }
       final marker = NMarker(
         id: markerId,
         position: NLatLng(cluster.latitude, cluster.longitude),
-        icon: await NOverlayImage.fromWidget(
-          context: context,
-          size: Size(isCluster ? 48.w : 64.w, isCluster ? 48.w : 64.w),
-          widget: isCluster
-              ? _ClusterMarkerIcon(count: cluster.programs.length)
-              : ProgramMarkerIcon(
-                  program: cluster.programs.first,
-                  isSelected: isSelectedSingleMarker,
-                ),
-        ),
+        icon: isCluster
+            ? await _getClusterMarkerIcon(cluster.programs.length)
+            : await _getProgramMarkerIcon(
+                cluster.programs.first,
+                isSelected: isSelectedSingleMarker,
+              ),
       );
       if (!isCluster) {
-        _programMarkerRefs[_programSelectionKey(cluster.programs.first)] =
+        programMarkerRefs[_programSelectionKey(cluster.programs.first)] =
             marker;
+        unawaited(
+          _getProgramMarkerIcon(
+            cluster.programs.first,
+            isSelected: !isSelectedSingleMarker,
+          ),
+        );
       }
 
       marker.setOnTapListener((overlay) {
@@ -655,10 +738,9 @@ class _MapScreenState extends State<MapScreen> {
         final shouldDeselect =
             !isCluster && tappedProgram?.id == _selectedProgram?.id;
         setState(() {
+          _selectionGeneration++;
           _selectedProgram = shouldDeselect ? null : tappedProgram;
-          _visiblePrograms = shouldDeselect
-              ? visiblePrograms
-              : cluster.programs;
+          _visiblePrograms = shouldDeselect ? programs : cluster.programs;
           _showSearchHereButton = false;
         });
         if (!isCluster) {
@@ -670,6 +752,14 @@ class _MapScreenState extends State<MapScreen> {
             ),
           );
         }
+
+        unawaited(
+          _focusOnMarker(
+            controller,
+            NLatLng(cluster.latitude, cluster.longitude),
+            zoomIn: isCluster,
+          ),
+        );
 
         if (_sheetController.isAttached) {
           _sheetController.animateTo(
@@ -685,6 +775,10 @@ class _MapScreenState extends State<MapScreen> {
     if (!mounted) {
       return;
     }
+    if (selectionGeneration != _selectionGeneration) {
+      unawaited(_refreshClustersFromCache());
+      return;
+    }
     await controller.clearOverlays(type: NOverlayType.marker);
     if (markers.isNotEmpty) {
       await controller.addOverlayAll(markers);
@@ -693,19 +787,25 @@ class _MapScreenState extends State<MapScreen> {
       return;
     }
 
+    _programMarkerRefs
+      ..clear()
+      ..addAll(programMarkerRefs);
+    _renderedClusterThresholdMeters = _clusterThresholdMeters(zoom);
+
     setState(() {
-      _selectedProgram =
-          visiblePrograms.any(
-            (program) =>
-                _programSelectionKey(program) == previouslySelectedProgramKey,
-          )
-          ? visiblePrograms.firstWhere(
+      if (updateProgramList) {
+        final selectedProgram = _selectedProgram;
+        if (selectedProgram != null &&
+            !programs.any(
               (program) =>
-                  _programSelectionKey(program) == previouslySelectedProgramKey,
-            )
-          : null;
-      _visiblePrograms = visiblePrograms;
-      _showSearchHereButton = false;
+                  _programSelectionKey(program) ==
+                  _programSelectionKey(selectedProgram),
+            )) {
+          _selectedProgram = null;
+        }
+        _visiblePrograms = programs;
+        _showSearchHereButton = _isSearchingCurrentArea;
+      }
     });
 
     if (_sheetController.isAttached) {
@@ -717,28 +817,37 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
+  Future<void> _focusOnMarker(
+    NaverMapController controller,
+    NLatLng target, {
+    required bool zoomIn,
+  }) async {
+    final cameraPosition = await controller.getCameraPosition();
+    final cameraUpdate = NCameraUpdate.scrollAndZoomTo(
+      target: target,
+      zoom: zoomIn
+          ? math.min(cameraPosition.zoom + 2, 18)
+          : cameraPosition.zoom,
+    );
+    cameraUpdate.setAnimation(
+      animation: NCameraAnimation.easing,
+      duration: const Duration(milliseconds: 350),
+    );
+    await controller.updateCamera(cameraUpdate);
+  }
+
   Future<void> _clearSelectedProgram() async {
     final selectedProgram = _selectedProgram;
-    final controller = _mapController;
-    if (selectedProgram == null || controller == null) {
+    if (selectedProgram == null) {
       return;
     }
 
     setState(() {
+      _selectionGeneration++;
       _selectedProgram = null;
-      _visiblePrograms =
-          _visiblePrograms.any((program) => program.id == selectedProgram.id)
-          ? _visiblePrograms
-          : _mapPrograms;
+      _visiblePrograms = _mapPrograms;
     });
-    unawaited(_setProgramMarkerSelected(selectedProgram, isSelected: false));
-
-    final cameraPosition = await controller.getCameraPosition();
-    await _refreshVisibleProgramsAndMarkers(
-      controller,
-      cameraPosition.target,
-      useCurrentBounds: true,
-    );
+    await _setProgramMarkerSelected(selectedProgram, isSelected: false);
   }
 
   Future<void> _applyImmediateMarkerSelection({
@@ -768,11 +877,42 @@ class _MapScreenState extends State<MapScreen> {
     if (marker == null || !mounted) {
       return;
     }
-    marker.setIcon(
-      await NOverlayImage.fromWidget(
+    final icon = await _getProgramMarkerIcon(program, isSelected: isSelected);
+    if (!mounted) {
+      return;
+    }
+    final selectedProgram = _selectedProgram;
+    final isActuallySelected =
+        selectedProgram != null &&
+        _programSelectionKey(selectedProgram) == _programSelectionKey(program);
+    if (isSelected != isActuallySelected) {
+      return;
+    }
+    marker.setIcon(icon);
+  }
+
+  Future<NOverlayImage> _getProgramMarkerIcon(
+    ProgramModel program, {
+    required bool isSelected,
+  }) {
+    final cacheKey = '${_programSelectionKey(program)}_$isSelected';
+    return _programMarkerIconFutures.putIfAbsent(
+      cacheKey,
+      () => NOverlayImage.fromWidget(
         context: context,
         size: Size(64.w, 64.w),
         widget: ProgramMarkerIcon(program: program, isSelected: isSelected),
+      ),
+    );
+  }
+
+  Future<NOverlayImage> _getClusterMarkerIcon(int count) {
+    return _clusterMarkerIconFutures.putIfAbsent(
+      count,
+      () => NOverlayImage.fromWidget(
+        context: context,
+        size: Size(48.w, 48.w),
+        widget: _ClusterMarkerIcon(count: count),
       ),
     );
   }
@@ -848,6 +988,9 @@ class _MapScreenState extends State<MapScreen> {
               });
             }
           },
+          onCameraIdle: () {
+            unawaited(_refreshClustersFromCache());
+          },
           onMapTapped: (point, latLng) {
             unawaited(_clearSelectedProgram());
           },
@@ -889,8 +1032,12 @@ class _MapScreenState extends State<MapScreen> {
             bottom: 210.h,
             child: Center(
               child: GestureDetector(
-                onTap: _searchProgramsInCurrentMapArea,
-                child: FindInCurrentLocationButton(),
+                onTap: _isSearchingCurrentArea
+                    ? null
+                    : _searchProgramsInCurrentMapArea,
+                child: FindInCurrentLocationButton(
+                  isLoading: _isSearchingCurrentArea,
+                ),
               ),
             ),
           ),

@@ -75,7 +75,6 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 48.h,
       decoration: BoxDecoration(
         border: BoxBorder.all(color: AppColors.gray200, width: 1.0.w),
         borderRadius: BorderRadius.circular(AppBorderRadius.radius_10),
