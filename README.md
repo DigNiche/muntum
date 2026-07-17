@@ -28,7 +28,7 @@
 | 기능               | 구현 내용                                                                                                        |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------- |
 | 취향 기반 탐색     | 온보딩에서 키워드를 선택하고, 서버가 제공하는 추천 순서를 유지하면서 프로그램별 키워드 일치 정도를 시각화합니다. |
-| 전체 프로그램 피드 | 인기 프로그램, 인기 키워드, 종료 임박 프로그램과 필터·pagination을 제공합니다.                                    |
+| 전체 프로그램 피드 | 인기 프로그램, 인기 키워드, 종료 임박 프로그램과 필터·pagination을 제공합니다.                                   |
 | 검색               | 제목, 상세 설명, 주소, 예약 여부, 연락처 등 여러 필드를 검색하고 최근 검색어를 서버와 동기화합니다.              |
 | 지도 탐색          | 현재 화면 영역의 프로그램을 자동 로드하고, 줌 레벨에 따라 클러스터와 개별 마커를 전환합니다.                     |
 | 프로그램 상세      | 운영 기간, 장소, 가격, 예약 정보, 연락처, 공식 링크와 큐레이션 정보를 제공합니다.                                |
@@ -127,16 +127,16 @@ lib/
 
 ## 기술 스택
 
-| 구분                 | 기술                                 | 사용 목적                               |
-| -------------------- | ------------------------------------ | --------------------------------------- |
-| Language / Framework | Dart, Flutter                        | iOS·Android 단일 코드베이스             |
-| Networking           | `dart:io` `HttpClient`               | REST API 및 multipart 통신              |
-| Map / Location       | Naver Map, Geolocator                | 지도 탐색, 현재 위치, 장소 검색         |
-| Analytics            | Firebase Analytics                   | 사용자 행동 및 진입 경로 분석           |
-| Local persistence    | SharedPreferences                    | 세션 복구 정보 및 로컬 사용자 상태 저장 |
+| 구분                 | 기술                                 | 사용 목적                                    |
+| -------------------- | ------------------------------------ | -------------------------------------------- |
+| Language / Framework | Dart, Flutter                        | iOS·Android 단일 코드베이스                  |
+| Networking           | `dart:io` `HttpClient`               | REST API 및 multipart 통신                   |
+| Map / Location       | Naver Map, Geolocator                | 지도 탐색, 현재 위치, 장소 검색              |
+| Analytics            | Firebase Analytics                   | 사용자 행동 및 진입 경로 분석                |
+| Local persistence    | SharedPreferences                    | 세션 복구 정보 및 로컬 사용자 상태 저장      |
 | UI                   | ScreenUtil Plus, Flutter SVG, Lottie | responsive UI, vector icon, Lottie animation |
-| External action      | URL Launcher, Image Picker           | 외부 링크 실행 및 이미지 첨부           |
-| Test                 | Flutter Test                         | 도메인 로직과 주요 화면 상호작용 검증   |
+| External action      | URL Launcher, Image Picker           | 외부 링크 실행 및 이미지 첨부                |
+| Test                 | Flutter Test                         | 도메인 로직과 주요 화면 상호작용 검증        |
 
 ## 테스트
 
