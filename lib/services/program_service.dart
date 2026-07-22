@@ -33,6 +33,8 @@ extension FilterApi on Filter {
     Filter.experience ||
     Filter.festival => ProgramType.fromFilter(this)?.apiValue,
   };
+
+  String get mapApiChip => this == Filter.nowHot ? 'HOT' : apiChip!;
 }
 
 class ProgramService {

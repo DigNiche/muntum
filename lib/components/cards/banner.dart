@@ -30,72 +30,70 @@ class BannerCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Stack(
-            children: [
-              SizedBox(
-                height: 292.5.h,
-                width: 390.w,
-                child: program.images.isEmpty
+          SizedBox(
+            height: 467.h,
+            width: double.infinity,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                program.imageUrls.isEmpty
                     ? const ColoredBox(color: Color(0xff9DB6BE))
-                    : program.images.first,
-              ),
-              // 그라데이션
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: Container(
-                  height: 100.h,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withOpacity(0.65),
-                      ],
+                    : Image.network(
+                        program.imageUrls.first,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const ColoredBox(color: Color(0xff9DB6BE)),
+                      ),
+                // 그라데이션
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: Container(
+                    height: 160.h,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withValues(alpha: 0.72),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-              // 프로그램명
-              Positioned(
-                left: 20.w,
-                bottom: 48.h,
-                child: Text(
-                  program.title,
-                  style: AppTypography.title3.copyWith(color: AppColors.white),
+                // 프로그램명
+                Positioned(
+                  left: 20.w,
+                  right: 20.w,
+                  bottom: 42.h,
+                  child: Column(
+                    spacing: 4.h,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        program.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.title3.copyWith(
+                          color: AppColors.white,
+                        ),
+                      ),
+                      // 장소명 · 날짜
+                      Text(
+                        '${program.locationName} · ${program.cardDateText}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.caption1.copyWith(
+                          color: AppColors.white,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              // 장소명 · 날짜
-              Positioned(
-                left: 20.w,
-                bottom: 24.h,
-                child: Row(
-                  spacing: 2.w,
-                  children: [
-                    Text(
-                      program.locationName,
-                      style: AppTypography.caption1.copyWith(
-                        color: AppColors.white,
-                      ),
-                    ),
-                    Text(
-                      '·',
-                      style: AppTypography.caption1.copyWith(
-                        color: AppColors.white,
-                      ),
-                    ),
-                    Text(
-                      program.cardDateText,
-                      style: AppTypography.caption1.copyWith(
-                        color: AppColors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),

@@ -51,55 +51,55 @@ class _BannerCarouselState extends State<BannerCarousel> {
       return const SizedBox.shrink();
     }
 
-    return Column(
-      children: [
-        SizedBox(
-          height: 292.5.h,
-          child: PageView.builder(
-            controller: _pageController,
-            onPageChanged: (index) {
-              setState(() {
-                currentIndex = index % widget.programs.length;
-              });
-            },
-            itemBuilder: (context, index) {
-              return BannerCard(
-                program: widget.programs[index % widget.programs.length],
-                entrySource: widget.entrySource,
-              );
-            },
-          ),
-        ),
-        // Progress Bar
-        SizedBox(
-          height: 2.h,
-          child: Stack(
-            children: [
-              // 회색 전체 선
-              Container(
-                width: 390.w,
-                decoration: BoxDecoration(
-                  color: AppColors.gray300,
-                  borderRadius: BorderRadius.circular(999),
-                ),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8.r),
+      child: SizedBox(
+        height: 467.h,
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: PageView.builder(
+                controller: _pageController,
+                onPageChanged: (index) {
+                  setState(() {
+                    currentIndex = index % widget.programs.length;
+                  });
+                },
+                itemBuilder: (context, index) {
+                  return BannerCard(
+                    program: widget.programs[index % widget.programs.length],
+                    entrySource: widget.entrySource,
+                  );
+                },
               ),
-              // 현재 위치
-              AnimatedPositioned(
-                duration: const Duration(milliseconds: 250),
-                left: currentIndex * (390.w / widget.programs.length),
-                child: Container(
-                  width: 390.w / widget.programs.length,
-                  height: 2.h,
-                  decoration: BoxDecoration(
-                    color: AppColors.gray900,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
+            ),
+            Positioned(
+              left: 20.w,
+              bottom: 20.h,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: List.generate(widget.programs.length, (index) {
+                  final isActive = index == currentIndex;
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 6.r,
+                    height: 6.r,
+                    margin: EdgeInsets.only(
+                      right: index == widget.programs.length - 1 ? 0 : 4.w,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isActive
+                          ? AppColors.white
+                          : AppColors.white.withValues(alpha: 0.35),
+                      shape: BoxShape.circle,
+                    ),
+                  );
+                }),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

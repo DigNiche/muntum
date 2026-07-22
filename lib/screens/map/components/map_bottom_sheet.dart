@@ -14,6 +14,7 @@ class MapProgramBottomPanel extends StatelessWidget {
   final List<ProgramModel> programs;
 
   const MapProgramBottomPanel({
+    super.key,
     required this.scrollController,
     required this.sheetController,
     required this.minChildSize,
@@ -31,7 +32,7 @@ class MapProgramBottomPanel extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF10110F).withOpacity(0.08),
+            color: const Color(0xFF10110F).withValues(alpha: 0.08),
             offset: const Offset(0, -4),
             blurRadius: 16,
             spreadRadius: 0,

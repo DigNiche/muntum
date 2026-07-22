@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/constants/colors.dart';
@@ -6,11 +8,13 @@ import 'package:muntum/models/program_model.dart';
 class ProgramMarkerIcon extends StatelessWidget {
   final ProgramModel program;
   final bool isSelected;
+  final ui.Image? decodedNetworkImage;
 
   const ProgramMarkerIcon({
     super.key,
     required this.program,
     this.isSelected = false,
+    this.decodedNetworkImage,
   });
 
   @override
@@ -49,16 +53,11 @@ class ProgramMarkerIcon extends StatelessWidget {
                 shape: BoxShape.circle,
               ),
               clipBehavior: Clip.antiAlias,
-              child: imageUrl.isNotEmpty
-                  ? Image.network(
-                      imageUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) =>
-                          _FallbackMarkerImage(title: program.title),
-                    )
-                  : image != null
+              child: imageUrl.isNotEmpty && decodedNetworkImage != null
+                  ? RawImage(image: decodedNetworkImage, fit: BoxFit.cover)
+                  : imageUrl.isEmpty && image != null
                   ? FittedBox(fit: BoxFit.cover, child: image)
-                  : _FallbackMarkerImage(title: program.title),
+                  : _FallbackMarkerImage(),
             ),
           ),
         ),
@@ -68,24 +67,10 @@ class ProgramMarkerIcon extends StatelessWidget {
 }
 
 class _FallbackMarkerImage extends StatelessWidget {
-  final String title;
-
-  const _FallbackMarkerImage({required this.title});
+  const _FallbackMarkerImage();
 
   @override
   Widget build(BuildContext context) {
-    final initial = title.trim().isEmpty ? '?' : title.trim().characters.first;
-    return Container(
-      color: AppColors.primary400,
-      alignment: Alignment.center,
-      child: Text(
-        initial,
-        style: TextStyle(
-          color: AppColors.gray900,
-          fontSize: 14.sp,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
+    return Container(color: AppColors.white, alignment: Alignment.center);
   }
 }

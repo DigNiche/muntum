@@ -29,8 +29,13 @@ enum ScreenTypes { myNiche, entire }
 
 class HomeScreen extends StatefulWidget {
   final ScreenTypes initialScreenType;
+  final ValueChanged<ScreenTypes>? onScreenTypeChanged;
 
-  const HomeScreen({super.key, this.initialScreenType = ScreenTypes.myNiche});
+  const HomeScreen({
+    super.key,
+    this.initialScreenType = ScreenTypes.myNiche,
+    this.onScreenTypeChanged,
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -53,6 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _selectScreen(ScreenTypes nextScreen) {
     if (screenType == nextScreen) return;
     setState(() => screenType = nextScreen);
+    widget.onScreenTypeChanged?.call(nextScreen);
     unawaited(
       AnalyticsService.instance.logHomeTabView(
         nextScreen == ScreenTypes.myNiche ? 'my_taste' : 'all',
@@ -524,16 +530,17 @@ class _EntirePageState extends State<EntirePage> {
         if (data == null) {
           return const SizedBox.shrink();
         }
-        return ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            BannerCarousel(programs: data.banners, entrySource: 'all_banner'),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.w),
-              child: Column(
+        return Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20.w),
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              SizedBox(height: 10.h),
+              BannerCarousel(programs: data.banners, entrySource: 'all_banner'),
+              SizedBox(height: 48.h),
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox(height: 48.h),
                   SectionHeader1(
                     text: '모아보기',
                     buttonName: '전체보기',
@@ -584,8 +591,8 @@ class _EntirePageState extends State<EntirePage> {
                   ),
                 ],
               ),
-            ),
-          ],
+            ],
+          ),
         );
       },
     );

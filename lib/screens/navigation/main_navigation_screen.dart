@@ -36,12 +36,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   static const String _seenMyNicheCoachmarkKey = 'seen_my_niche_coachmark';
 
   late int _selectedIndex;
+  late ScreenTypes _homeScreenType;
   bool _showMyNicheCoachmark = false;
 
   @override
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
+    _homeScreenType = widget.initialHomeScreenType;
     _loadCoachmarkState();
     if (widget.initialReportDetail != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -67,6 +69,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     });
   }
 
+  void _onHomeScreenTypeChanged(ScreenTypes screenType) {
+    if (_homeScreenType == screenType) return;
+    setState(() => _homeScreenType = screenType);
+  }
+
   Future<void> _loadCoachmarkState() async {
     final prefs = await SharedPreferences.getInstance();
     final isPending = prefs.getBool(_pendingMyNicheCoachmarkKey) ?? false;
@@ -85,13 +92,19 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final useDarkBottomNavigation =
+        _selectedIndex == 0 && _homeScreenType == ScreenTypes.myNiche;
+
     return Stack(
       children: [
         Scaffold(
           body: IndexedStack(
             index: _selectedIndex,
             children: [
-              HomeScreen(initialScreenType: widget.initialHomeScreenType),
+              HomeScreen(
+                initialScreenType: widget.initialHomeScreenType,
+                onScreenTypeChanged: _onHomeScreenTypeChanged,
+              ),
               MapScreen(isActive: _selectedIndex == 1),
               BookmarkScreen(isActive: _selectedIndex == 2),
               const ProfileScreen(),
@@ -100,12 +113,21 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           bottomNavigationBar: ClipRect(
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-              child: Container(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
                 decoration: BoxDecoration(
                   border: Border(
-                    top: BorderSide(color: AppColors.lineNormal, width: 1.sp),
+                    top: BorderSide(
+                      color: useDarkBottomNavigation
+                          ? AppColors.gray900
+                          : AppColors.lineNormal,
+                      width: 1.sp,
+                    ),
                   ),
-                  color: AppColors.white.withValues(alpha: 0.93),
+                  color: useDarkBottomNavigation
+                      ? const Color(0xFF181818).withValues(alpha: 0.97)
+                      : AppColors.white.withValues(alpha: 0.93),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -114,24 +136,28 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                       icon: 'explore-filled.svg',
                       text: '발견',
                       isActive: _selectedIndex == 0,
+                      useDarkTheme: useDarkBottomNavigation,
                       onTap: () => _onTabTap(0),
                     ),
                     NavTab(
                       icon: 'location-filled.svg',
                       text: '지도',
                       isActive: _selectedIndex == 1,
+                      useDarkTheme: useDarkBottomNavigation,
                       onTap: () => _onTabTap(1),
                     ),
                     NavTab(
                       icon: 'scrap-filled.svg',
                       text: '스크랩',
                       isActive: _selectedIndex == 2,
+                      useDarkTheme: useDarkBottomNavigation,
                       onTap: () => _onTabTap(2),
                     ),
                     NavTab(
                       icon: 'profile-filled.svg',
                       text: '프로필',
                       isActive: _selectedIndex == 3,
+                      useDarkTheme: useDarkBottomNavigation,
                       onTap: () => _onTabTap(3),
                     ),
                   ],
@@ -309,51 +335,58 @@ class NavTab extends StatelessWidget {
   final String icon;
   final String text;
   final bool isActive;
+  final bool useDarkTheme;
   final VoidCallback onTap;
 
-  final Color activeColor = AppColors.gray900;
-  final Color nonActiveColor = AppColors.gray500;
   const NavTab({
     super.key,
     required this.icon,
     required this.text,
     required this.isActive,
+    required this.useDarkTheme,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final targetColor = isActive
+        ? (useDarkTheme ? AppColors.white : AppColors.black)
+        : (useDarkTheme ? AppColors.gray600 : AppColors.gray500);
+
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
-        child: Container(
-          height: 84.h,
-          padding: EdgeInsets.symmetric(vertical: 8.h),
-          child: Column(
-            children: [
-              SizedBox(
-                width: 24.w,
-                height: 24.h,
-                child: SvgPicture.asset(
-                  'assets/icons/$icon',
-                  height: 20.sp,
-                  width: 20.sp,
-                  colorFilter: ColorFilter.mode(
-                    isActive ? activeColor : nonActiveColor,
-                    BlendMode.srcIn,
+        child: TweenAnimationBuilder<Color?>(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          tween: ColorTween(end: targetColor),
+          builder: (context, animatedColor, child) {
+            final color = animatedColor ?? targetColor;
+            return Container(
+              height: 84.h,
+              padding: EdgeInsets.symmetric(vertical: 8.h),
+              child: Column(
+                children: [
+                  SizedBox(
+                    width: 24.w,
+                    height: 24.h,
+                    child: SvgPicture.asset(
+                      'assets/icons/$icon',
+                      height: 20.sp,
+                      width: 20.sp,
+                      colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+                    ),
                   ),
-                ),
+                  SizedBox(height: 2.h),
+                  Text(
+                    text,
+                    style: AppTypography.caption3.copyWith(color: color),
+                  ),
+                ],
               ),
-              SizedBox(height: 2.h),
-              Text(
-                text,
-                style: AppTypography.caption3.copyWith(
-                  color: isActive ? activeColor : nonActiveColor,
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );

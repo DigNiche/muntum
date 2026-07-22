@@ -7,6 +7,7 @@ import 'package:muntum/components/page_header.dart';
 import 'package:muntum/components/popup_widget.dart';
 import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
+import 'package:muntum/constants/pre_update.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/api/token_store.dart';
 import 'package:muntum/screens/mypage/account_mange_screen.dart';
@@ -24,6 +25,7 @@ import 'package:muntum/screens/mypage/settings_screen.dart';
 import 'package:muntum/screens/mypage/components/stat_card_widget.dart';
 import 'package:muntum/screens/mypage/terms_screen.dart';
 import 'package:muntum/screens/mypage/version_info_screen.dart';
+import 'package:muntum/screens/mypage/went_to_screen.dart';
 import 'package:muntum/screens/onboarding/login_screen.dart';
 import 'package:muntum/services/suggestion_service.dart';
 import 'package:muntum/stores/auth_state.dart';
@@ -243,7 +245,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   children: [
                                     StatCard(
                                       title: '키워드',
-                                      number: '',
                                       numberWidget: FutureBuilder<int>(
                                         future: _keywordCountFuture,
                                         builder: (context, snapshot) {
@@ -268,7 +269,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     ),
                                     StatCard(
                                       title: '제보내역',
-                                      number: '',
                                       numberWidget: FutureBuilder<int>(
                                         future: _reportCountFuture,
                                         builder: (context, snapshot) {
@@ -313,6 +313,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   if (mounted) _reloadProfile();
                                 },
                               ),
+                              // TODO
+                              if (isReadyForPublish)
+                                ProfileMenuItem(
+                                  text: '다녀온 프로그램 기록',
+                                  onTap: () {
+                                    pushToScreen(context, WentToScreen());
+                                  },
+                                ),
                               ProfileMenuItem(
                                 text: '계정관리',
                                 onTap: () {

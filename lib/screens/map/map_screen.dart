@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
-import 'package:muntum/utils/app_toast.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_naver_map/flutter_naver_map.dart';
@@ -8,7 +6,6 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:muntum/constants/colors.dart';
-import 'package:muntum/constants/typography.dart';
 import 'package:muntum/components/filter_chip.dart';
 import 'package:muntum/components/popup_widget.dart';
 import 'package:muntum/models/program_model.dart';
@@ -16,10 +13,13 @@ import 'package:muntum/screens/home/components/searchbar.dart';
 import 'package:muntum/screens/home/search_screen.dart';
 import 'package:muntum/screens/map/components/findin_current_location.dart';
 import 'package:muntum/screens/map/components/map_bottom_sheet.dart';
-import 'package:muntum/screens/map/components/program_marker_icon.dart';
-import 'package:muntum/screens/map/map_radius.dart';
-import 'package:muntum/services/program_service.dart';
-import 'package:muntum/services/user_service.dart';
+import 'package:muntum/screens/map/map_clustering.dart';
+import 'package:muntum/screens/map/map_location_overlay_controller.dart';
+import 'package:muntum/screens/map/map_location_service.dart';
+import 'package:muntum/screens/map/map_marker_icon_cache.dart';
+import 'package:muntum/screens/map/map_program_repository.dart';
+import 'package:muntum/screens/map/map_viewport.dart';
+import 'package:muntum/utils/app_toast.dart';
 
 class MapScreen extends StatefulWidget {
   final bool isActive;
@@ -36,9 +36,6 @@ class _MapScreenState extends State<MapScreen> {
       DraggableScrollableController();
 
   List<ProgramModel> _mapPrograms = [];
-
-  // 검색 중심에서 5km 안에 있는 동일한 프로그램 집합으로
-  // 지도 마커와 바텀시트를 함께 갱신한다.
   List<ProgramModel> _visiblePrograms = [];
   Filter? _selectedFilter;
   ProgramModel? _selectedProgram;
@@ -46,10 +43,13 @@ class _MapScreenState extends State<MapScreen> {
   NLatLng? _currentLocation;
   NLatLng? _initialMapCenter;
   final Map<String, NMarker> _programMarkerRefs = {};
-  final Map<String, Future<NOverlayImage>> _programMarkerIconFutures = {};
-  final Map<int, Future<NOverlayImage>> _clusterMarkerIconFutures = {};
-  Future<NOverlayImage>? _currentLocationIconFuture;
-  Timer? _currentLocationPulseTimer;
+  final MapClusteringController _clusteringController =
+      MapClusteringController();
+  final MapLocationService _locationService = MapLocationService();
+  final MapLocationOverlayController _locationOverlayController =
+      MapLocationOverlayController();
+  final MapMarkerIconCache _markerIconCache = MapMarkerIconCache();
+  final MapProgramRepository _programRepository = MapProgramRepository();
   Future<void> _markerRefreshQueue = Future<void>.value();
   double? _renderedClusterThresholdMeters;
 
@@ -65,7 +65,6 @@ class _MapScreenState extends State<MapScreen> {
   static const double _sheetMaxSize = 0.78;
   static const double _searchRadiusMeters = 5000;
   static const double _initialZoom = 12.2;
-  static const int _currentLocationPulseDurationMs = 1800;
   static const NLatLng _yongsanStationInitialTarget = NLatLng(
     37.529849,
     126.964561,
@@ -86,9 +85,9 @@ class _MapScreenState extends State<MapScreen> {
     super.didUpdateWidget(oldWidget);
     if (!oldWidget.isActive && widget.isActive) {
       _initializeCurrentLocation();
-      _startCurrentLocationPulse();
+      _locationOverlayController.startPulse(_mapController);
     } else if (oldWidget.isActive && !widget.isActive) {
-      _stopCurrentLocationPulse();
+      _locationOverlayController.stopPulse();
     }
   }
 
@@ -104,7 +103,7 @@ class _MapScreenState extends State<MapScreen> {
     var permissionDenied = false;
 
     try {
-      final position = await _determineCurrentPosition();
+      final position = await _locationService.determineCurrentPosition();
       initialCenter = NLatLng(position.latitude, position.longitude);
       _currentLocation = initialCenter;
     } on TimeoutException {
@@ -137,49 +136,6 @@ class _MapScreenState extends State<MapScreen> {
           }
         }
       });
-    }
-  }
-
-  Future<Position> _determineCurrentPosition() async {
-    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      throw const LocationServiceDisabledException();
-    }
-
-    var permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-    }
-
-    if (permission == LocationPermission.denied ||
-        permission == LocationPermission.deniedForever) {
-      await _syncLocationTermsConsent(false);
-      throw const PermissionDeniedException('Location permission denied');
-    }
-
-    await _syncLocationTermsConsent(true);
-
-    try {
-      return await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          timeLimit: Duration(seconds: 10),
-        ),
-      );
-    } on TimeoutException {
-      final lastKnownPosition = await Geolocator.getLastKnownPosition();
-      if (lastKnownPosition != null) {
-        return lastKnownPosition;
-      }
-      rethrow;
-    }
-  }
-
-  Future<void> _syncLocationTermsConsent(bool agreed) async {
-    try {
-      await UserService().updateLocationTermsConsent(agreed);
-    } catch (_) {
-      // 로그인 전이거나 네트워크 오류가 있어도 지도 사용 흐름은 막지 않는다.
     }
   }
 
@@ -224,88 +180,6 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  Future<List<ProgramModel>> _getProgramsWithinRadius(NLatLng center) async {
-    final service = ProgramService();
-    final programs = <ProgramModel>[];
-    var page = 0;
-    var hasNext = true;
-    while (hasNext) {
-      final response = await service.fetchNearbyPrograms(
-        latitude: center.latitude,
-        longitude: center.longitude,
-        radiusKm: _searchRadiusMeters / 1000,
-        page: page,
-        size: 20,
-      );
-      programs.addAll(response.content);
-      hasNext = response.hasMore;
-      page = response.page + 1;
-    }
-    _mapPrograms = programs;
-    final visiblePrograms = List<ProgramModel>.from(programs);
-
-    visiblePrograms.sort((a, b) {
-      final aDistance = _distanceInMeters(
-        center.latitude,
-        center.longitude,
-        a.latitude!,
-        a.longitude!,
-      );
-      final bDistance = _distanceInMeters(
-        center.latitude,
-        center.longitude,
-        b.latitude!,
-        b.longitude!,
-      );
-      return aDistance.compareTo(bDistance);
-    });
-    return visiblePrograms;
-  }
-
-  Future<List<ProgramModel>> _getProgramsInCurrentMapBounds(
-    NaverMapController controller,
-  ) async {
-    final bounds = await controller.getContentBounds(withPadding: false);
-    final selectedFilter = _selectedFilter;
-    final response = await ProgramService().fetchMapPrograms(
-      southWestLatitude: bounds.southWest.latitude,
-      southWestLongitude: bounds.southWest.longitude,
-      northEastLatitude: bounds.northEast.latitude,
-      northEastLongitude: bounds.northEast.longitude,
-      chip: selectedFilter == Filter.nowHot ? 'HOT' : selectedFilter?.apiChip,
-    );
-    final visiblePrograms = response.content;
-    _mapPrograms = visiblePrograms;
-
-    visiblePrograms.sort((a, b) {
-      final center = bounds.center;
-      final aLatitude = a.latitude;
-      final aLongitude = a.longitude;
-      final bLatitude = b.latitude;
-      final bLongitude = b.longitude;
-      if (aLatitude == null ||
-          aLongitude == null ||
-          bLatitude == null ||
-          bLongitude == null) {
-        return 0;
-      }
-      final aDistance = _distanceInMeters(
-        center.latitude,
-        center.longitude,
-        aLatitude,
-        aLongitude,
-      );
-      final bDistance = _distanceInMeters(
-        center.latitude,
-        center.longitude,
-        bLatitude,
-        bLongitude,
-      );
-      return aDistance.compareTo(bDistance);
-    });
-    return visiblePrograms;
-  }
-
   void _openSearchScreen() {
     Navigator.push(
       context,
@@ -326,8 +200,7 @@ class _MapScreenState extends State<MapScreen> {
     if (controller == null) {
       return;
     }
-    final cameraPosition = await controller.getCameraPosition();
-    await _refreshVisibleProgramsAndMarkers(controller, cameraPosition.target);
+    await _refreshVisibleProgramsAndMarkers(controller);
   }
 
   Widget _buildMapFilterChip(Filter filter, String text) {
@@ -353,68 +226,6 @@ class _MapScreenState extends State<MapScreen> {
     return id.isNotEmpty ? id : _markerIdFor(program);
   }
 
-  List<_ProgramCluster> _clusterPrograms(
-    List<ProgramModel> programs,
-    double zoom,
-  ) {
-    final thresholdMeters = _clusterThresholdMeters(zoom);
-    if (thresholdMeters == 0) {
-      return programs
-          .map((program) => _ProgramCluster(programs: [program]))
-          .toList();
-    }
-
-    final clusters = <_ProgramCluster>[];
-
-    for (final program in programs) {
-      _ProgramCluster? targetCluster;
-
-      for (final cluster in clusters) {
-        final distance = _distanceInMeters(
-          program.latitude!,
-          program.longitude!,
-          cluster.latitude,
-          cluster.longitude,
-        );
-
-        if (distance <= thresholdMeters) {
-          targetCluster = cluster;
-          break;
-        }
-      }
-
-      if (targetCluster == null) {
-        clusters.add(_ProgramCluster(programs: [program]));
-      } else {
-        targetCluster.programs.add(program);
-      }
-    }
-
-    return clusters;
-  }
-
-  double _clusterThresholdMeters(double zoom) {
-    if (zoom < 12) return 1000;
-    if (zoom < 13.5) return 800;
-    if (zoom < 15) return 120;
-    if (zoom < 16) return 40;
-    if (zoom < 17) return 12;
-    return 0;
-  }
-
-  double _distanceInMeters(double lat1, double lng1, double lat2, double lng2) {
-    return distanceBetweenMeters(
-      centerLatitude: lat1,
-      centerLongitude: lng1,
-      targetLatitude: lat2,
-      targetLongitude: lng2,
-    );
-  }
-
-  double _degreeToRadian(double degree) {
-    return degree * math.pi / 180;
-  }
-
   Future<void> _searchProgramsInCurrentMapArea() async {
     final controller = _mapController;
     if (controller == null || _isSearchingCurrentArea) {
@@ -437,12 +248,7 @@ class _MapScreenState extends State<MapScreen> {
     }
 
     try {
-      final cameraPosition = await controller.getCameraPosition();
-      await _refreshVisibleProgramsAndMarkers(
-        controller,
-        cameraPosition.target,
-        useCurrentBounds: true,
-      );
+      await _refreshVisibleProgramsAndMarkers(controller);
     } finally {
       if (mounted) {
         setState(() {
@@ -461,14 +267,19 @@ class _MapScreenState extends State<MapScreen> {
 
     _setLocating(true);
     try {
-      final position = await _determineCurrentPosition();
+      final position = await _locationService.determineCurrentPosition();
       if (!mounted) {
         return;
       }
 
       final currentLocation = NLatLng(position.latitude, position.longitude);
       _currentLocation = currentLocation;
-      await _updateCurrentLocationOverlay(controller, currentLocation);
+      await _locationOverlayController.update(
+        context: context,
+        mapController: controller,
+        location: currentLocation,
+        isActive: widget.isActive,
+      );
       await _focusOnSearchRadiusAndRefresh(
         controller,
         currentLocation,
@@ -487,74 +298,13 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  Future<void> _updateCurrentLocationOverlay(
-    NaverMapController controller,
-    NLatLng location,
-  ) async {
-    final locationOverlay = controller.getLocationOverlay();
-    locationOverlay.setIsVisible(true);
-    locationOverlay.setPosition(location);
-    locationOverlay.setCircleColor(
-      const Color(0xFF2F80ED).withValues(alpha: 0.2),
-    );
-    locationOverlay.setCircleOutlineColor(Colors.transparent);
-    locationOverlay.setCircleOutlineWidth(0);
-    locationOverlay.setCircleRadius(24.r);
-    locationOverlay.setSubIcon(null);
-    locationOverlay.setIconSize(Size(20.r, 20.r));
-    locationOverlay.setIcon(await _getCurrentLocationIcon());
-    _startCurrentLocationPulse();
-  }
-
-  Future<NOverlayImage> _getCurrentLocationIcon() {
-    return _currentLocationIconFuture ??= NOverlayImage.fromWidget(
-      context: context,
-      size: Size(20.r, 20.r),
-      widget: const _CurrentLocationPinIcon(),
-    );
-  }
-
-  void _startCurrentLocationPulse() {
-    if (!mounted || !widget.isActive || _currentLocationPulseTimer != null) {
-      return;
-    }
-
-    final startedAt = DateTime.now();
-    _currentLocationPulseTimer = Timer.periodic(
-      const Duration(milliseconds: 80),
-      (_) {
-        final controller = _mapController;
-        if (!mounted || !widget.isActive || controller == null) {
-          _stopCurrentLocationPulse();
-          return;
-        }
-
-        final elapsedMs = DateTime.now().difference(startedAt).inMilliseconds;
-        final progress =
-            (elapsedMs % _currentLocationPulseDurationMs) /
-            _currentLocationPulseDurationMs;
-        final wave = (math.sin(progress * math.pi * 2 - math.pi / 2) + 1) / 2;
-        final alpha = 0.12 + (wave * 0.18);
-
-        controller.getLocationOverlay().setCircleColor(
-          const Color(0xFF2F80ED).withValues(alpha: alpha),
-        );
-      },
-    );
-  }
-
-  void _stopCurrentLocationPulse() {
-    _currentLocationPulseTimer?.cancel();
-    _currentLocationPulseTimer = null;
-  }
-
   Future<void> _focusOnSearchRadiusAndRefresh(
     NaverMapController controller,
     NLatLng center, {
     required bool animated,
   }) async {
     final cameraUpdate = NCameraUpdate.fitBounds(
-      _boundsAround(center, _searchRadiusMeters),
+      boundsAround(center, _searchRadiusMeters),
       padding: EdgeInsets.all(24.r),
     );
     if (animated) {
@@ -569,33 +319,13 @@ class _MapScreenState extends State<MapScreen> {
     }
     await _refreshVisibleProgramsAndMarkers(
       controller,
-      center,
-      useCurrentBounds: true,
-    );
-  }
-
-  NLatLngBounds _boundsAround(NLatLng center, double radiusMeters) {
-    final latitudeDelta = radiusMeters / 111320;
-    final longitudeDelta =
-        radiusMeters /
-        (111320 * math.cos(_degreeToRadian(center.latitude)).abs());
-
-    return NLatLngBounds(
-      southWest: NLatLng(
-        center.latitude - latitudeDelta,
-        center.longitude - longitudeDelta,
-      ),
-      northEast: NLatLng(
-        center.latitude + latitudeDelta,
-        center.longitude + longitudeDelta,
-      ),
+      nearbyCenter: _selectedFilter == null ? center : null,
     );
   }
 
   Future<void> _refreshVisibleProgramsAndMarkers(
-    NaverMapController controller,
-    NLatLng center, {
-    bool useCurrentBounds = false,
+    NaverMapController controller, {
+    NLatLng? nearbyCenter,
   }) async {
     final requestGeneration = ++_markerRefreshGeneration;
     final previousRefresh = _markerRefreshQueue;
@@ -604,11 +334,7 @@ class _MapScreenState extends State<MapScreen> {
       if (!mounted || requestGeneration != _markerRefreshGeneration) {
         return;
       }
-      await _performMarkerRefresh(
-        controller,
-        center,
-        useCurrentBounds: useCurrentBounds,
-      );
+      await _performMarkerRefresh(controller, nearbyCenter: nearbyCenter);
     }();
 
     _markerRefreshQueue = refresh.then<void>(
@@ -619,13 +345,20 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Future<void> _performMarkerRefresh(
-    NaverMapController controller,
-    NLatLng center, {
-    required bool useCurrentBounds,
+    NaverMapController controller, {
+    NLatLng? nearbyCenter,
   }) async {
-    final visiblePrograms = useCurrentBounds
-        ? await _getProgramsInCurrentMapBounds(controller)
-        : await _getProgramsWithinRadius(center);
+    final visiblePrograms = nearbyCenter == null
+        ? await _programRepository.fetchInBounds(
+            bounds: await controller.getContentBounds(withPadding: false),
+            filter: _selectedFilter,
+          )
+        : await _programRepository.fetchNearby(
+            center: nearbyCenter,
+            radiusMeters: _searchRadiusMeters,
+          );
+    _mapPrograms = visiblePrograms;
+    _clusteringController.clearSpiderfiedPrograms();
     final cameraPosition = await controller.getCameraPosition();
     await _renderProgramMarkers(
       controller,
@@ -635,15 +368,18 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  Future<void> _refreshClustersFromCache() async {
+  Future<void> _refreshClustersFromCache({bool force = false}) async {
     final controller = _mapController;
     if (controller == null || _mapPrograms.isEmpty) {
       return;
     }
 
     final currentCameraPosition = await controller.getCameraPosition();
-    if (_renderedClusterThresholdMeters ==
-        _clusterThresholdMeters(currentCameraPosition.zoom)) {
+    if (!force &&
+        _renderedClusterThresholdMeters ==
+            _clusteringController.thresholdMetersForZoom(
+              currentCameraPosition.zoom,
+            )) {
       return;
     }
 
@@ -655,9 +391,15 @@ class _MapScreenState extends State<MapScreen> {
         return;
       }
       final cameraPosition = await controller.getCameraPosition();
-      if (_renderedClusterThresholdMeters ==
-          _clusterThresholdMeters(cameraPosition.zoom)) {
+      final nextClusterThreshold = _clusteringController.thresholdMetersForZoom(
+        cameraPosition.zoom,
+      );
+      if (!force && _renderedClusterThresholdMeters == nextClusterThreshold) {
         return;
+      }
+      if (_renderedClusterThresholdMeters != null &&
+          nextClusterThreshold > _renderedClusterThresholdMeters!) {
+        _clusteringController.clearSpiderfiedPrograms();
       }
       await _renderProgramMarkers(
         controller,
@@ -684,18 +426,20 @@ class _MapScreenState extends State<MapScreen> {
     final previouslySelectedProgramKey = _selectedProgram == null
         ? null
         : _programSelectionKey(_selectedProgram!);
-    final clusters = _clusterPrograms(programs, zoom);
+    final clusters = _clusteringController.clusterPrograms(
+      programs,
+      zoom,
+      keyFor: _programSelectionKey,
+    );
+    final spiderfiedMarkerPositions = _clusteringController
+        .spiderfiedMarkerPositions(
+          clusters,
+          zoom,
+          keyFor: _programSelectionKey,
+        );
     final markers = <NMarker>{};
     final programMarkerRefs = <String, NMarker>{};
-
-    await Future.wait(
-      clusters
-          .where((cluster) => cluster.programs.length == 1)
-          .map((cluster) => _precacheMarkerImage(cluster.programs.first)),
-    );
-    if (!mounted) {
-      return;
-    }
+    final singleMarkerPrograms = <ProgramModel>[];
 
     for (final cluster in clusters) {
       if (!mounted) {
@@ -711,28 +455,46 @@ class _MapScreenState extends State<MapScreen> {
           _programSelectionKey(cluster.programs.first) ==
               previouslySelectedProgramKey;
 
-      if (!context.mounted) {
-        return;
+      late final NOverlayImage markerIcon;
+      if (isCluster) {
+        if (!context.mounted) return;
+        markerIcon = await _markerIconCache.clusterIcon(
+          context: context,
+          count: cluster.programs.length,
+        );
+      } else {
+        if (!context.mounted) return;
+        markerIcon = await _markerIconCache.programIcon(
+          context: context,
+          program: cluster.programs.first,
+          programKey: _programSelectionKey(cluster.programs.first),
+          isSelected: isSelectedSingleMarker,
+        );
       }
       final marker = NMarker(
         id: markerId,
-        position: NLatLng(cluster.latitude, cluster.longitude),
-        icon: isCluster
-            ? await _getClusterMarkerIcon(cluster.programs.length)
-            : await _getProgramMarkerIcon(
-                cluster.programs.first,
-                isSelected: isSelectedSingleMarker,
-              ),
+        position: isCluster
+            ? NLatLng(cluster.latitude, cluster.longitude)
+            : spiderfiedMarkerPositions[_programSelectionKey(
+                    cluster.programs.first,
+                  )] ??
+                  NLatLng(cluster.latitude, cluster.longitude),
+        icon: markerIcon,
       );
       if (!isCluster) {
+        singleMarkerPrograms.add(cluster.programs.first);
         programMarkerRefs[_programSelectionKey(cluster.programs.first)] =
             marker;
-        unawaited(
-          _getProgramMarkerIcon(
-            cluster.programs.first,
-            isSelected: !isSelectedSingleMarker,
-          ),
-        );
+        if (mounted) {
+          unawaited(
+            _markerIconCache.programIcon(
+              context: context,
+              program: cluster.programs.first,
+              programKey: _programSelectionKey(cluster.programs.first),
+              isSelected: !isSelectedSingleMarker,
+            ),
+          );
+        }
       }
 
       marker.setOnTapListener((overlay) {
@@ -743,8 +505,19 @@ class _MapScreenState extends State<MapScreen> {
         final tappedProgram = isCluster ? null : cluster.programs.first;
         final shouldDeselect =
             !isCluster && tappedProgram?.id == _selectedProgram?.id;
+        final shouldSpiderfy =
+            isCluster && _clusteringController.shouldSpiderfy(cluster.programs);
         setState(() {
           _selectionGeneration++;
+          if (isCluster) {
+            _clusteringController.clearSpiderfiedPrograms();
+            if (shouldSpiderfy) {
+              _clusteringController.spiderfyPrograms(
+                cluster.programs,
+                keyFor: _programSelectionKey,
+              );
+            }
+          }
           _selectedProgram = shouldDeselect ? null : tappedProgram;
           _visiblePrograms = shouldDeselect ? programs : cluster.programs;
           _showSearchHereButton = false;
@@ -764,6 +537,10 @@ class _MapScreenState extends State<MapScreen> {
             controller,
             NLatLng(cluster.latitude, cluster.longitude),
             zoomIn: isCluster,
+            clusteredPrograms: isCluster
+                ? List<ProgramModel>.from(cluster.programs)
+                : const [],
+            spiderfyCluster: shouldSpiderfy,
           ),
         );
 
@@ -796,7 +573,11 @@ class _MapScreenState extends State<MapScreen> {
     _programMarkerRefs
       ..clear()
       ..addAll(programMarkerRefs);
-    _renderedClusterThresholdMeters = _clusterThresholdMeters(zoom);
+    _renderedClusterThresholdMeters = _clusteringController
+        .thresholdMetersForZoom(zoom);
+    for (final program in singleMarkerPrograms) {
+      unawaited(_loadAndApplyProgramMarkerImage(program));
+    }
 
     setState(() {
       if (updateProgramList) {
@@ -827,19 +608,28 @@ class _MapScreenState extends State<MapScreen> {
     NaverMapController controller,
     NLatLng target, {
     required bool zoomIn,
+    required List<ProgramModel> clusteredPrograms,
+    required bool spiderfyCluster,
   }) async {
     final cameraPosition = await controller.getCameraPosition();
-    final cameraUpdate = NCameraUpdate.scrollAndZoomTo(
-      target: target,
-      zoom: zoomIn
-          ? math.min(cameraPosition.zoom + 2, 18)
-          : cameraPosition.zoom,
-    );
+    final cameraUpdate = zoomIn
+        ? _clusteringController.cameraUpdateForCluster(
+            clusteredPrograms,
+            cameraPosition.zoom,
+            spiderfyCluster: spiderfyCluster,
+          )
+        : NCameraUpdate.scrollAndZoomTo(
+            target: target,
+            zoom: cameraPosition.zoom,
+          );
     cameraUpdate.setAnimation(
       animation: NCameraAnimation.easing,
-      duration: const Duration(milliseconds: 350),
+      duration: Duration(milliseconds: zoomIn ? 650 : 350),
     );
     await controller.updateCamera(cameraUpdate);
+    if (zoomIn && mounted) {
+      await _refreshClustersFromCache(force: true);
+    }
   }
 
   Future<void> _clearSelectedProgram() async {
@@ -883,7 +673,12 @@ class _MapScreenState extends State<MapScreen> {
     if (marker == null || !mounted) {
       return;
     }
-    final icon = await _getProgramMarkerIcon(program, isSelected: isSelected);
+    final icon = await _markerIconCache.programIcon(
+      context: context,
+      program: program,
+      programKey: _programSelectionKey(program),
+      isSelected: isSelected,
+    );
     if (!mounted) {
       return;
     }
@@ -897,50 +692,29 @@ class _MapScreenState extends State<MapScreen> {
     marker.setIcon(icon);
   }
 
-  Future<NOverlayImage> _getProgramMarkerIcon(
-    ProgramModel program, {
-    required bool isSelected,
-  }) {
-    final cacheKey = '${_programSelectionKey(program)}_$isSelected';
-    return _programMarkerIconFutures.putIfAbsent(
-      cacheKey,
-      () => NOverlayImage.fromWidget(
-        context: context,
-        size: Size(64.w, 64.w),
-        widget: ProgramMarkerIcon(program: program, isSelected: isSelected),
-      ),
-    );
-  }
-
-  Future<NOverlayImage> _getClusterMarkerIcon(int count) {
-    return _clusterMarkerIconFutures.putIfAbsent(
-      count,
-      () => NOverlayImage.fromWidget(
-        context: context,
-        size: Size(48.w, 48.w),
-        widget: _ClusterMarkerIcon(count: count),
-      ),
-    );
-  }
-
-  Future<void> _precacheMarkerImage(ProgramModel program) async {
+  Future<void> _loadAndApplyProgramMarkerImage(ProgramModel program) async {
     if (!mounted || program.imageUrls.isEmpty) {
       return;
     }
-
-    try {
-      await precacheImage(
-        NetworkImage(program.imageUrls.first),
-        context,
-      ).timeout(const Duration(milliseconds: 1500));
-    } catch (_) {
-      // 이미지가 늦거나 실패해도 마커 자체는 fallback으로 표시한다.
+    final didLoad = await _markerIconCache.loadProgramImage(
+      context: context,
+      program: program,
+      isActive: () => mounted,
+    );
+    if (!mounted || !didLoad) {
+      return;
     }
+    final selectedProgram = _selectedProgram;
+    final isSelected =
+        selectedProgram != null &&
+        _programSelectionKey(selectedProgram) == _programSelectionKey(program);
+    await _setProgramMarkerSelected(program, isSelected: isSelected);
   }
 
   @override
   void dispose() {
-    _stopCurrentLocationPulse();
+    _locationOverlayController.dispose();
+    _markerIconCache.dispose();
     _searchbarController.dispose();
     _sheetController.dispose();
     super.dispose();
@@ -976,7 +750,12 @@ class _MapScreenState extends State<MapScreen> {
             _mapController = controller;
             final currentLocation = _currentLocation;
             if (currentLocation != null) {
-              await _updateCurrentLocationOverlay(controller, currentLocation);
+              await _locationOverlayController.update(
+                context: context,
+                mapController: controller,
+                location: currentLocation,
+                isActive: widget.isActive,
+              );
             }
             await _focusOnSearchRadiusAndRefresh(
               controller,
@@ -1113,79 +892,4 @@ class _MapScreenState extends State<MapScreen> {
       ],
     );
   }
-}
-
-// 클러스터 마커 아이콘 위젯
-class _ClusterMarkerIcon extends StatelessWidget {
-  final int count;
-
-  const _ClusterMarkerIcon({required this.count});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 48.w,
-      height: 48.w,
-      decoration: const BoxDecoration(
-        color: AppColors.gray900,
-        shape: BoxShape.circle,
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        '$count',
-        style: AppTypography.headline1.copyWith(color: AppColors.white),
-      ),
-    );
-  }
-}
-
-class _CurrentLocationPinIcon extends StatelessWidget {
-  const _CurrentLocationPinIcon();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 20,
-      height: 20,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: const Color(0xFF2F80ED),
-        border: Border.all(color: AppColors.white, width: 3),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF2F80ED).withValues(alpha: 0.22),
-            blurRadius: 2,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProgramCluster {
-  final List<ProgramModel> programs;
-
-  _ProgramCluster({required this.programs});
-
-  double get latitude {
-    final total = programs.fold<double>(
-      0,
-      (sum, program) => sum + (program.latitude ?? 0),
-    );
-    return total / programs.length;
-  }
-
-  double get longitude {
-    final total = programs.fold<double>(
-      0,
-      (sum, program) => sum + (program.longitude ?? 0),
-    );
-    return total / programs.length;
-  }
-}
-
-extension _ProgramMapCoordinates on ProgramModel {
-  double? get latitude => double.tryParse(location['latitude'] ?? '');
-
-  double? get longitude => double.tryParse(location['longitude'] ?? '');
 }

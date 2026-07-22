@@ -6,8 +6,10 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/api/token_store.dart';
 import 'package:muntum/components/action_bottom_sheet.dart';
 import 'package:muntum/components/animated_scrap_icon.dart';
+import 'package:muntum/components/button_solid.dart';
 import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
+import 'package:muntum/constants/pre_update.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/cards/horizontal.dart';
@@ -148,25 +150,38 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                 onLeadingTap: () {
                   Navigator.pop(context);
                 },
-                trailing: GestureDetector(
-                  onTap: () => toggleProgramScrap(
-                    context,
-                    program,
-                    entrySource: widget.entrySource,
-                  ),
-                  child: ListenableBuilder(
-                    listenable: ProgramScrapStore.instance,
-                    builder: (context, _) {
-                      final isBookmarked = ProgramScrapStore.instance
-                          .isScrapped(program);
-                      return AnimatedScrapIcon(
-                        isScrapped: isBookmarked,
-                        size: 24,
-                        activeColor: AppColors.primary400,
-                        inactiveColor: const Color(0xff1c1b1f),
-                      );
-                    },
-                  ),
+                trailing: Row(
+                  children: [
+                    //TODO
+                    if (isReadyForPublish)
+                      Padding(
+                        padding: EdgeInsets.only(right: 20.w),
+                        child: SvgPicture.asset(
+                          'assets/icons/share.svg',
+                          width: 24.r,
+                        ),
+                      ),
+                    GestureDetector(
+                      onTap: () => toggleProgramScrap(
+                        context,
+                        program,
+                        entrySource: widget.entrySource,
+                      ),
+                      child: ListenableBuilder(
+                        listenable: ProgramScrapStore.instance,
+                        builder: (context, _) {
+                          final isBookmarked = ProgramScrapStore.instance
+                              .isScrapped(program);
+                          return AnimatedScrapIcon(
+                            isScrapped: isBookmarked,
+                            size: 24,
+                            activeColor: AppColors.primary400,
+                            inactiveColor: const Color(0xff1c1b1f),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ),
               Expanded(
@@ -325,7 +340,7 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                         ),
                         SizedBox(height: 40.h),
                         Column(
-                          spacing: 6.h,
+                          spacing: 8.h,
                           children: [
                             Column(
                               children: [
@@ -410,45 +425,10 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                           ],
                         ),
                         SizedBox(height: 40.h),
-                        Container(
-                          padding: EdgeInsets.all(16.r),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(
-                              AppBorderRadius.radius_8,
-                            ),
-                            color: AppColors.backgroundNormal,
-                          ),
-                          child: GestureDetector(
-                            onTap: _openReportBottomSheet,
-                            behavior: HitTestBehavior.opaque,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  "👀아무도 모르는 나만의 장소가 있다면?",
-                                  style: AppTypography.button3.copyWith(
-                                    color: AppColors.gray700,
-                                  ),
-                                ),
-                                Row(
-                                  children: [
-                                    Text(
-                                      "제보하기",
-                                      style: AppTypography.button3.copyWith(
-                                        color: AppColors.gray900,
-                                      ),
-                                    ),
-                                    SvgPicture.asset(
-                                      'assets/icons/arrow_outward.svg',
-                                      width: 20.w,
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 40.h),
+                        //TODO
+                        if (isReadyForPublish)
+                          Container(child: Text("기록 컨테이너")),
+                        if (isReadyForPublish) SizedBox(height: 40.h),
                         SectionHeader1(
                           text: '지금 주목받는',
                           buttonName: '',
@@ -474,7 +454,11 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                             );
                           },
                         ),
-                        SizedBox(height: 50.h),
+                        SizedBox(height: 40.h),
+                        ReportContainer(
+                          openReportBottomSheet: _openReportBottomSheet,
+                        ),
+                        SizedBox(height: 134.h),
                       ],
                     ),
                   ),
@@ -550,6 +534,43 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
       caseSensitive: false,
     ).firstMatch(value.trim());
     return match?.group(0);
+  }
+}
+
+class ReportContainer extends StatelessWidget {
+  final VoidCallback openReportBottomSheet;
+  const ReportContainer({super.key, required this.openReportBottomSheet});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.all(14.r),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppBorderRadius.radius_10),
+        color: AppColors.gray100,
+      ),
+      child: GestureDetector(
+        onTap: openReportBottomSheet,
+        behavior: HitTestBehavior.opaque,
+        child: Row(
+          children: [
+            SvgPicture.asset('assets/reportIcon.svg'),
+            SizedBox(width: 8.w),
+            Text(
+              "아무도 모르는\n나만의 장소가 있다면?",
+              style: AppTypography.button2.copyWith(color: AppColors.gray900),
+            ),
+            Spacer(),
+            ButtonSolid(
+              padding: EdgeInsets.symmetric(vertical: 7.h, horizontal: 12.w),
+              text: '제보하기',
+              textColor: AppColors.white,
+              boxColor: AppColors.black,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

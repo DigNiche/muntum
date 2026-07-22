@@ -5,9 +5,10 @@ import 'package:muntum/api/api_config.dart';
 import 'package:muntum/data/report_place_search_repository.dart';
 import 'package:muntum/models/program_model.dart';
 import 'package:muntum/models/report_model.dart';
-import 'package:muntum/screens/map/map_radius.dart';
+import 'package:muntum/screens/map/map_clustering.dart';
 import 'package:muntum/screens/mypage/components/report_form_field.dart';
 import 'package:muntum/screens/mypage/report_submit_screen.dart';
+import 'package:muntum/services/program_service.dart';
 import 'package:muntum/stores/program_scrap_store.dart';
 import 'package:muntum/stores/user_preference_store.dart';
 import 'package:muntum/utils/program_keyword_match.dart';
@@ -20,34 +21,52 @@ void main() {
     });
   });
 
-  group('map search radius', () {
-    const centerLatitude = 37.5298;
-    const centerLongitude = 126.9647;
-
-    test('includes a program inside 5km', () {
-      expect(
-        isWithinRadius(
-          centerLatitude: centerLatitude,
-          centerLongitude: centerLongitude,
-          targetLatitude: 37.5235,
-          targetLongitude: 126.9804,
-          radiusMeters: 5000,
-        ),
-        isTrue,
-      );
+  group('map API chip mapping', () {
+    test('maps every map filter to the documented chip value', () {
+      expect(Filter.nowHot.mapApiChip, 'HOT');
+      expect(Filter.free.mapApiChip, 'FREE');
+      expect(Filter.thisWeek.mapApiChip, 'THIS_WEEK');
+      expect(Filter.noReservation.mapApiChip, 'NO_RESERVATION');
+      expect(Filter.exhibition.mapApiChip, 'EXHIBITION');
+      expect(Filter.show.mapApiChip, 'PERFORMANCE');
+      expect(Filter.experience.mapApiChip, 'CLASS_EXPERIENCE');
+      expect(Filter.festival.mapApiChip, 'FAIR');
     });
+  });
 
-    test('excludes a program outside 5km', () {
-      expect(
-        isWithinRadius(
-          centerLatitude: centerLatitude,
-          centerLongitude: centerLongitude,
-          targetLatitude: 37.5665,
-          targetLongitude: 126.9780,
-          radiusMeters: 2500,
-        ),
-        isFalse,
+  group('map clustering', () {
+    test('spiderfies programs sharing the same coordinates', () {
+      final controller = MapClusteringController();
+      final programs = [
+        _program(id: 'same-place-1', title: '같은 장소 프로그램 1'),
+        _program(id: 'same-place-2', title: '같은 장소 프로그램 2'),
+      ];
+      String keyFor(ProgramModel program) => program.id;
+
+      final clustered = controller.clusterPrograms(
+        programs,
+        18,
+        keyFor: keyFor,
       );
+      expect(clustered, hasLength(1));
+      expect(clustered.single.programs, hasLength(2));
+      expect(controller.shouldSpiderfy(programs), isTrue);
+
+      controller.spiderfyPrograms(programs, keyFor: keyFor);
+      final spiderfied = controller.clusterPrograms(
+        programs,
+        18.05,
+        keyFor: keyFor,
+      );
+      final positions = controller.spiderfiedMarkerPositions(
+        spiderfied,
+        18.05,
+        keyFor: keyFor,
+      );
+
+      expect(spiderfied, hasLength(2));
+      expect(positions, hasLength(2));
+      expect(positions['same-place-1'], isNot(positions['same-place-2']));
     });
   });
 

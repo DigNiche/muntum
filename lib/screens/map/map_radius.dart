@@ -13,19 +13,3 @@ double distanceBetweenMeters({
     targetLongitude,
   );
 }
-
-bool isWithinRadius({
-  required double centerLatitude,
-  required double centerLongitude,
-  required double targetLatitude,
-  required double targetLongitude,
-  required double radiusMeters,
-}) {
-  return distanceBetweenMeters(
-        centerLatitude: centerLatitude,
-        centerLongitude: centerLongitude,
-        targetLatitude: targetLatitude,
-        targetLongitude: targetLongitude,
-      ) <=
-      radiusMeters;
-}
