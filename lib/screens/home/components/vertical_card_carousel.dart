@@ -22,21 +22,23 @@ class _VerticalCardCarouselState extends State<VerticalCardCarousel> {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 343.h,
-      child: ListView.separated(
+    return Padding(
+      padding: EdgeInsets.only(bottom: 48.h),
+      child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        itemCount: widget.programs.length,
-        separatorBuilder: (_, _) => SizedBox(width: 12.w),
-        itemBuilder: (context, index) {
-          return SizedBox(
-            width: 160.w,
-            child: VerticalCard(
-              program: widget.programs[index],
-              entrySource: widget.entrySource,
-            ),
-          );
-        },
+        padding: EdgeInsets.symmetric(horizontal: 20.w),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: 12.w,
+          children: widget.programs
+              .map(
+                (program) => VerticalCard(
+                  program: program,
+                  entrySource: widget.entrySource,
+                ),
+              )
+              .toList(),
+        ),
       ),
     );
   }

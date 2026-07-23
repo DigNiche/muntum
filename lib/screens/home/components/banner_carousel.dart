@@ -51,53 +51,56 @@ class _BannerCarouselState extends State<BannerCarousel> {
       return const SizedBox.shrink();
     }
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(8.r),
-      child: SizedBox(
-        height: 467.h,
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: PageView.builder(
-                controller: _pageController,
-                onPageChanged: (index) {
-                  setState(() {
-                    currentIndex = index % widget.programs.length;
-                  });
-                },
-                itemBuilder: (context, index) {
-                  return BannerCard(
-                    program: widget.programs[index % widget.programs.length],
-                    entrySource: widget.entrySource,
-                  );
-                },
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 20.0.w),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8.r),
+        child: SizedBox(
+          height: 467.h,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: PageView.builder(
+                  controller: _pageController,
+                  onPageChanged: (index) {
+                    setState(() {
+                      currentIndex = index % widget.programs.length;
+                    });
+                  },
+                  itemBuilder: (context, index) {
+                    return BannerCard(
+                      program: widget.programs[index % widget.programs.length],
+                      entrySource: widget.entrySource,
+                    );
+                  },
+                ),
               ),
-            ),
-            Positioned(
-              left: 20.w,
-              bottom: 20.h,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: List.generate(widget.programs.length, (index) {
-                  final isActive = index == currentIndex;
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    width: 6.r,
-                    height: 6.r,
-                    margin: EdgeInsets.only(
-                      right: index == widget.programs.length - 1 ? 0 : 4.w,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isActive
-                          ? AppColors.white
-                          : AppColors.white.withValues(alpha: 0.35),
-                      shape: BoxShape.circle,
-                    ),
-                  );
-                }),
+              Positioned(
+                left: 20.w,
+                bottom: 20.h,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: List.generate(widget.programs.length, (index) {
+                    final isActive = index == currentIndex;
+                    return AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      width: 6.r,
+                      height: 6.r,
+                      margin: EdgeInsets.only(
+                        right: index == widget.programs.length - 1 ? 0 : 4.w,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isActive
+                            ? AppColors.white
+                            : AppColors.white.withValues(alpha: 0.35),
+                        shape: BoxShape.circle,
+                      ),
+                    );
+                  }),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -1,26 +1,25 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/api/token_store.dart';
 import 'package:muntum/components/action_bottom_sheet.dart';
-import 'package:muntum/components/animated_scrap_icon.dart';
-import 'package:muntum/components/button_solid.dart';
-import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/pre_update.dart';
 import 'package:muntum/constants/typography.dart';
-import 'package:muntum/components/appbar.dart';
-import 'package:muntum/components/cards/horizontal.dart';
-import 'package:muntum/components/label.dart';
 import 'package:muntum/models/program_model.dart';
-import 'package:muntum/screens/home/components/section_header.dart';
 import 'package:muntum/screens/mypage/report_submit_screen.dart';
-import 'package:muntum/services/program_service.dart';
+import 'package:muntum/screens/program_detail/components/program_attendance_prompt.dart';
+import 'package:muntum/screens/program_detail/components/program_detail_app_bar.dart';
+import 'package:muntum/screens/program_detail/components/program_detail_markdown_body.dart';
+import 'package:muntum/screens/program_detail/components/program_header.dart';
+import 'package:muntum/screens/program_detail/components/program_information_section.dart';
+import 'package:muntum/screens/program_detail/components/program_poster_carousel.dart';
+import 'package:muntum/screens/program_detail/components/recommended_programs_section.dart';
+import 'package:muntum/screens/program_detail/components/report_container.dart';
 import 'package:muntum/services/analytics_service.dart';
+import 'package:muntum/services/program_service.dart';
 import 'package:muntum/stores/program_scrap_store.dart';
-import 'package:muntum/utils/program_scrap.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ProgramDetailScreen extends StatefulWidget {
@@ -38,11 +37,8 @@ class ProgramDetailScreen extends StatefulWidget {
 }
 
 class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
-  final PageController _posterController = PageController(initialPage: 1);
   late Future<ProgramModel> _programFuture;
   late Future<List<ProgramModel>> _recommendedFuture;
-  int _currentPosterIndex = 0;
-  int? _pendingPosterJumpPage;
 
   @override
   void initState() {
@@ -126,12 +122,6 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
   }
 
   @override
-  void dispose() {
-    _posterController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -144,45 +134,10 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(height: 50.h),
-              AppBarWidget(
-                centerType: AppBarCenterType.none,
-                leadingIcon: 'arrow_left.svg',
-                onLeadingTap: () {
-                  Navigator.pop(context);
-                },
-                trailing: Row(
-                  children: [
-                    //TODO
-                    if (isReadyForPublish)
-                      Padding(
-                        padding: EdgeInsets.only(right: 20.w),
-                        child: SvgPicture.asset(
-                          'assets/icons/share.svg',
-                          width: 24.r,
-                        ),
-                      ),
-                    GestureDetector(
-                      onTap: () => toggleProgramScrap(
-                        context,
-                        program,
-                        entrySource: widget.entrySource,
-                      ),
-                      child: ListenableBuilder(
-                        listenable: ProgramScrapStore.instance,
-                        builder: (context, _) {
-                          final isBookmarked = ProgramScrapStore.instance
-                              .isScrapped(program);
-                          return AnimatedScrapIcon(
-                            isScrapped: isBookmarked,
-                            size: 24,
-                            activeColor: AppColors.primary400,
-                            inactiveColor: const Color(0xff1c1b1f),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
+              ProgramDetailAppBar(
+                program: program,
+                entrySource: widget.entrySource,
+                onBack: () => Navigator.pop(context),
               ),
               Expanded(
                 child: SingleChildScrollView(
@@ -192,130 +147,10 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         SizedBox(height: 10.h),
-                        Text(program.title, style: AppTypography.title1),
-                        SizedBox(height: 10.h),
-                        Text(
-                          program.locationName,
-                          style: AppTypography.button2.copyWith(
-                            color: AppColors.gray600,
-                          ),
-                        ),
-                        Text(
-                          program.detailDateText,
-                          style: AppTypography.button2.copyWith(
-                            color: AppColors.gray600,
-                          ),
-                        ),
-                        SizedBox(height: 20.h),
-                        Wrap(
-                          spacing: 6.w,
-                          runSpacing: 8.h,
-                          children: program.keywords
-                              .take(3)
-                              .map(
-                                (keyword) => Label(
-                                  labelType: LabelType.keyword,
-                                  text: keyword,
-                                ),
-                              )
-                              .toList(),
-                        ),
-                        SizedBox(height: 16.h),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(
-                            AppBorderRadius.radius_10,
-                          ),
-                          child: SizedBox(
-                            width: 350.w,
-                            height: 467.h,
-                            child: NotificationListener<ScrollEndNotification>(
-                              onNotification: (_) {
-                                final jumpPage = _pendingPosterJumpPage;
-                                if (jumpPage == null) return false;
-                                _pendingPosterJumpPage = null;
-                                WidgetsBinding.instance.addPostFrameCallback((
-                                  _,
-                                ) {
-                                  if (_posterController.hasClients) {
-                                    _posterController.jumpToPage(jumpPage);
-                                  }
-                                });
-                                return false;
-                              },
-                              child: PageView.builder(
-                                controller: _posterController,
-                                physics: program.images.length <= 1
-                                    ? const NeverScrollableScrollPhysics()
-                                    : const PageScrollPhysics(),
-                                itemCount: program.images.length > 1
-                                    ? program.images.length + 2
-                                    : 3,
-                                onPageChanged: (index) {
-                                  final imageCount = program.images.length;
-                                  final actualIndex = imageCount <= 1
-                                      ? 0
-                                      : index == 0
-                                      ? imageCount - 1
-                                      : index == imageCount + 1
-                                      ? 0
-                                      : index - 1;
-                                  setState(() {
-                                    _currentPosterIndex = actualIndex;
-                                  });
-                                  _pendingPosterJumpPage = imageCount > 1
-                                      ? index == 0
-                                            ? imageCount
-                                            : index == imageCount + 1
-                                            ? 1
-                                            : null
-                                      : null;
-                                },
-                                itemBuilder: (context, index) {
-                                  if (program.images.isEmpty) {
-                                    return const ColoredBox(
-                                      color: Color(0xff9DB6BE),
-                                    );
-                                  }
-                                  if (program.images.length == 1) {
-                                    return program.images.first;
-                                  }
-                                  final imageIndex = index == 0
-                                      ? program.images.length - 1
-                                      : index == program.images.length + 1
-                                      ? 0
-                                      : index - 1;
-                                  return program.images[imageIndex];
-                                },
-                              ),
-                            ),
-                          ),
-                        ),
+                        ProgramHeader(program: program),
                         SizedBox(height: 16.h),
                         Center(
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: List.generate(
-                              program.images.isEmpty
-                                  ? 1
-                                  : program.images.length,
-                              (index) {
-                                final isSelected = _currentPosterIndex == index;
-                                return AnimatedContainer(
-                                  duration: const Duration(milliseconds: 180),
-                                  curve: Curves.easeInOut,
-                                  margin: EdgeInsets.symmetric(horizontal: 3.w),
-                                  width: 7.w,
-                                  height: 7.w,
-                                  decoration: BoxDecoration(
-                                    color: isSelected
-                                        ? AppColors.black
-                                        : AppColors.gray300,
-                                    shape: BoxShape.circle,
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
+                          child: ProgramPosterCarousel(images: program.images),
                         ),
                         SizedBox(height: 40.h),
                         Text(
@@ -339,120 +174,27 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                           },
                         ),
                         SizedBox(height: 40.h),
-                        Column(
-                          spacing: 6.h,
-                          children: [
-                            Column(
-                              children: [
-                                Row(
-                                  spacing: 60.w,
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      "위치",
-                                      style: AppTypography.button2.copyWith(
-                                        color: AppColors.gray900,
-                                      ),
-                                    ),
-                                    Text(
-                                      program.locationName,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: AppTypography.body1.copyWith(
-                                        color: AppColors.gray900,
-                                      ),
-                                    ),
-                                  ],
+                        ProgramInformationSection(
+                          program: program,
+                          onTapContact: (value) =>
+                              _launchRelatedInfo(program, value),
+                          onTapWebsite: program.link.isEmpty
+                              ? null
+                              : () => _launchExternalUrl(
+                                  program,
+                                  program.link,
+                                  linkType: 'website',
                                 ),
-                                SizedBox(height: 2.h),
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    SizedBox(width: 85.w),
-                                    SvgPicture.asset(
-                                      'assets/icons/location-filled.svg',
-                                      width: 16.w,
-                                      colorFilter: const ColorFilter.mode(
-                                        AppColors.gray400,
-                                        BlendMode.srcIn,
-                                      ),
-                                    ),
-                                    SizedBox(width: 2.w),
-                                    Expanded(
-                                      child: Text(
-                                        program.location['address'] ?? '',
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: AppTypography.body3.copyWith(
-                                          color: AppColors.gray600,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            ProgramDescription(
-                              title: '기간',
-                              body: program.detailDateText,
-                            ),
-                            ProgramDescription(
-                              title: '시간',
-                              body: program.availableTime,
-                            ),
-                            ProgramDescription(title: '가격', body: program.cost),
-                            ProgramDescription(
-                              title: '사전예약',
-                              body: program.isReservationNeeded ? '필요' : '불필요',
-                            ),
-                            ProgramRelatedInfoDescription(
-                              title: '관련정보',
-                              body: program.phoneNumber,
-                              onTapContact: (value) =>
-                                  _launchRelatedInfo(program, value),
-                            ),
-                            ProgramDescription(
-                              title: '링크',
-                              body: program.link.isEmpty ? '' : '바로가기',
-                              onTap: program.link.isEmpty
-                                  ? null
-                                  : () => _launchExternalUrl(
-                                      program,
-                                      program.link,
-                                      linkType: 'website',
-                                    ),
-                            ),
-                          ],
                         ),
                         SizedBox(height: 40.h),
-                        //TODO
+                        // TODO: 방문 기록 기능이 준비되면 노출한다.
                         if (isReadyForPublish)
-                          Container(child: Text("기록 컨테이너")),
-                        if (isReadyForPublish) SizedBox(height: 40.h),
-                        SectionHeader1(
-                          text: '지금 주목받는',
-                          buttonName: '',
-                          onButtonTap: () {},
-                        ),
-                        SizedBox(height: 8.h),
-                        FutureBuilder<List<ProgramModel>>(
-                          future: _recommendedFuture,
-                          builder: (context, snapshot) {
-                            final recommendedPrograms =
-                                snapshot.data ?? const <ProgramModel>[];
-                            return ListView.separated(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              padding: EdgeInsets.zero,
-                              itemBuilder: (context, index) => HorizontalCard(
-                                program: recommendedPrograms[index],
-                                entrySource: 'detail_recommendation',
-                              ),
-                              separatorBuilder: (context, index) =>
-                                  SizedBox(height: 12.h),
-                              itemCount: recommendedPrograms.length,
-                            );
-                          },
+                          Padding(
+                            padding: EdgeInsets.only(bottom: 40.h),
+                            child: const ProgramAttendancePrompt(),
+                          ),
+                        RecommendedProgramsSection(
+                          programsFuture: _recommendedFuture,
                         ),
                         SizedBox(height: 40.h),
                         ReportContainer(
@@ -534,247 +276,5 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
       caseSensitive: false,
     ).firstMatch(value.trim());
     return match?.group(0);
-  }
-}
-
-class ReportContainer extends StatelessWidget {
-  final VoidCallback openReportBottomSheet;
-  const ReportContainer({super.key, required this.openReportBottomSheet});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(14.r),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppBorderRadius.radius_10),
-        color: AppColors.gray100,
-      ),
-      child: GestureDetector(
-        onTap: openReportBottomSheet,
-        behavior: HitTestBehavior.opaque,
-        child: Row(
-          children: [
-            SvgPicture.asset('assets/reportIcon.svg'),
-            SizedBox(width: 8.w),
-            Text(
-              "아무도 모르는\n나만의 장소가 있다면?",
-              style: AppTypography.button2.copyWith(color: AppColors.gray900),
-            ),
-            Spacer(),
-            ButtonSolid(
-              padding: EdgeInsets.symmetric(vertical: 7.h, horizontal: 12.w),
-              text: '제보하기',
-              textColor: AppColors.white,
-              boxColor: AppColors.black,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class ProgramDetailMarkdownBody extends StatelessWidget {
-  final String markdown;
-  final ValueChanged<String> onTapLink;
-
-  const ProgramDetailMarkdownBody({
-    super.key,
-    required this.markdown,
-    required this.onTapLink,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    // developer.log(markdown);
-    final normalizedMarkdown = markdown.replaceAll(
-      RegExp(r'\n\s*---\s*\n'),
-      '\n\n',
-    );
-    final fixedMarkdown = fixCjkEmphasis(normalizedMarkdown);
-    final pointTitleMatch = RegExp(
-      r'(^|\n).*프로그램 포인트.*',
-      multiLine: true,
-    ).firstMatch(fixedMarkdown);
-    final styleSheet = _styleSheet(context);
-
-    if (pointTitleMatch == null || pointTitleMatch.start <= 0) {
-      return _buildMarkdown(fixedMarkdown, styleSheet);
-    }
-
-    final afterStart = fixedMarkdown.codeUnitAt(pointTitleMatch.start) == 10
-        ? pointTitleMatch.start + 1
-        : pointTitleMatch.start;
-    final before = fixedMarkdown.substring(0, afterStart).trimRight();
-    final after = fixedMarkdown.substring(afterStart).trimLeft();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (before.isNotEmpty) _buildMarkdown(before, styleSheet),
-        SizedBox(height: 28.h),
-        _buildMarkdown(after, styleSheet),
-      ],
-    );
-  }
-
-  MarkdownBody _buildMarkdown(String data, MarkdownStyleSheet styleSheet) {
-    return MarkdownBody(
-      data: data,
-      selectable: true,
-      onTapLink: (text, href, title) {
-        onTapLink(href ?? '');
-      },
-      styleSheet: styleSheet,
-    );
-  }
-
-  MarkdownStyleSheet _styleSheet(BuildContext context) {
-    return MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-      p: AppTypography.body1.copyWith(color: AppColors.gray900),
-      strong: AppTypography.body1.copyWith(
-        color: AppColors.gray900,
-        fontWeight: FontWeight.w700,
-      ),
-      listBullet: AppTypography.body1.copyWith(color: AppColors.gray900),
-      h1: AppTypography.title1.copyWith(color: AppColors.gray900),
-      h2: AppTypography.title3.copyWith(color: AppColors.gray900),
-      h3: AppTypography.title4.copyWith(color: AppColors.gray900),
-      a: AppTypography.body1.copyWith(decoration: TextDecoration.underline),
-    );
-  }
-}
-
-String fixCjkEmphasis(String md) {
-  return md
-      .replaceAllMapped(
-        RegExp(r'([\p{P}\p{S}])\*\*(?=[가-힣])', unicode: true),
-        (match) => '${match.group(1)}**\u200B',
-      )
-      .replaceAllMapped(
-        RegExp(r'([가-힣])\*\*([\p{P}\p{S}])', unicode: true),
-        (match) => '${match.group(1)}\u200B**${match.group(2)}',
-      );
-}
-
-class ProgramDescription extends StatelessWidget {
-  final String title;
-  final String body;
-  final VoidCallback? onTap;
-  const ProgramDescription({
-    super.key,
-    required this.title,
-    required this.body,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final displayBody = body.trim().isEmpty ? '정보 없음' : body.trim();
-    final bodyStyle = AppTypography.body1.copyWith(
-      color: AppColors.gray900,
-      decoration: onTap == null ? null : TextDecoration.underline,
-    );
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        SizedBox(
-          width: 70.w,
-          child: Text(
-            title,
-            style: AppTypography.button2.copyWith(color: AppColors.gray900),
-          ),
-        ),
-        SizedBox(width: 20.w),
-        Expanded(
-          child: GestureDetector(
-            onTap: onTap,
-            behavior: HitTestBehavior.opaque,
-            child: Text(displayBody, style: bodyStyle, softWrap: true),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class ProgramRelatedInfoDescription extends StatelessWidget {
-  final String title;
-  final String body;
-  final ValueChanged<String> onTapContact;
-
-  const ProgramRelatedInfoDescription({
-    super.key,
-    required this.title,
-    required this.body,
-    required this.onTapContact,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final contacts = _splitContacts(body);
-
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 4.h),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          SizedBox(
-            width: 70.w,
-            child: Text(
-              title,
-              style: AppTypography.button2.copyWith(color: AppColors.gray900),
-            ),
-          ),
-          SizedBox(width: 20.w),
-          Expanded(
-            child: contacts.isEmpty
-                ? Text(
-                    '정보 없음',
-                    style: AppTypography.body1.copyWith(
-                      color: AppColors.gray900,
-                    ),
-                  )
-                : Wrap(
-                    spacing: 4.w,
-                    runSpacing: 4.h,
-                    children: [
-                      for (var i = 0; i < contacts.length; i++) ...[
-                        GestureDetector(
-                          onTap: () => onTapContact(contacts[i]),
-                          behavior: HitTestBehavior.opaque,
-                          child: Text(
-                            contacts[i],
-                            style: AppTypography.body1.copyWith(
-                              color: AppColors.gray900,
-                              decoration: TextDecoration.underline,
-                            ),
-                          ),
-                        ),
-                        if (i != contacts.length - 1)
-                          Text(
-                            '/',
-                            style: AppTypography.body1.copyWith(
-                              color: AppColors.gray900,
-                            ),
-                          ),
-                      ],
-                    ],
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  List<String> _splitContacts(String value) {
-    final normalized = value.trim();
-    if (normalized.isEmpty) return const [];
-    return normalized
-        .split(RegExp(r'\s*(?:/|,|;|\n)\s*'))
-        .map((contact) => contact.trim())
-        .where((contact) => contact.isNotEmpty)
-        .toList();
   }
 }

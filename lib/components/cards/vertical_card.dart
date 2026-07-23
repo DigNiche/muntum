@@ -128,7 +128,6 @@ class VerticalCard extends StatelessWidget {
               program.cardDateText,
               style: AppTypography.caption1.copyWith(color: AppColors.gray700),
             ),
-            SizedBox(height: 2.0.h),
           ],
         ),
       ),

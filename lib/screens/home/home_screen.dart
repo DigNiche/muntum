@@ -530,69 +530,65 @@ class _EntirePageState extends State<EntirePage> {
         if (data == null) {
           return const SizedBox.shrink();
         }
-        return Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20.w),
-          child: ListView(
-            padding: EdgeInsets.zero,
-            children: [
-              SizedBox(height: 10.h),
-              BannerCarousel(programs: data.banners, entrySource: 'all_banner'),
-              SizedBox(height: 48.h),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SectionHeader1(
-                    text: '모아보기',
-                    buttonName: '전체보기',
-                    onButtonTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const SeeMoreScreen(
-                            type: SeeMoreType.allPrograms,
-                          ),
+        return ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            SizedBox(height: 10.h),
+            BannerCarousel(programs: data.banners, entrySource: 'all_banner'),
+            SizedBox(height: 48.h),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SectionHeader1(
+                  text: '모아보기',
+                  buttonName: '전체보기',
+                  onButtonTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            const SeeMoreScreen(type: SeeMoreType.allPrograms),
+                      ),
+                    );
+                  },
+                ),
+                SizedBox(height: 8.h),
+                VerticalCardCarousel(
+                  programs: data.all,
+                  entrySource: 'all_collection',
+                ),
+                SectionHeader1(
+                  text: '지금 주목받는',
+                  buttonName: '',
+                  onButtonTap: () {},
+                ),
+                SizedBox(height: 8.h),
+                VerticalCardCarousel(
+                  programs: data.hot,
+                  entrySource: 'all_hot',
+                ),
+                SectionHeader1(
+                  text: '이번달에 끝나는',
+                  buttonName: '전체보기',
+                  onButtonTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const SeeMoreScreen(
+                          type: SeeMoreType.endingThisMonth,
                         ),
-                      );
-                    },
-                  ),
-                  SizedBox(height: 8.h),
-                  VerticalCardCarousel(
-                    programs: data.all,
-                    entrySource: 'all_collection',
-                  ),
-                  SectionHeader1(
-                    text: '지금 주목받는',
-                    buttonName: '',
-                    onButtonTap: () {},
-                  ),
-                  SizedBox(height: 8.h),
-                  VerticalCardCarousel(
-                    programs: data.hot,
-                    entrySource: 'all_hot',
-                  ),
-                  SectionHeader1(
-                    text: '이번달에 끝나는',
-                    buttonName: '전체보기',
-                    onButtonTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const SeeMoreScreen(
-                            type: SeeMoreType.endingThisMonth,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  SizedBox(height: 8.h),
-                  VerticalCardCarousel(
-                    programs: data.closingSoon,
-                    entrySource: 'all_closing_soon',
-                  ),
-                ],
-              ),
-            ],
-          ),
+                      ),
+                    );
+                  },
+                ),
+                SizedBox(height: 8.h),
+                VerticalCardCarousel(
+                  programs: data.closingSoon,
+                  entrySource: 'all_closing_soon',
+                ),
+              ],
+            ),
+          ],
         );
       },
     );

@@ -17,7 +17,6 @@ class _WentToScreenState extends State<WentToScreen> {
     return Scaffold(
       backgroundColor: AppColors.white,
       body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(height: 50.h),
           AppBarWidget(
@@ -29,10 +28,15 @@ class _WentToScreenState extends State<WentToScreen> {
           ),
           Padding(
             padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 10.h),
-            child: Text(
-              "다녀온\n프로그램 기록",
-              textAlign: TextAlign.left,
-              style: AppTypography.title3,
+            child: Row(
+              children: [
+                Text(
+                  "다녀온\n프로그램 기록",
+                  textAlign: TextAlign.left,
+                  style: AppTypography.title3,
+                ),
+                Spacer(),
+              ],
             ),
           ),
         ],
