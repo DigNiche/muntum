@@ -18,7 +18,7 @@ void showAppToast(
         behavior: SnackBarBehavior.floating,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        margin: EdgeInsets.fromLTRB(32.w, 0, 32.w, 34.h),
+        margin: EdgeInsets.fromLTRB(20.w, 0, 20.w, 20.h),
         padding: EdgeInsets.zero,
         duration: const Duration(seconds: 2),
         content: Container(

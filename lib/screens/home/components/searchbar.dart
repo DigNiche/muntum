@@ -96,7 +96,7 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
                   height: 24.h,
                   child: SvgPicture.asset(
                     'assets/icons/search.svg',
-                    color: AppColors.gray500,
+                    color: AppColors.gray900,
                     width: 18.w,
                     height: 18.h,
                   ),
@@ -131,23 +131,26 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
                                       widget.onClear?.call();
                                       _focusNode.unfocus();
                                     },
-                                    child: Container(
-                                      width: 20.r,
-                                      height: 20.r,
-                                      padding: EdgeInsets.all(1.r),
-                                      decoration: const BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: AppColors.gray400,
-                                      ),
-                                      child: SvgPicture.asset(
-                                        'assets/icons/close.svg',
-                                        color: AppColors.white,
+                                    child: Padding(
+                                      padding: EdgeInsets.only(right: 12.w),
+                                      child: Container(
+                                        width: 16.r,
+                                        height: 16.r,
+                                        padding: EdgeInsets.all(1.r),
+                                        decoration: const BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: AppColors.gray400,
+                                        ),
+                                        child: SvgPicture.asset(
+                                          'assets/icons/close.svg',
+                                          color: AppColors.white,
+                                        ),
                                       ),
                                     ),
                                   ),
                             suffixIconConstraints: BoxConstraints(
-                              minWidth: 32.w,
-                              minHeight: 48.h,
+                              minHeight: 16.r,
+                              minWidth: 16.r,
                             ),
                             border: InputBorder.none,
                           ),

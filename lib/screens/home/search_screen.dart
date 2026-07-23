@@ -544,7 +544,7 @@ class _SearchScreenState extends State<SearchScreen> {
               ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                padding: EdgeInsets.zero,
+                padding: EdgeInsets.symmetric(horizontal: 20.w),
                 itemBuilder: (context, index) {
                   return GestureDetector(
                     onTap: () {

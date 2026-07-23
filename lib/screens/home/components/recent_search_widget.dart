@@ -17,7 +17,7 @@ class RecentSearchWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(vertical: 8.h, horizontal: 20.w),
+      padding: EdgeInsets.symmetric(vertical: 8.h),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -27,11 +27,14 @@ class RecentSearchWidget extends StatelessWidget {
           ),
           GestureDetector(
             onTap: onDelete,
-            child: SvgPicture.asset(
-              'assets/icons/close.svg',
-              width: 24.w,
-              height: 24.h,
-              color: AppColors.gray500,
+            child: Container(
+              padding: EdgeInsets.all(3.5.r),
+              width: 24.r,
+              height: 24.r,
+              child: SvgPicture.asset(
+                'assets/icons/close.svg',
+                color: AppColors.gray500,
+              ),
             ),
           ),
         ],

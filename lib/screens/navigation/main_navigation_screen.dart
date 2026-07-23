@@ -12,6 +12,7 @@ import 'package:muntum/screens/map/map_screen.dart';
 import 'package:muntum/screens/mypage/profile_screen.dart';
 import 'package:muntum/screens/mypage/report_detail_screen.dart';
 import 'package:muntum/screens/mypage/reportlist_screen.dart';
+import 'package:muntum/utils/app_toast.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class MainNavigationScreen extends StatefulWidget {

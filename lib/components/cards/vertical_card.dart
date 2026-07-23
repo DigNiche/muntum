@@ -76,8 +76,10 @@ class VerticalCard extends StatelessWidget {
                     ),
                   ),
                 ),
+                // 스크랩 아이콘
                 Positioned(
-                  right: 0,
+                  right: 8.w,
+                  top: 10.h,
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: () => toggleProgramScrap(
@@ -90,20 +92,14 @@ class VerticalCard extends StatelessWidget {
                       builder: (context, _) {
                         final isBookmarked = ProgramScrapStore.instance
                             .isScrapped(program);
-                        return Container(
-                          padding: EdgeInsets.symmetric(
-                            vertical: 15.h,
-                            horizontal: 15.w,
-                          ),
-                          child: SizedBox(
-                            width: 24.w,
-                            height: 24.h,
-                            child: AnimatedScrapIcon(
-                              isScrapped: isBookmarked,
-                              size: 24,
-                              activeColor: AppColors.primary400,
-                              inactiveColor: AppColors.white,
-                            ),
+                        return SizedBox(
+                          width: 24.w,
+                          height: 24.h,
+                          child: AnimatedScrapIcon(
+                            isScrapped: isBookmarked,
+                            size: 24,
+                            activeColor: AppColors.primary400,
+                            inactiveColor: AppColors.white,
                           ),
                         );
                       },
