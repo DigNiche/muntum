@@ -794,6 +794,7 @@ class _MapScreenState extends State<MapScreen> {
             ),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
+              clipBehavior: Clip.none,
               padding: EdgeInsets.symmetric(horizontal: 20.w),
               child: Row(
                 spacing: 6.w,

@@ -35,7 +35,7 @@ class SectionHeader1 extends StatelessWidget {
             onTap: onButtonTap,
             child: Text(
               buttonName,
-              style: AppTypography.caption1.copyWith(color: AppColors.gray500),
+              style: AppTypography.button3.copyWith(color: AppColors.gray500),
             ),
           ),
         ],

@@ -55,13 +55,16 @@ class _LocationDescription extends StatelessWidget {
     return Column(
       children: [
         Row(
-          spacing: 60.w,
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            Text(
-              '위치',
-              style: AppTypography.button2.copyWith(color: AppColors.gray900),
+            SizedBox(
+              width: 70.w,
+              child: Text(
+                '위치',
+                style: AppTypography.button2.copyWith(color: AppColors.gray900),
+              ),
             ),
+            SizedBox(width: 20.w),
             Text(
               program.locationName,
               maxLines: 1,
@@ -74,7 +77,7 @@ class _LocationDescription extends StatelessWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            SizedBox(width: 85.w),
+            SizedBox(width: 90.w),
             SvgPicture.asset(
               'assets/icons/location-filled.svg',
               width: 16.w,
