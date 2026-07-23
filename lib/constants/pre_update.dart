@@ -1,1 +1,1 @@
-bool isReadyForPublish = false;
+bool isReadyForPublish = true;

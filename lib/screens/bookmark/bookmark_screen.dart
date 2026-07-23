@@ -218,7 +218,6 @@ class _BookmarkGrid extends StatelessWidget {
                 return VerticalCard(
                   program: program,
                   entrySource: 'scrap',
-                  titleMaxLines: 2,
                   width:
                       ((MediaQuery.of(context).size.width - 40.w - 14.w) / 2),
                 );

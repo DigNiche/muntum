@@ -43,7 +43,7 @@ class FilterChipWidget extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppBorderRadius.radius_8),
               border: outlineColor == null
                   ? null
-                  : Border.all(color: outlineColor!),
+                  : Border.all(color: outlineColor!, width: 1.sp),
             ),
       child: Text(
         text,
@@ -54,10 +54,6 @@ class FilterChipWidget extends StatelessWidget {
     if (!shouldShowShadow) {
       return chip;
     }
-
-    return Padding(
-      padding: EdgeInsets.fromLTRB(2.w, 2.h, 2.w, 10.h),
-      child: chip,
-    );
+    return chip;
   }
 }

@@ -12,14 +12,12 @@ import 'package:muntum/utils/program_scrap.dart';
 class VerticalCard extends StatelessWidget {
   final ProgramModel program;
   final double? width;
-  final int titleMaxLines;
   final String entrySource;
 
   const VerticalCard({
     super.key,
     required this.program,
     this.width,
-    this.titleMaxLines = 1,
     this.entrySource = 'unknown',
   });
 
@@ -113,7 +111,7 @@ class VerticalCard extends StatelessWidget {
               padding: EdgeInsets.symmetric(vertical: 4.0.r),
               child: Text(
                 program.title,
-                maxLines: titleMaxLines,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: AppTypography.headline1.copyWith(
                   color: AppColors.gray900,

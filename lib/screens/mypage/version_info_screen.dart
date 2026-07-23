@@ -36,10 +36,10 @@ class VersionInfoScreen extends StatelessWidget {
                   : '${packageInfo.version} (${packageInfo.buildNumber})';
 
               return Padding(
-                padding: EdgeInsets.fromLTRB(20.w, 48.h, 20.w, 0),
+                padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 0),
                 child: Container(
                   width: double.infinity,
-                  padding: EdgeInsets.only(bottom: 18.h),
+                  padding: EdgeInsets.symmetric(vertical: 16.h),
                   decoration: const BoxDecoration(
                     border: Border(
                       bottom: BorderSide(color: AppColors.lineStrong, width: 1),

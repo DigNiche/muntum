@@ -340,7 +340,7 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                         ),
                         SizedBox(height: 40.h),
                         Column(
-                          spacing: 8.h,
+                          spacing: 6.h,
                           children: [
                             Column(
                               children: [
@@ -676,28 +676,25 @@ class ProgramDescription extends StatelessWidget {
       decoration: onTap == null ? null : TextDecoration.underline,
     );
 
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 4.0.h),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          SizedBox(
-            width: 70.w,
-            child: Text(
-              title,
-              style: AppTypography.button2.copyWith(color: AppColors.gray900),
-            ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        SizedBox(
+          width: 70.w,
+          child: Text(
+            title,
+            style: AppTypography.button2.copyWith(color: AppColors.gray900),
           ),
-          SizedBox(width: 20.w),
-          Expanded(
-            child: GestureDetector(
-              onTap: onTap,
-              behavior: HitTestBehavior.opaque,
-              child: Text(displayBody, style: bodyStyle, softWrap: true),
-            ),
+        ),
+        SizedBox(width: 20.w),
+        Expanded(
+          child: GestureDetector(
+            onTap: onTap,
+            behavior: HitTestBehavior.opaque,
+            child: Text(displayBody, style: bodyStyle, softWrap: true),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

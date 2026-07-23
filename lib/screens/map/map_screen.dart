@@ -212,7 +212,7 @@ class _MapScreenState extends State<MapScreen> {
         text: text,
         textColor: isSelected ? AppColors.white : AppColors.gray800,
         backgroundColor: isSelected ? AppColors.gray900 : AppColors.white,
-        outlineColor: isSelected ? AppColors.gray900 : AppColors.lineNormal,
+        outlineColor: isSelected ? AppColors.gray900 : Colors.transparent,
       ),
     );
   }
