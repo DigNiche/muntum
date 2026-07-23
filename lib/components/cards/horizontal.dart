@@ -69,7 +69,11 @@ class HorizontalCard extends StatelessWidget {
                         entrySource: entrySource,
                       ),
                       child: Padding(
-                        padding: EdgeInsets.all(4.r),
+                        padding: EdgeInsets.only(
+                          top: 4.h,
+                          right: 4.w,
+                          left: 16.w,
+                        ),
                         child: ListenableBuilder(
                           listenable: ProgramScrapStore.instance,
                           builder: (context, _) {

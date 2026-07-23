@@ -37,12 +37,17 @@ class ProgramDetailScreen extends StatefulWidget {
 }
 
 class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
+  final ScrollController _scrollController = ScrollController();
+  final GlobalKey _scrollViewportKey = GlobalKey();
+  final GlobalKey _programHeaderKey = GlobalKey();
   late Future<ProgramModel> _programFuture;
   late Future<List<ProgramModel>> _recommendedFuture;
+  bool _showAppBarTitle = false;
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_updateAppBarTitleVisibility);
     unawaited(
       AnalyticsService.instance.logProgramDetailView(
         program: widget.program,
@@ -57,6 +62,31 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
     );
     _programFuture = _loadProgram();
     _recommendedFuture = _loadRecommendedPrograms();
+  }
+
+  void _updateAppBarTitleVisibility() {
+    final headerContext = _programHeaderKey.currentContext;
+    final viewportContext = _scrollViewportKey.currentContext;
+    if (headerContext == null || viewportContext == null) return;
+
+    final headerBox = headerContext.findRenderObject() as RenderBox?;
+    final viewportBox = viewportContext.findRenderObject() as RenderBox?;
+    if (headerBox == null ||
+        viewportBox == null ||
+        !headerBox.hasSize ||
+        !viewportBox.hasSize) {
+      return;
+    }
+
+    final headerBottom =
+        headerBox.localToGlobal(Offset.zero).dy + headerBox.size.height;
+    final viewportTop = viewportBox.localToGlobal(Offset.zero).dy;
+    final shouldShowTitle = headerBottom <= viewportTop;
+    if (shouldShowTitle == _showAppBarTitle) return;
+
+    setState(() {
+      _showAppBarTitle = shouldShowTitle;
+    });
   }
 
   Future<ProgramModel> _loadProgram() async {
@@ -122,6 +152,14 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
   }
 
   @override
+  void dispose() {
+    _scrollController
+      ..removeListener(_updateAppBarTitleVisibility)
+      ..dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -137,17 +175,20 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
               ProgramDetailAppBar(
                 program: program,
                 entrySource: widget.entrySource,
+                showTitle: _showAppBarTitle,
                 onBack: () => Navigator.pop(context),
               ),
               Expanded(
                 child: SingleChildScrollView(
+                  key: _scrollViewportKey,
+                  controller: _scrollController,
                   child: Padding(
                     padding: EdgeInsets.symmetric(horizontal: 20.w),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         SizedBox(height: 10.h),
-                        ProgramHeader(program: program),
+                        ProgramHeader(key: _programHeaderKey, program: program),
                         SizedBox(height: 16.h),
                         Center(
                           child: ProgramPosterCarousel(images: program.images),

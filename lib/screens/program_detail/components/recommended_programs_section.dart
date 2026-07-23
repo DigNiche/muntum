@@ -14,7 +14,12 @@ class RecommendedProgramsSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SectionHeader1(text: '지금 주목받는', buttonName: '', onButtonTap: () {}),
+        SectionHeader1(
+          text: '지금 주목받는',
+          buttonName: '',
+          onButtonTap: () {},
+          horizontalPadding: 0,
+        ),
         SizedBox(height: 8.h),
         FutureBuilder<List<ProgramModel>>(
           future: programsFuture,

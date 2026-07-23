@@ -162,59 +162,75 @@ class _SeeMoreScreenState extends State<SeeMoreScreen> {
                     )
                     .toList(),
               ),
-            Padding(
-              padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 12.h),
-              child: Text(
-                '프로그램 ${_totalElements > 0 ? _totalElements : _programs.length}개',
-                style: AppTypography.headline2.copyWith(
-                  color: AppColors.gray900,
-                ),
-              ),
-            ),
             Expanded(
               child: Builder(
                 builder: (context) {
                   final programs = _programs;
-                  if (_isLoading && programs.isEmpty) {
-                    return const Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.gray900,
-                      ),
-                    );
-                  }
-                  if (programs.isEmpty) {
-                    return Center(
-                      child: Text(
-                        '조건에 맞는 프로그램이 없어요.',
-                        style: AppTypography.body2.copyWith(
-                          color: AppColors.gray500,
+                  return CustomScrollView(
+                    controller: _scrollController,
+                    slivers: [
+                      SliverPadding(
+                        padding: EdgeInsets.fromLTRB(
+                          20.w,
+                          10.h,
+                          20.w,
+                          programs.isEmpty ? 0 : 24.h,
+                        ),
+                        sliver: SliverList(
+                          delegate: SliverChildListDelegate([
+                            Text(
+                              '프로그램 ${_totalElements > 0 ? _totalElements : programs.length}개',
+                              style: AppTypography.headline2.copyWith(
+                                color: AppColors.gray900,
+                              ),
+                            ),
+                            SizedBox(height: 12.h),
+                            for (
+                              var index = 0;
+                              index < programs.length;
+                              index++
+                            ) ...[
+                              HorizontalCard(
+                                program: programs[index],
+                                entrySource:
+                                    widget.type == SeeMoreType.allPrograms
+                                    ? 'all_collection'
+                                    : 'all_closing_soon',
+                              ),
+                              if (index != programs.length - 1)
+                                SizedBox(height: 16.h),
+                            ],
+                            if (_isLoading && programs.isNotEmpty) ...[
+                              SizedBox(height: 16.h),
+                              Padding(
+                                padding: EdgeInsets.symmetric(vertical: 12.h),
+                                child: const Center(
+                                  child: CircularProgressIndicator(
+                                    color: AppColors.gray900,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ]),
                         ),
                       ),
-                    );
-                  }
-                  return ListView.separated(
-                    controller: _scrollController,
-                    padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 24.h),
-                    itemCount: programs.length + (_isLoading ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      if (index == programs.length) {
-                        return Padding(
-                          padding: EdgeInsets.symmetric(vertical: 12.h),
-                          child: const Center(
-                            child: CircularProgressIndicator(
-                              color: AppColors.gray900,
-                            ),
+                      if (programs.isEmpty)
+                        SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: Center(
+                            child: _isLoading
+                                ? const CircularProgressIndicator(
+                                    color: AppColors.gray900,
+                                  )
+                                : Text(
+                                    '조건에 맞는 프로그램이 없어요.',
+                                    style: AppTypography.body2.copyWith(
+                                      color: AppColors.gray500,
+                                    ),
+                                  ),
                           ),
-                        );
-                      }
-                      return HorizontalCard(
-                        program: programs[index],
-                        entrySource: widget.type == SeeMoreType.allPrograms
-                            ? 'all_collection'
-                            : 'all_closing_soon',
-                      );
-                    },
-                    separatorBuilder: (_, _) => SizedBox(height: 16.h),
+                        ),
+                    ],
                   );
                 },
               ),

@@ -7,7 +7,7 @@ import 'package:muntum/screens/home/components/searchbar.dart';
 
 enum AppBarCenterType { text, searchbar, none }
 
-class AppBarWidget extends StatefulWidget {
+class AppBarWidget extends StatelessWidget {
   final String leadingIcon;
   final Widget? trailing;
   final AppBarCenterType centerType;
@@ -21,6 +21,7 @@ class AppBarWidget extends StatefulWidget {
   final VoidCallback? onSearchTap;
   final Color? leadingColor;
   final bool searchAutofocus;
+
   const AppBarWidget({
     super.key,
     this.trailing,
@@ -39,71 +40,68 @@ class AppBarWidget extends StatefulWidget {
   });
 
   @override
-  State<AppBarWidget> createState() => _AppBarWidgetState();
-}
-
-class _AppBarWidgetState extends State<AppBarWidget> {
-  @override
   Widget build(BuildContext context) {
-    final isSearchBar = widget.centerType == AppBarCenterType.searchbar;
+    final isSearchBar = centerType == AppBarCenterType.searchbar;
     return Container(
       height: 64.h,
       padding: EdgeInsets.symmetric(vertical: 6.h, horizontal: 20.w),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          GestureDetector(
-            onTap: widget.onLeadingTap,
-            child: SizedBox(
-              width: 24.w,
-              height: 24.h,
-              child: SvgPicture.asset(
-                'assets/icons/${widget.leadingIcon}',
-                width: 10.w,
-                height: 18.h,
-                color: widget.leadingColor ?? AppColors.gray900,
-              ),
-            ),
-          ),
-          SizedBox(width: 16.w),
-          _buildCenter(),
-          if (!isSearchBar) ...[
-            SizedBox(width: 16.w),
-            SizedBox(
-              width: (widget.trailing == null) ? 24.w : null,
-              child: (widget.trailing != null) ? widget.trailing! : null,
-            ),
-          ],
-        ],
-      ),
+      child: isSearchBar ? _buildSearchLayout() : _buildStandardLayout(),
     );
   }
 
-  Widget _buildCenter() {
-    switch (widget.centerType) {
-      case AppBarCenterType.searchbar:
-        return Expanded(
+  Widget _buildSearchLayout() {
+    return Row(
+      children: [
+        _buildLeading(),
+        SizedBox(width: 16.w),
+        Expanded(
           child: SearchBarWidget(
-            controller: widget.searchController!,
-            onSubmitted: widget.onSearchSubmitted,
-            onClear: widget.onClear,
-            selectedKeywords: widget.selectedKeywords,
-            onKeywordDeleted: widget.onKeywordDeleted,
-            onTap: widget.onSearchTap,
-            autofocus: widget.searchAutofocus,
+            controller: searchController!,
+            onSubmitted: onSearchSubmitted,
+            onClear: onClear,
+            selectedKeywords: selectedKeywords,
+            onKeywordDeleted: onKeywordDeleted,
+            onTap: onSearchTap,
+            autofocus: searchAutofocus,
           ),
-        );
-      case AppBarCenterType.text:
-        return Expanded(
-          child: Center(
-            child: Text(
-              widget.center,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStandardLayout() {
+    return NavigationToolbar(
+      leading: _buildLeading(),
+      middle: centerType == AppBarCenterType.text
+          ? Text(
+              center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: AppTypography.title4.copyWith(color: AppColors.gray900),
-            ),
+            )
+          : null,
+      trailing: trailing ?? SizedBox(width: 24.w, height: 24.h),
+      centerMiddle: true,
+      middleSpacing: 16.w,
+    );
+  }
+
+  Widget _buildLeading() {
+    return GestureDetector(
+      onTap: onLeadingTap,
+      child: SizedBox(
+        width: 24.w,
+        height: 24.h,
+        child: SvgPicture.asset(
+          'assets/icons/$leadingIcon',
+          width: 10.w,
+          height: 18.h,
+          colorFilter: ColorFilter.mode(
+            leadingColor ?? AppColors.gray900,
+            BlendMode.srcIn,
           ),
-        );
-      case AppBarCenterType.none:
-        return SizedBox();
-    }
+        ),
+      ),
+    );
   }
 }

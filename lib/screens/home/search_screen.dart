@@ -662,45 +662,40 @@ class _SearchScreenState extends State<SearchScreen> {
           }
           return Container(
             padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 20.w),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SectionHeader3(
-                  text:
-                      '프로그램 ${_searchTotalElements > 0 ? _searchTotalElements : results.length}개',
-                  buttonName: '',
-                ),
-                SizedBox(height: 12.h),
-                Expanded(
-                  child: ListView.separated(
-                    controller: _resultScrollController,
-                    padding: EdgeInsets.zero,
-                    itemBuilder: (context, index) {
-                      if (index == results.length) {
-                        return Padding(
-                          padding: EdgeInsets.symmetric(vertical: 12.h),
-                          child: const Center(
-                            child: CircularProgressIndicator(
-                              color: AppColors.gray900,
-                            ),
-                          ),
-                        );
-                      }
-                      final isLast = index == results.length - 1;
-                      return Padding(
-                        padding: EdgeInsets.only(bottom: isLast ? 40.h : 0),
-                        child: HorizontalCard(
-                          program: results[index],
-                          entrySource: 'search',
-                        ),
-                      );
-                    },
-                    separatorBuilder: (context, index) =>
-                        SizedBox(height: 12.h),
-                    itemCount: results.length + (_isLoadingSearch ? 1 : 0),
+            child: ListView.separated(
+              controller: _resultScrollController,
+              padding: EdgeInsets.zero,
+              itemBuilder: (context, index) {
+                if (index == 0) {
+                  return SectionHeader3(
+                    text:
+                        '프로그램 ${_searchTotalElements > 0 ? _searchTotalElements : results.length}개',
+                    buttonName: '',
+                  );
+                }
+
+                final resultIndex = index - 1;
+                if (resultIndex == results.length) {
+                  return Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12.h),
+                    child: const Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.gray900,
+                      ),
+                    ),
+                  );
+                }
+                final isLast = resultIndex == results.length - 1;
+                return Padding(
+                  padding: EdgeInsets.only(bottom: isLast ? 40.h : 0),
+                  child: HorizontalCard(
+                    program: results[resultIndex],
+                    entrySource: 'search',
                   ),
-                ),
-              ],
+                );
+              },
+              separatorBuilder: (context, index) => SizedBox(height: 16.h),
+              itemCount: 1 + results.length + (_isLoadingSearch ? 1 : 0),
             ),
           );
         },

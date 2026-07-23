@@ -98,7 +98,7 @@ class AppTypography {
     fontSize: 13.sp,
     lineHeight: 1.4,
     letterSpacingPercent: -1.5,
-    fontWeight: FontWeight.w400,
+    fontWeight: FontWeight.w500,
   );
 
   static final caption2 = _style(

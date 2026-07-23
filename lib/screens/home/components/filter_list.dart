@@ -8,8 +8,9 @@ class FilterList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 20.w),
+      padding: EdgeInsets.symmetric(vertical: 10.h),
       child: SingleChildScrollView(
+        padding: EdgeInsets.symmetric(horizontal: 20.w),
         scrollDirection: Axis.horizontal,
         child: Row(spacing: 10.w, children: listOfChip),
       ),

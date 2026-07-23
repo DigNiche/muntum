@@ -7,18 +7,23 @@ class SectionHeader1 extends StatelessWidget {
   final String text;
   final String buttonName;
   final VoidCallback onButtonTap;
+  final double? horizontalPadding;
   const SectionHeader1({
     super.key,
     required this.text,
     required this.buttonName,
     required this.onButtonTap,
+    this.horizontalPadding,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       color: Colors.transparent,
-      padding: EdgeInsets.symmetric(vertical: 8.h, horizontal: 20.w),
+      padding: EdgeInsets.symmetric(
+        vertical: 8.h,
+        horizontal: horizontalPadding ?? 20.w,
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [

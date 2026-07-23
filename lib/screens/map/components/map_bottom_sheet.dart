@@ -71,7 +71,6 @@ class MapProgramBottomPanel extends StatelessWidget {
             },
             child: SizedBox(
               height: 32.h,
-              width: double.infinity,
               child: Center(
                 child: Container(
                   width: 40.w,
@@ -84,38 +83,52 @@ class MapProgramBottomPanel extends StatelessWidget {
               ),
             ),
           ),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.w),
-            child: Text(
-              '프로그램 ${programs.length}개',
-              style: AppTypography.headline2.copyWith(color: AppColors.gray900),
-            ),
-          ),
-          SizedBox(height: 12.h),
           Expanded(
-            child: programs.isEmpty
-                ? Center(
-                    child: Text(
-                      textAlign: TextAlign.center,
-                      "근처에 프로그램이 없어요.\n지도를 움직여 다른 지역을 탐색해보세요.",
-                      style: AppTypography.body2.copyWith(
-                        color: AppColors.gray500,
+            child: CustomScrollView(
+              controller: scrollController,
+              slivers: [
+                SliverPadding(
+                  padding: EdgeInsets.fromLTRB(
+                    20.w,
+                    0,
+                    20.w,
+                    programs.isEmpty ? 0 : 20.h,
+                  ),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate([
+                      Text(
+                        '프로그램 ${programs.length}개',
+                        style: AppTypography.headline2.copyWith(
+                          color: AppColors.gray900,
+                        ),
+                      ),
+                      SizedBox(height: 12.h),
+                      for (var index = 0; index < programs.length; index++) ...[
+                        HorizontalCard(
+                          program: programs[index],
+                          entrySource: 'map',
+                        ),
+                        if (index != programs.length - 1)
+                          SizedBox(height: 16.h),
+                      ],
+                    ]),
+                  ),
+                ),
+                if (programs.isEmpty)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(
+                      child: Text(
+                        textAlign: TextAlign.center,
+                        "근처에 프로그램이 없어요.\n지도를 움직여 다른 지역을 탐색해보세요.",
+                        style: AppTypography.body2.copyWith(
+                          color: AppColors.gray500,
+                        ),
                       ),
                     ),
-                  )
-                : ListView.separated(
-                    controller: scrollController,
-                    padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 20.h),
-                    itemBuilder: (context, index) {
-                      return HorizontalCard(
-                        program: programs[index],
-                        entrySource: 'map',
-                      );
-                    },
-                    separatorBuilder: (context, index) =>
-                        SizedBox(height: 12.h),
-                    itemCount: programs.length,
                   ),
+              ],
+            ),
           ),
         ],
       ),
