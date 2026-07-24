@@ -73,7 +73,7 @@ class ProgramService {
 
   Future<PageResponse<ProgramModel>> fetchBannerPrograms() {
     return fetchPrograms(
-      sort: ProgramSort.startDate,
+      sort: ProgramSort.latest,
       order: SortOrder.desc,
       page: 0,
       size: 5,

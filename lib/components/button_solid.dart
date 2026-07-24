@@ -34,7 +34,7 @@ class ButtonSolid extends StatelessWidget {
         child: Center(
           child: Text(
             text,
-            style: AppTypography.button1.copyWith(color: textColor),
+            style: AppTypography.button2.copyWith(color: textColor),
             maxLines: 1,
           ),
         ),

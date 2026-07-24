@@ -79,40 +79,6 @@ class SuggestionService {
     ).data;
   }
 
-  Future<ReportModel> fetchSuggestion(String id) async {
-    final response = await _client.get(ApiEndpoints.suggestion(id));
-    return ApiResponse.fromJson(
-      response,
-      (data) => ReportModel.fromJson(data as Map<String, dynamic>? ?? const {}),
-    ).data;
-  }
-
-  Future<ReportModel> updateSuggestion({
-    required String id,
-    required String programName,
-    required String address,
-    required String reason,
-    String? placeName,
-  }) async {
-    final suggestionAddress = ReportPlace(
-      name: placeName ?? '',
-      address: address,
-    ).toSuggestionAddress();
-    final response = await _client.put(
-      ApiEndpoints.suggestion(id),
-      authorized: true,
-      body: {
-        'programName': programName,
-        'address': suggestionAddress,
-        'reason': reason,
-      },
-    );
-    return ApiResponse.fromJson(
-      response,
-      (data) => ReportModel.fromJson(data as Map<String, dynamic>? ?? const {}),
-    ).data;
-  }
-
   Future<void> updateSuggestionStatus({
     required String id,
     required String status,

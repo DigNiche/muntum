@@ -8,6 +8,7 @@ import 'package:muntum/components/page_header.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/models/program_model.dart';
+import 'package:muntum/screens/home/components/section_header.dart';
 import 'package:muntum/screens/onboarding/login_screen.dart';
 import 'package:muntum/services/scrap_service.dart';
 import 'package:muntum/stores/program_scrap_store.dart';
@@ -202,15 +203,12 @@ class _BookmarkGrid extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: EdgeInsets.only(bottom: 20.h),
-              child: Text(
-                '프로그램 $totalElements개',
-                style: AppTypography.headline2.copyWith(
-                  color: AppColors.gray900,
-                ),
-              ),
+            SectionHeader3(
+              text: '프로그램 $totalElements개',
+              buttonName: '',
+              padding: null,
             ),
+            SizedBox(height: 16.h),
             Wrap(
               spacing: 12.w,
               runSpacing: 32.h,

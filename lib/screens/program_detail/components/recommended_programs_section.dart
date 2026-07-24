@@ -33,7 +33,7 @@ class RecommendedProgramsSection extends StatelessWidget {
                 program: programs[index],
                 entrySource: 'detail_recommendation',
               ),
-              separatorBuilder: (context, index) => SizedBox(height: 12.h),
+              separatorBuilder: (context, index) => SizedBox(height: 16.h),
               itemCount: programs.length,
             );
           },

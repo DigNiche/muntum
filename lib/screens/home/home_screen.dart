@@ -14,16 +14,20 @@ import 'package:muntum/components/cards/curation_card.dart';
 import 'package:muntum/components/filter_chip.dart';
 import 'package:muntum/models/program_model.dart';
 import 'package:muntum/screens/home/components/filter_list.dart';
+import 'package:muntum/screens/home/components/my_niche_keyword_cta.dart';
 import 'package:muntum/components/page_header.dart';
 import 'package:muntum/screens/home/components/section_header.dart';
 import 'package:muntum/screens/home/components/vertical_card_carousel.dart';
 import 'package:muntum/screens/home/search_screen.dart';
 import 'package:muntum/screens/home/see_more_screen.dart';
+import 'package:muntum/screens/mypage/keyword_change_screen.dart';
 import 'package:muntum/screens/onboarding/login_screen.dart';
+import 'package:muntum/services/keyword_service.dart';
 import 'package:muntum/services/program_service.dart';
 import 'package:muntum/services/analytics_service.dart';
 import 'package:muntum/services/taste_service.dart';
 import 'package:muntum/stores/user_preference_store.dart';
+import 'package:muntum/utils/app_toast.dart';
 
 enum ScreenTypes { myNiche, entire }
 
@@ -159,6 +163,8 @@ class _MyNichePageState extends State<MyNichePage> {
   bool _hasNextPage = true;
   bool _isLoadingPrograms = false;
   int _programRequestId = 0;
+  Set<String> _availableKeywords = const {};
+  Set<String> _selectedKeywords = const {};
   late Future<bool> _isLoggedInFuture;
 
   @override
@@ -168,7 +174,12 @@ class _MyNichePageState extends State<MyNichePage> {
     UserPreferenceStore.instance.addListener(_reloadProgramsByKeyword);
     _isLoggedInFuture = _isLoggedIn();
     _loadPrograms(reset: true);
+    _loadKeywordStatus();
   }
+
+  bool get _hasSelectedAllKeywords =>
+      _availableKeywords.isNotEmpty &&
+      _selectedKeywords.containsAll(_availableKeywords);
 
   Future<PageResponse<ProgramModel>> _loadProgramsPage(int page) async {
     final selectedFilterValue = _selectedFilterValue;
@@ -226,6 +237,34 @@ class _MyNichePageState extends State<MyNichePage> {
     return refreshToken != null && refreshToken.isNotEmpty;
   }
 
+  Future<void> _loadKeywordStatus() async {
+    try {
+      final availableKeywordsFuture = KeywordService().fetchTaggedKeywords();
+      final selectedKeywordsFuture = TasteService().fetchMyKeywords();
+      final availableResult = await availableKeywordsFuture;
+      final selectedResult = await selectedKeywordsFuture;
+      final availableKeywords = availableResult
+          .map((keyword) => keyword.name.trim())
+          .where((keyword) => keyword.isNotEmpty)
+          .toSet();
+      final selectedKeywords = selectedResult.selectedKeywords
+          .map((keyword) => keyword.name.trim())
+          .where((keyword) => keyword.isNotEmpty)
+          .toSet();
+      UserPreferenceStore.instance.updateKeywords(selectedKeywords);
+      if (!mounted) return;
+      setState(() {
+        _availableKeywords = availableKeywords;
+        _selectedKeywords = selectedKeywords;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _selectedKeywords = UserPreferenceStore.instance.selectedKeywords;
+      });
+    }
+  }
+
   Filter? get _selectedFilterValue {
     return ProgramType.fromLabel(selectedFilter)?.filter ??
         switch (selectedFilter) {
@@ -265,8 +304,25 @@ class _MyNichePageState extends State<MyNichePage> {
     }
     setState(() {
       _isLoggedInFuture = _isLoggedIn();
+      _selectedKeywords = UserPreferenceStore.instance.selectedKeywords;
     });
     _loadPrograms(reset: true);
+  }
+
+  Future<void> _openKeywordChangeScreen() async {
+    final saved = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const KeywordChangeScreen(
+          initiallyEditing: true,
+          popAfterSave: true,
+        ),
+      ),
+    );
+    if (!mounted || saved != true) return;
+    await _loadKeywordStatus();
+    if (!mounted) return;
+    showAppToast(context, '키워드가 저장되었습니다.');
   }
 
   void _onFilterTap(String filter) {
@@ -347,15 +403,28 @@ class _MyNichePageState extends State<MyNichePage> {
                           );
                         }
                         if (programs.isEmpty) {
-                          return Center(
-                            child: Text(
-                              '조건에 맞는 프로그램이 없어요.',
-                              style: AppTypography.body2.copyWith(
-                                color: AppColors.gray500,
+                          return ListView(
+                            controller: _scrollController,
+                            padding: EdgeInsets.zero,
+                            children: [
+                              SizedBox(height: 120.h),
+                              Center(
+                                child: Text(
+                                  '조건에 맞는 프로그램이 없어요.',
+                                  style: AppTypography.body2.copyWith(
+                                    color: AppColors.gray500,
+                                  ),
+                                ),
                               ),
-                            ),
+                              if (!_hasSelectedAllKeywords)
+                                MyNicheKeywordCta(
+                                  onTap: _openKeywordChangeScreen,
+                                ),
+                            ],
                           );
                         }
+                        final showLoading = _isLoadingPrograms && _hasNextPage;
+                        final showKeywordCta = !_hasSelectedAllKeywords;
                         return ListView.separated(
                           separatorBuilder: (context, index) =>
                               SizedBox(height: 40.h),
@@ -363,9 +432,10 @@ class _MyNichePageState extends State<MyNichePage> {
                           padding: EdgeInsets.zero,
                           itemCount:
                               programs.length +
-                              (_isLoadingPrograms && _hasNextPage ? 1 : 0),
+                              (showLoading ? 1 : 0) +
+                              (showKeywordCta ? 1 : 0),
                           itemBuilder: (context, index) {
-                            if (index == programs.length) {
+                            if (showLoading && index == programs.length) {
                               return Padding(
                                 padding: EdgeInsets.symmetric(vertical: 16.h),
                                 child: const Center(
@@ -375,10 +445,19 @@ class _MyNichePageState extends State<MyNichePage> {
                                 ),
                               );
                             }
-                            final isLast = index == programs.length - 1;
+                            if (showKeywordCta &&
+                                index ==
+                                    programs.length + (showLoading ? 1 : 0)) {
+                              return MyNicheKeywordCta(
+                                onTap: _openKeywordChangeScreen,
+                              );
+                            }
+                            final isLastProgram = index == programs.length - 1;
                             return Padding(
                               padding: EdgeInsets.only(
-                                bottom: isLast ? 40.h : 0,
+                                bottom: isLastProgram && !showKeywordCta
+                                    ? 40.h
+                                    : 0,
                               ),
                               child: CurationCard(
                                 program: programs[index],
@@ -499,11 +578,7 @@ class _EntirePageState extends State<EntirePage> {
   Future<_EntirePagePrograms> _loadPrograms() async {
     final service = ProgramService();
     final results = await Future.wait([
-      service.fetchPrograms(
-        sort: ProgramSort.startDate,
-        order: SortOrder.desc,
-        size: 5,
-      ),
+      service.fetchBannerPrograms(),
       service.fetchHotKeywordPrograms(size: 8),
       service.fetchHotPrograms(size: 8),
       service.fetchClosingSoon(size: 8),

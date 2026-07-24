@@ -11,14 +11,21 @@ import 'package:muntum/stores/user_preference_store.dart';
 import 'package:muntum/utils/app_toast.dart';
 
 class KeywordChangeScreen extends StatefulWidget {
-  const KeywordChangeScreen({super.key});
+  final bool initiallyEditing;
+  final bool popAfterSave;
+
+  const KeywordChangeScreen({
+    super.key,
+    this.initiallyEditing = false,
+    this.popAfterSave = false,
+  });
 
   @override
   State<KeywordChangeScreen> createState() => _KeywordChangeScreenState();
 }
 
 class _KeywordChangeScreenState extends State<KeywordChangeScreen> {
-  bool isEdit = false;
+  late bool isEdit;
   bool _isLoading = true;
   bool _isSaving = false;
   List<String> _allKeywords = const [];
@@ -32,6 +39,7 @@ class _KeywordChangeScreenState extends State<KeywordChangeScreen> {
   @override
   void initState() {
     super.initState();
+    isEdit = widget.initiallyEditing;
     _loadKeywords();
   }
 
@@ -80,7 +88,7 @@ class _KeywordChangeScreenState extends State<KeywordChangeScreen> {
     if (_isSaving) return;
     if (!_hasChanges) return;
     if (_selectedKeywords.length < 3) {
-      showAppToast(context, '키워드를 3개 이상 선택해주세요.');
+      showAppToast(context, '키워드를 3개 이상 선택해주세요.', isError: true);
       return;
     }
 
@@ -93,6 +101,11 @@ class _KeywordChangeScreenState extends State<KeywordChangeScreen> {
       await TasteService().saveMyKeywords(_selectedKeywords.toList());
       UserPreferenceStore.instance.updateKeywords(_selectedKeywords);
       if (!mounted) return;
+      if (widget.popAfterSave) {
+        setState(() => _isSaving = false);
+        Navigator.pop(context, true);
+        return;
+      }
       setState(() {
         _savedKeywords
           ..clear()
@@ -104,7 +117,7 @@ class _KeywordChangeScreenState extends State<KeywordChangeScreen> {
       if (!mounted) return;
       showAppToast(context, '$error');
     } finally {
-      if (mounted) setState(() => _isSaving = false);
+      if (mounted && _isSaving) setState(() => _isSaving = false);
     }
   }
 
@@ -145,7 +158,7 @@ class _KeywordChangeScreenState extends State<KeywordChangeScreen> {
       onText2Tap: () async {
         if (_selectedKeywords.length < 3) {
           Navigator.pop(context);
-          showAppToast(context, '키워드를 3개 이상 선택해주세요.');
+          showAppToast(context, '키워드를 3개 이상 선택해주세요.', isError: true);
           return;
         }
         Navigator.pop(context);
@@ -166,7 +179,7 @@ class _KeywordChangeScreenState extends State<KeywordChangeScreen> {
       onText2Tap: () async {
         Navigator.pop(context);
         if (_selectedKeywords.length <= 3) {
-          showAppToast(context, '키워드를 3개 이상 선택해주세요.');
+          showAppToast(context, '키워드를 3개 이상 선택해주세요.', isError: true);
           return;
         }
         await _deleteKeyword(keyword);
@@ -245,7 +258,9 @@ class _KeywordChangeScreenState extends State<KeywordChangeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "내 키워드(${_selectedKeywords.length})",
+                    isEdit
+                        ? "내 키워드(${_selectedKeywords.length}/${_allKeywords.length})"
+                        : "내 키워드(${_selectedKeywords.length})",
                     style: AppTypography.headline2.copyWith(
                       color: AppColors.gray900,
                     ),

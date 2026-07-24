@@ -184,7 +184,7 @@ class _SeeMoreScreenState extends State<SeeMoreScreen> {
                                 color: AppColors.gray900,
                               ),
                             ),
-                            SizedBox(height: 12.h),
+                            SizedBox(height: 16.h),
                             for (
                               var index = 0;
                               index < programs.length;

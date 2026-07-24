@@ -102,7 +102,7 @@ class MapProgramBottomPanel extends StatelessWidget {
                           color: AppColors.gray900,
                         ),
                       ),
-                      SizedBox(height: 12.h),
+                      SizedBox(height: 16.h),
                       for (var index = 0; index < programs.length; index++) ...[
                         HorizontalCard(
                           program: programs[index],

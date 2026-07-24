@@ -365,17 +365,9 @@ class _SearchScreenState extends State<SearchScreen> {
       return;
     }
 
-    if (await _usesApiRecentSearches()) {
-      setState(() => _insertRecentSearch(trimmedText));
-      await _saveLocalRecentSearches(userScoped: true);
-      try {
-        await SearchService().saveRecentSearch(trimmedText);
-        await _loadRecentSearches();
-      } catch (_) {}
-      return;
-    }
+    final userScoped = await _usesApiRecentSearches();
     setState(() => _insertRecentSearch(trimmedText));
-    await _saveLocalRecentSearches(userScoped: false);
+    await _saveLocalRecentSearches(userScoped: userScoped);
   }
 
   void _insertRecentSearch(String text) {
@@ -668,6 +660,7 @@ class _SearchScreenState extends State<SearchScreen> {
               itemBuilder: (context, index) {
                 if (index == 0) {
                   return SectionHeader3(
+                    padding: null,
                     text:
                         '프로그램 ${_searchTotalElements > 0 ? _searchTotalElements : results.length}개',
                     buttonName: '',
@@ -677,7 +670,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 final resultIndex = index - 1;
                 if (resultIndex == results.length) {
                   return Padding(
-                    padding: EdgeInsets.symmetric(vertical: 12.h),
+                    padding: EdgeInsets.symmetric(vertical: 16.h),
                     child: const Center(
                       child: CircularProgressIndicator(
                         color: AppColors.gray900,

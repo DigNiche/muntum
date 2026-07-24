@@ -122,7 +122,9 @@ class _ProgramDescription extends StatelessWidget {
     );
 
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
+      crossAxisAlignment: displayBody.contains('\n')
+          ? CrossAxisAlignment.start
+          : CrossAxisAlignment.center,
       children: [
         SizedBox(
           width: 70.w,
@@ -159,56 +161,51 @@ class _ProgramRelatedInfoDescription extends StatelessWidget {
   Widget build(BuildContext context) {
     final contacts = _splitContacts(body);
 
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 4.h),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          SizedBox(
-            width: 70.w,
-            child: Text(
-              title,
-              style: AppTypography.button2.copyWith(color: AppColors.gray900),
-            ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        SizedBox(
+          width: 70.w,
+          child: Text(
+            title,
+            style: AppTypography.button2.copyWith(color: AppColors.gray900),
           ),
-          SizedBox(width: 20.w),
-          Expanded(
-            child: contacts.isEmpty
-                ? Text(
-                    '정보 없음',
-                    style: AppTypography.body1.copyWith(
-                      color: AppColors.gray900,
-                    ),
-                  )
-                : Wrap(
-                    spacing: 4.w,
-                    runSpacing: 4.h,
-                    children: [
-                      for (var i = 0; i < contacts.length; i++) ...[
-                        GestureDetector(
-                          onTap: () => onTapContact(contacts[i]),
-                          behavior: HitTestBehavior.opaque,
-                          child: Text(
-                            contacts[i],
-                            style: AppTypography.body1.copyWith(
-                              color: AppColors.gray900,
-                              decoration: TextDecoration.underline,
-                            ),
+        ),
+        SizedBox(width: 20.w),
+        Expanded(
+          child: contacts.isEmpty
+              ? Text(
+                  '정보 없음',
+                  style: AppTypography.body1.copyWith(color: AppColors.gray900),
+                )
+              : Wrap(
+                  spacing: 4.w,
+                  runSpacing: 4.h,
+                  children: [
+                    for (var i = 0; i < contacts.length; i++) ...[
+                      GestureDetector(
+                        onTap: () => onTapContact(contacts[i]),
+                        behavior: HitTestBehavior.opaque,
+                        child: Text(
+                          contacts[i],
+                          style: AppTypography.body1.copyWith(
+                            color: AppColors.gray900,
+                            decoration: TextDecoration.underline,
                           ),
                         ),
-                        if (i != contacts.length - 1)
-                          Text(
-                            '/',
-                            style: AppTypography.body1.copyWith(
-                              color: AppColors.gray900,
-                            ),
+                      ),
+                      if (i != contacts.length - 1)
+                        Text(
+                          '/',
+                          style: AppTypography.body1.copyWith(
+                            color: AppColors.gray900,
                           ),
-                      ],
+                        ),
                     ],
-                  ),
-          ),
-        ],
-      ),
+                  ],
+                ),
+        ),
+      ],
     );
   }
 

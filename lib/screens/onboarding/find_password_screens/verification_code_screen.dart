@@ -30,8 +30,8 @@ class VerificationCodeScreen extends StatefulWidget {
 }
 
 class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
-  TextEditingController _controller = TextEditingController();
-  FocusNode _focusNode = FocusNode();
+  final TextEditingController _controller = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
   bool _isError = false;
   bool _isLoading = false;
   bool _isResending = false;
@@ -247,12 +247,7 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
         code: code,
       );
       if (!mounted) return;
-      pushToScreen(
-        context,
-        ResetPasswordScreen(
-          resetToken: result.resetToken,
-        ),
-      );
+      pushToScreen(context, ResetPasswordScreen(resetToken: result.resetToken));
     } catch (error) {
       if (!mounted) return;
       setState(() {
