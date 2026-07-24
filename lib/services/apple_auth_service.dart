@@ -24,9 +24,9 @@ class AppleAuthService {
     }
     return SocialLoginRequest(
       provider: SocialAuthProvider.apple,
-      identityToken: identityToken,
+      token: identityToken,
       authorizationCode: credential.authorizationCode,
-      nonce: rawNonce,
+      nonce: hashedNonce,
     );
   }
 }

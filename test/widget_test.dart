@@ -32,14 +32,14 @@ void main() {
     test('serializes every Apple verification field', () {
       const request = SocialLoginRequest(
         provider: SocialAuthProvider.apple,
-        identityToken: 'identity-token',
+        token: 'identity-token',
         authorizationCode: 'authorization-code',
         nonce: 'raw-nonce',
       );
 
       expect(request.toJson(), {
         'provider': 'APPLE',
-        'identityToken': 'identity-token',
+        'token': 'identity-token',
         'authorizationCode': 'authorization-code',
         'nonce': 'raw-nonce',
       });

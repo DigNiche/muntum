@@ -327,12 +327,37 @@ class _LoginScreenState extends State<LoginScreen> {
       await _routeAfterApiLogin(session.nickname);
     } on SignInWithAppleAuthorizationException catch (error) {
       if (!mounted || error.code == AuthorizationErrorCode.canceled) return;
+      if (kDebugMode) {
+        debugPrint(
+          'Apple authorization failed: '
+          '${error.code.name} ${error.message}',
+        );
+      }
       showAppToast(context, 'Apple 로그인에 실패했습니다. 다시 시도해주세요.', isError: true);
     } catch (error) {
       if (!mounted) return;
-      final message = error is ApiException && error.statusCode == 404
-          ? 'Apple 로그인 서버를 준비 중입니다.'
-          : 'Apple 로그인에 실패했습니다. 다시 시도해주세요.';
+      if (kDebugMode) {
+        if (error is ApiException) {
+          debugPrint(
+            'Apple social login failed: '
+            'status=${error.statusCode}, code=${error.code}, '
+            'message=${error.message}',
+          );
+        } else {
+          debugPrint('Apple social login failed: $error');
+        }
+      }
+      final message = switch (error) {
+        ApiException(code: '007') => '잘못된 요청입니다.',
+        ApiException(code: 'A017') => '소셜 로그인 가입에는 이메일 정보가 필요합니다.',
+        ApiException(code: 'A018') => '지원하지 않는 소셜 로그인 제공자입니다.',
+        ApiException(code: 'A016') => '유효하지 않은 소셜 로그인 토큰입니다.',
+        ApiException(code: 'A004') => '비활성화된 계정입니다.',
+        ApiException(code: 'A001') => '이미 사용 중인 이메일입니다.',
+        ApiException(code: 'T005') => '게시된 약관이 존재하지 않습니다.',
+        ApiException(code: 'E001') => '서버 오류가 발생했습니다.',
+        _ => 'Apple 로그인에 실패했습니다. 다시 시도해주세요.',
+      };
       showAppToast(context, message, isError: true);
     } finally {
       if (mounted) setState(() => _isAppleLoading = false);

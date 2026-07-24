@@ -149,7 +149,10 @@ class _ProgramDescription extends StatelessWidget {
           ? CrossAxisAlignment.start
           : CrossAxisAlignment.center,
       children: [
-        SizedBox(
+        Container(
+          padding: displayBody.contains('\n')
+              ? EdgeInsets.only(top: 2.h)
+              : null,
           width: 70.w,
           child: Text(
             title,

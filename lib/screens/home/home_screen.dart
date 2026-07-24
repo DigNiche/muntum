@@ -4,6 +4,7 @@ import 'package:flutter/material.dart' hide FilterChip;
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:muntum/api/api_exception.dart';
 import 'package:muntum/api/token_store.dart';
 import 'package:muntum/api/api_response.dart';
 import 'package:muntum/components/button_solid.dart';
@@ -25,7 +26,9 @@ import 'package:muntum/screens/onboarding/login_screen.dart';
 import 'package:muntum/services/keyword_service.dart';
 import 'package:muntum/services/program_service.dart';
 import 'package:muntum/services/analytics_service.dart';
+import 'package:muntum/services/auth_service.dart';
 import 'package:muntum/services/taste_service.dart';
+import 'package:muntum/stores/program_scrap_store.dart';
 import 'package:muntum/stores/user_preference_store.dart';
 import 'package:muntum/utils/app_toast.dart';
 
@@ -172,9 +175,7 @@ class _MyNichePageState extends State<MyNichePage> {
     super.initState();
     _scrollController.addListener(_handleScroll);
     UserPreferenceStore.instance.addListener(_reloadProgramsByKeyword);
-    _isLoggedInFuture = _isLoggedIn();
-    _loadPrograms(reset: true);
-    _loadKeywordStatus();
+    _isLoggedInFuture = _initialize();
   }
 
   bool get _hasSelectedAllKeywords =>
@@ -223,6 +224,13 @@ class _MyNichePageState extends State<MyNichePage> {
         _nextPage = requestedPage + 1;
         _hasNextPage = response.hasMore;
       });
+    } on ApiException catch (error) {
+      if (error.statusCode != 401 && error.code != 'A008') rethrow;
+      await TokenStore.instance.clear();
+      ProgramScrapStore.instance.clear(notify: false);
+      UserPreferenceStore.instance.clear();
+      if (!mounted) return;
+      setState(() => _isLoggedInFuture = Future.value(false));
     } finally {
       if (mounted && requestId == _programRequestId) {
         setState(() => _isLoadingPrograms = false);
@@ -234,7 +242,20 @@ class _MyNichePageState extends State<MyNichePage> {
     final accessToken = TokenStore.instance.accessToken;
     if (accessToken != null && accessToken.isNotEmpty) return true;
     final refreshToken = await TokenStore.instance.readRefreshToken();
-    return refreshToken != null && refreshToken.isNotEmpty;
+    if (refreshToken == null || refreshToken.isEmpty) return false;
+    try {
+      return await AuthService().refresh() != null;
+    } catch (_) {
+      await TokenStore.instance.clear();
+      return false;
+    }
+  }
+
+  Future<bool> _initialize() async {
+    final isLoggedIn = await _isLoggedIn();
+    if (!isLoggedIn) return false;
+    await Future.wait([_loadPrograms(reset: true), _loadKeywordStatus()]);
+    return TokenStore.instance.accessToken?.isNotEmpty == true;
   }
 
   Future<void> _loadKeywordStatus() async {

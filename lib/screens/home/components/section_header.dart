@@ -101,7 +101,7 @@ class SectionHeader3 extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: Colors.transparent,
-      padding: padding ?? EdgeInsets.symmetric(vertical: 4.h),
+      padding: padding == null ? null : EdgeInsets.symmetric(vertical: 4.h),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [

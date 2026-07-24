@@ -11,13 +11,13 @@ enum SocialAuthProvider {
 
 class SocialLoginRequest {
   final SocialAuthProvider provider;
-  final String identityToken;
+  final String token;
   final String authorizationCode;
   final String nonce;
 
   const SocialLoginRequest({
     required this.provider,
-    required this.identityToken,
+    required this.token,
     required this.authorizationCode,
     required this.nonce,
   });
@@ -25,7 +25,7 @@ class SocialLoginRequest {
   Map<String, dynamic> toJson() {
     return {
       'provider': provider.apiValue,
-      'identityToken': identityToken,
+      'token': token,
       'authorizationCode': authorizationCode,
       'nonce': nonce,
     };
