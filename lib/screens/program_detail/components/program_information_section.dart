@@ -7,12 +7,16 @@ import 'package:muntum/models/program_model.dart';
 
 class ProgramInformationSection extends StatelessWidget {
   final ProgramModel program;
+  final VoidCallback? onTapLocation;
+  final VoidCallback? onLongPressAddress;
   final ValueChanged<String> onTapContact;
   final VoidCallback? onTapWebsite;
 
   const ProgramInformationSection({
     super.key,
     required this.program,
+    this.onTapLocation,
+    this.onLongPressAddress,
     required this.onTapContact,
     this.onTapWebsite,
   });
@@ -22,7 +26,11 @@ class ProgramInformationSection extends StatelessWidget {
     return Column(
       spacing: 6.h,
       children: [
-        _LocationDescription(program: program),
+        _LocationDescription(
+          program: program,
+          onTap: onTapLocation,
+          onLongPress: onLongPressAddress,
+        ),
         _ProgramDescription(title: '기간', body: program.detailDateText),
         _ProgramDescription(title: '시간', body: program.availableTime),
         _ProgramDescription(title: '가격', body: program.cost),
@@ -47,57 +55,72 @@ class ProgramInformationSection extends StatelessWidget {
 
 class _LocationDescription extends StatelessWidget {
   final ProgramModel program;
+  final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
 
-  const _LocationDescription({required this.program});
+  const _LocationDescription({
+    required this.program,
+    this.onTap,
+    this.onLongPress,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            SizedBox(
-              width: 70.w,
-              child: Text(
-                '위치',
-                style: AppTypography.button2.copyWith(color: AppColors.gray900),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      onLongPress: onLongPress,
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: 70.w,
+                child: Text(
+                  '위치',
+                  style: AppTypography.button2.copyWith(
+                    color: AppColors.gray900,
+                  ),
+                ),
               ),
-            ),
-            SizedBox(width: 20.w),
-            Text(
-              program.locationName,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppTypography.body1.copyWith(color: AppColors.gray900),
-            ),
-          ],
-        ),
-        SizedBox(height: 2.h),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            SizedBox(width: 90.w),
-            SvgPicture.asset(
-              'assets/icons/location-filled.svg',
-              width: 16.w,
-              colorFilter: const ColorFilter.mode(
-                AppColors.gray400,
-                BlendMode.srcIn,
+              SizedBox(width: 20.w),
+              Expanded(
+                child: Text(
+                  program.locationName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.body1.copyWith(color: AppColors.gray900),
+                ),
               ),
-            ),
-            SizedBox(width: 2.w),
-            Expanded(
-              child: Text(
-                program.location['address'] ?? '',
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: AppTypography.body3.copyWith(color: AppColors.gray600),
+            ],
+          ),
+          SizedBox(height: 2.h),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              SizedBox(width: 90.w),
+              SvgPicture.asset(
+                'assets/icons/location-filled.svg',
+                width: 16.w,
+                colorFilter: const ColorFilter.mode(
+                  AppColors.gray400,
+                  BlendMode.srcIn,
+                ),
               ),
-            ),
-          ],
-        ),
-      ],
+              SizedBox(width: 2.w),
+              Expanded(
+                child: Text(
+                  program.location['address'] ?? '',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.body3.copyWith(color: AppColors.gray600),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

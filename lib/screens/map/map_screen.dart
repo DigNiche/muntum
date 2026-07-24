@@ -17,14 +17,16 @@ import 'package:muntum/screens/map/map_clustering.dart';
 import 'package:muntum/screens/map/map_location_overlay_controller.dart';
 import 'package:muntum/screens/map/map_location_service.dart';
 import 'package:muntum/screens/map/map_marker_icon_cache.dart';
+import 'package:muntum/screens/map/map_program_coordinates.dart';
 import 'package:muntum/screens/map/map_program_repository.dart';
 import 'package:muntum/screens/map/map_viewport.dart';
 import 'package:muntum/utils/app_toast.dart';
 
 class MapScreen extends StatefulWidget {
   final bool isActive;
+  final ProgramModel? initialProgram;
 
-  const MapScreen({super.key, this.isActive = true});
+  const MapScreen({super.key, this.isActive = true, this.initialProgram});
 
   @override
   State<MapScreen> createState() => _MapScreenState();
@@ -58,6 +60,7 @@ class _MapScreenState extends State<MapScreen> {
   bool _isLocating = false;
   bool _isSearchingCurrentArea = false;
   bool _isLocationPermissionPopupVisible = false;
+  bool _needsInitialProgram = false;
   int _markerRefreshGeneration = 0;
   int _selectionGeneration = 0;
 
@@ -65,6 +68,8 @@ class _MapScreenState extends State<MapScreen> {
   static const double _sheetMaxSize = 0.78;
   static const double _searchRadiusMeters = 5000;
   static const double _initialZoom = 12.2;
+  static const double _programFocusZoom = 15.5;
+  static const double _programRevealZoom = 18.05;
   static const NLatLng _yongsanStationInitialTarget = NLatLng(
     37.529849,
     126.964561,
@@ -75,6 +80,19 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void initState() {
     super.initState();
+    final initialProgram = widget.initialProgram;
+    if (initialProgram?.hasMapCoordinates ?? false) {
+      _initialMapCenter = NLatLng(
+        initialProgram!.latitude!,
+        initialProgram.longitude!,
+      );
+      _initialLocationResolved = true;
+      _locationInitializationStarted = true;
+      _selectedProgram = initialProgram;
+      _visiblePrograms = [initialProgram];
+      _needsInitialProgram = true;
+      return;
+    }
     if (widget.isActive) {
       _initializeCurrentLocation();
     }
@@ -323,6 +341,17 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
+  Future<void> _focusOnInitialProgram(
+    NaverMapController controller,
+    NLatLng center,
+  ) async {
+    await controller.updateCamera(
+      NCameraUpdate.scrollAndZoomTo(target: center, zoom: _programFocusZoom),
+    );
+    if (!mounted) return;
+    await _refreshVisibleProgramsAndMarkers(controller);
+  }
+
   Future<void> _refreshVisibleProgramsAndMarkers(
     NaverMapController controller, {
     NLatLng? nearbyCenter,
@@ -357,8 +386,26 @@ class _MapScreenState extends State<MapScreen> {
             center: nearbyCenter,
             radiusMeters: _searchRadiusMeters,
           );
+    final initialProgram = widget.initialProgram;
+    if (_needsInitialProgram &&
+        initialProgram?.hasMapCoordinates == true &&
+        !visiblePrograms.any(
+          (program) =>
+              _programSelectionKey(program) ==
+              _programSelectionKey(initialProgram!),
+        )) {
+      visiblePrograms.insert(0, initialProgram!);
+    }
     _mapPrograms = visiblePrograms;
     _clusteringController.clearSpiderfiedPrograms();
+    if (_needsInitialProgram && initialProgram != null) {
+      await _revealInitialProgramMarker(
+        controller,
+        programs: visiblePrograms,
+        targetProgram: initialProgram,
+      );
+    }
+    _needsInitialProgram = false;
     final cameraPosition = await controller.getCameraPosition();
     await _renderProgramMarkers(
       controller,
@@ -366,6 +413,65 @@ class _MapScreenState extends State<MapScreen> {
       cameraPosition.zoom,
       updateProgramList: true,
     );
+  }
+
+  Future<void> _revealInitialProgramMarker(
+    NaverMapController controller, {
+    required List<ProgramModel> programs,
+    required ProgramModel targetProgram,
+  }) async {
+    final targetKey = _programSelectionKey(targetProgram);
+    var cameraPosition = await controller.getCameraPosition();
+    var targetCluster = _findProgramCluster(
+      programs,
+      cameraPosition.zoom,
+      targetKey,
+    );
+    if (targetCluster == null || targetCluster.programs.length == 1) return;
+
+    final cameraUpdate =
+        NCameraUpdate.scrollAndZoomTo(
+          target: NLatLng(targetProgram.latitude!, targetProgram.longitude!),
+          zoom: _programRevealZoom,
+        )..setAnimation(
+          animation: NCameraAnimation.easing,
+          duration: const Duration(milliseconds: 500),
+        );
+    await controller.updateCamera(cameraUpdate);
+    if (!mounted) return;
+
+    cameraPosition = await controller.getCameraPosition();
+    targetCluster = _findProgramCluster(
+      programs,
+      cameraPosition.zoom,
+      targetKey,
+    );
+    if (targetCluster != null && targetCluster.programs.length > 1) {
+      _clusteringController.spiderfyPrograms(
+        targetCluster.programs,
+        keyFor: _programSelectionKey,
+      );
+    }
+  }
+
+  ProgramCluster? _findProgramCluster(
+    List<ProgramModel> programs,
+    double zoom,
+    String targetKey,
+  ) {
+    final clusters = _clusteringController.clusterPrograms(
+      programs,
+      zoom,
+      keyFor: _programSelectionKey,
+    );
+    for (final cluster in clusters) {
+      if (cluster.programs.any(
+        (program) => _programSelectionKey(program) == targetKey,
+      )) {
+        return cluster;
+      }
+    }
+    return null;
   }
 
   Future<void> _refreshClustersFromCache({bool force = false}) async {
@@ -426,11 +532,27 @@ class _MapScreenState extends State<MapScreen> {
     final previouslySelectedProgramKey = _selectedProgram == null
         ? null
         : _programSelectionKey(_selectedProgram!);
-    final clusters = _clusteringController.clusterPrograms(
+    var clusters = _clusteringController.clusterPrograms(
       programs,
       zoom,
       keyFor: _programSelectionKey,
     );
+    if (_clusteringController.shouldAutomaticallySpiderfy(zoom)) {
+      final samePlaceClusters = clusters.where(
+        (cluster) => cluster.programs.length > 1,
+      );
+      for (final cluster in samePlaceClusters) {
+        _clusteringController.addSpiderfiedPrograms(
+          cluster.programs,
+          keyFor: _programSelectionKey,
+        );
+      }
+      clusters = _clusteringController.clusterPrograms(
+        programs,
+        zoom,
+        keyFor: _programSelectionKey,
+      );
+    }
     final spiderfiedMarkerPositions = _clusteringController
         .spiderfiedMarkerPositions(
           clusters,
@@ -757,11 +879,15 @@ class _MapScreenState extends State<MapScreen> {
                 isActive: widget.isActive,
               );
             }
-            await _focusOnSearchRadiusAndRefresh(
-              controller,
-              _initialMapCenter!,
-              animated: false,
-            );
+            if (widget.initialProgram?.hasMapCoordinates ?? false) {
+              await _focusOnInitialProgram(controller, _initialMapCenter!);
+            } else {
+              await _focusOnSearchRadiusAndRefresh(
+                controller,
+                _initialMapCenter!,
+                animated: false,
+              );
+            }
           },
           onCameraChange: (reason, animated) {
             final isUserCameraChange =

@@ -13,19 +13,30 @@ class MapClusteringController {
   static const double _samePlaceThresholdMeters = 3;
   static const double _spiderfyMarkerSpacingPixels = 50;
 
-  final Set<String> _spiderfiedProgramKeys = {};
+  final List<Set<String>> _spiderfiedProgramKeyGroups = [];
 
   void clearSpiderfiedPrograms() {
-    _spiderfiedProgramKeys.clear();
+    _spiderfiedProgramKeyGroups.clear();
   }
 
   void spiderfyPrograms(
     Iterable<ProgramModel> programs, {
     required ProgramKeyResolver keyFor,
   }) {
-    _spiderfiedProgramKeys
-      ..clear()
-      ..addAll(programs.map(keyFor));
+    clearSpiderfiedPrograms();
+    addSpiderfiedPrograms(programs, keyFor: keyFor);
+  }
+
+  void addSpiderfiedPrograms(
+    Iterable<ProgramModel> programs, {
+    required ProgramKeyResolver keyFor,
+  }) {
+    final keys = programs.map(keyFor).toSet();
+    if (keys.length < 2) return;
+    _spiderfiedProgramKeyGroups.removeWhere(
+      (group) => group.any(keys.contains),
+    );
+    _spiderfiedProgramKeyGroups.add(keys);
   }
 
   List<ProgramCluster> clusterPrograms(
@@ -38,7 +49,7 @@ class MapClusteringController {
     final spiderfiedPrograms = <ProgramModel>[];
 
     for (final program in programs) {
-      if (_spiderfiedProgramKeys.contains(keyFor(program))) {
+      if (_isSpiderfied(keyFor(program))) {
         spiderfiedPrograms.add(program);
         continue;
       }
@@ -79,6 +90,10 @@ class MapClusteringController {
     return _samePlaceThresholdMeters;
   }
 
+  bool shouldAutomaticallySpiderfy(double zoom) {
+    return thresholdMetersForZoom(zoom) <= _samePlaceThresholdMeters;
+  }
+
   bool shouldSpiderfy(List<ProgramModel> programs) {
     for (var firstIndex = 0; firstIndex < programs.length; firstIndex++) {
       for (
@@ -105,22 +120,32 @@ class MapClusteringController {
     double zoom, {
     required ProgramKeyResolver keyFor,
   }) {
-    final programs =
-        clusters
-            .where(
-              (cluster) =>
-                  cluster.programs.length == 1 &&
-                  _spiderfiedProgramKeys.contains(
-                    keyFor(cluster.programs.first),
-                  ),
-            )
-            .map((cluster) => cluster.programs.first)
-            .toList()
-          ..sort((first, second) => keyFor(first).compareTo(keyFor(second)));
-    if (programs.length < 2) {
-      return const {};
+    final programsByKey = {
+      for (final cluster in clusters)
+        if (cluster.programs.length == 1)
+          keyFor(cluster.programs.first): cluster.programs.first,
+    };
+    final positions = <String, NLatLng>{};
+    for (final group in _spiderfiedProgramKeyGroups) {
+      final programs =
+          group
+              .map((key) => programsByKey[key])
+              .whereType<ProgramModel>()
+              .toList()
+            ..sort((first, second) => keyFor(first).compareTo(keyFor(second)));
+      positions.addAll(
+        _spiderfiedPositionsForGroup(programs, zoom, keyFor: keyFor),
+      );
     }
+    return positions;
+  }
 
+  Map<String, NLatLng> _spiderfiedPositionsForGroup(
+    List<ProgramModel> programs,
+    double zoom, {
+    required ProgramKeyResolver keyFor,
+  }) {
+    if (programs.length < 2) return const {};
     final centerLatitude =
         programs.fold<double>(0, (sum, program) => sum + program.latitude!) /
         programs.length;
@@ -149,6 +174,12 @@ class MapClusteringController {
       );
     }
     return positions;
+  }
+
+  bool _isSpiderfied(String programKey) {
+    return _spiderfiedProgramKeyGroups.any(
+      (group) => group.contains(programKey),
+    );
   }
 
   NCameraUpdate cameraUpdateForCluster(

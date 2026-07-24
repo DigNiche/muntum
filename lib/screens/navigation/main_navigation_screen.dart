@@ -5,6 +5,7 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
+import 'package:muntum/models/program_model.dart';
 import 'package:muntum/models/report_model.dart';
 import 'package:muntum/screens/bookmark/bookmark_screen.dart';
 import 'package:muntum/screens/home/home_screen.dart';
@@ -18,12 +19,14 @@ class MainNavigationScreen extends StatefulWidget {
   final int initialIndex;
   final ScreenTypes initialHomeScreenType;
   final ReportModel? initialReportDetail;
+  final ProgramModel? initialMapProgram;
 
   const MainNavigationScreen({
     super.key,
     this.initialIndex = 0,
     this.initialHomeScreenType = ScreenTypes.myNiche,
     this.initialReportDetail,
+    this.initialMapProgram,
   });
 
   @override
@@ -105,7 +108,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 initialScreenType: widget.initialHomeScreenType,
                 onScreenTypeChanged: _onHomeScreenTypeChanged,
               ),
-              MapScreen(isActive: _selectedIndex == 1),
+              MapScreen(
+                isActive: _selectedIndex == 1,
+                initialProgram: widget.initialMapProgram,
+              ),
               BookmarkScreen(isActive: _selectedIndex == 2),
               const ProfileScreen(),
             ],

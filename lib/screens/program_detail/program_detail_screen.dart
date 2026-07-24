@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/api/token_store.dart';
 import 'package:muntum/components/action_bottom_sheet.dart';
@@ -8,7 +9,9 @@ import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/pre_update.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/models/program_model.dart';
+import 'package:muntum/screens/map/map_program_coordinates.dart';
 import 'package:muntum/screens/mypage/report_submit_screen.dart';
+import 'package:muntum/screens/navigation/main_navigation_screen.dart';
 import 'package:muntum/screens/program_detail/components/program_attendance_prompt.dart';
 import 'package:muntum/screens/program_detail/components/program_detail_app_bar.dart';
 import 'package:muntum/screens/program_detail/components/program_detail_markdown_body.dart';
@@ -20,6 +23,7 @@ import 'package:muntum/screens/program_detail/components/report_container.dart';
 import 'package:muntum/services/analytics_service.dart';
 import 'package:muntum/services/program_service.dart';
 import 'package:muntum/stores/program_scrap_store.dart';
+import 'package:muntum/utils/app_toast.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ProgramDetailScreen extends StatefulWidget {
@@ -217,6 +221,14 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                         SizedBox(height: 40.h),
                         ProgramInformationSection(
                           program: program,
+                          onTapLocation: program.hasMapCoordinates
+                              ? () => _openOnMap(program)
+                              : null,
+                          onLongPressAddress:
+                              (program.location['address'] ?? '').trim().isEmpty
+                              ? null
+                              : () =>
+                                    _copyAddress(program.location['address']!),
                           onTapContact: (value) =>
                               _launchRelatedInfo(program, value),
                           onTapWebsite: program.link.isEmpty
@@ -309,6 +321,23 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
       return;
     }
     await _launchPhone(program, value);
+  }
+
+  void _openOnMap(ProgramModel program) {
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            MainNavigationScreen(initialIndex: 1, initialMapProgram: program),
+      ),
+      (route) => false,
+    );
+  }
+
+  Future<void> _copyAddress(String address) async {
+    await Clipboard.setData(ClipboardData(text: address.trim()));
+    if (!mounted) return;
+    showAppToast(context, '주소가 복사되었습니다.');
   }
 
   String? _extractEmail(String value) {

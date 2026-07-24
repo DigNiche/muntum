@@ -10,6 +10,7 @@ import 'package:muntum/models/report_model.dart';
 import 'package:muntum/screens/map/map_clustering.dart';
 import 'package:muntum/screens/mypage/components/report_form_field.dart';
 import 'package:muntum/screens/mypage/report_submit_screen.dart';
+import 'package:muntum/screens/program_detail/components/program_information_section.dart';
 import 'package:muntum/services/program_service.dart';
 import 'package:muntum/stores/program_scrap_store.dart';
 import 'package:muntum/stores/user_preference_store.dart';
@@ -91,6 +92,58 @@ void main() {
       expect(spiderfied, hasLength(2));
       expect(positions, hasLength(2));
       expect(positions['same-place-1'], isNot(positions['same-place-2']));
+    });
+
+    test('separates nearby programs when the map zooms in', () {
+      final controller = MapClusteringController();
+      final programs = [
+        _program(id: 'nearby-1', title: '인접 프로그램 1'),
+        _program(id: 'nearby-2', title: '인접 프로그램 2', latitude: 37.52368),
+      ];
+      String keyFor(ProgramModel program) => program.id;
+
+      expect(
+        controller.clusterPrograms(programs, 15.5, keyFor: keyFor),
+        hasLength(1),
+      );
+      expect(
+        controller.clusterPrograms(programs, 18.05, keyFor: keyFor),
+        hasLength(2),
+      );
+    });
+
+    test('spiderfies multiple same-place groups independently', () {
+      final controller = MapClusteringController();
+      final firstGroup = [
+        _program(id: 'first-1', title: '첫 장소 1'),
+        _program(id: 'first-2', title: '첫 장소 2'),
+      ];
+      final secondGroup = [
+        _program(id: 'second-1', title: '둘째 장소 1', latitude: 37.5335),
+        _program(id: 'second-2', title: '둘째 장소 2', latitude: 37.5335),
+      ];
+      final programs = [...firstGroup, ...secondGroup];
+      String keyFor(ProgramModel program) => program.id;
+
+      expect(controller.shouldAutomaticallySpiderfy(17), isTrue);
+      controller.addSpiderfiedPrograms(firstGroup, keyFor: keyFor);
+      controller.addSpiderfiedPrograms(secondGroup, keyFor: keyFor);
+
+      final spiderfied = controller.clusterPrograms(
+        programs,
+        18.05,
+        keyFor: keyFor,
+      );
+      final positions = controller.spiderfiedMarkerPositions(
+        spiderfied,
+        18.05,
+        keyFor: keyFor,
+      );
+
+      expect(spiderfied, hasLength(4));
+      expect(positions, hasLength(4));
+      expect(positions['first-1']!.latitude, lessThan(37.53));
+      expect(positions['second-1']!.latitude, greaterThan(37.53));
     });
   });
 
@@ -268,6 +321,27 @@ void main() {
 
     expect(find.text('장소 검색'), findsOneWidget);
   });
+
+  testWidgets('program address supports long press', (tester) async {
+    var didLongPressAddress = false;
+    final program = _program(id: 'address-copy', title: '주소 복사 프로그램');
+
+    await tester.pumpWidget(
+      ScreenUtilPlusInit(
+        designSize: const Size(390, 844),
+        builder: (context, child) => MaterialApp(home: Scaffold(body: child)),
+        child: ProgramInformationSection(
+          program: program,
+          onLongPressAddress: () => didLongPressAddress = true,
+          onTapContact: (_) {},
+        ),
+      ),
+    );
+
+    await tester.longPress(find.text(program.location['address']!));
+
+    expect(didLongPressAddress, isTrue);
+  });
 }
 
 ProgramModel _program({
@@ -279,6 +353,8 @@ ProgramModel _program({
   List<Filter> filters = const [Filter.exhibition],
   String phoneNumber = '',
   String link = '',
+  double latitude = 37.5235,
+  double longitude = 126.9804,
 }) {
   return ProgramModel(
     id: id,
@@ -291,8 +367,8 @@ ProgramModel _program({
     locationName: '용산역사박물관',
     location: {
       'address': address,
-      'latitude': '37.5235',
-      'longitude': '126.9804',
+      'latitude': '$latitude',
+      'longitude': '$longitude',
     },
     availableTime: '10:00-18:00',
     cost: filters.contains(Filter.free) ? '무료' : '유료',
