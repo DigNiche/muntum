@@ -10,6 +10,7 @@ class ButtonSolid extends StatelessWidget {
   final VoidCallback? onTap;
   final EdgeInsetsGeometry? padding;
   final BoxBorder? border;
+  final Widget? leading;
   const ButtonSolid({
     super.key,
     required this.text,
@@ -18,6 +19,7 @@ class ButtonSolid extends StatelessWidget {
     this.onTap,
     this.padding,
     this.border,
+    this.leading,
   });
 
   @override
@@ -31,14 +33,25 @@ class ButtonSolid extends StatelessWidget {
           color: boxColor,
           border: border,
         ),
-        child: Center(
-          child: Text(
-            text,
-            style: AppTypography.button2.copyWith(color: textColor),
-            maxLines: 1,
-          ),
-        ),
+        child: leading == null
+            ? Center(child: _buildText())
+            : Stack(
+                alignment: Alignment.center,
+                clipBehavior: Clip.none,
+                children: [
+                  Center(child: _buildText()),
+                  Positioned(left: 0, child: leading!),
+                ],
+              ),
       ),
+    );
+  }
+
+  Widget _buildText() {
+    return Text(
+      text,
+      style: AppTypography.button1.copyWith(color: textColor),
+      maxLines: 1,
     );
   }
 }

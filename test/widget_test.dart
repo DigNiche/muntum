@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:muntum/api/api_config.dart';
+import 'package:muntum/api/api_endpoints.dart';
 import 'package:muntum/data/report_place_search_repository.dart';
+import 'package:muntum/models/auth_models.dart';
 import 'package:muntum/models/program_model.dart';
 import 'package:muntum/models/report_model.dart';
 import 'package:muntum/screens/map/map_clustering.dart';
@@ -18,6 +20,28 @@ void main() {
   group('api config', () {
     test('uses the production API by default', () {
       expect(ApiConfig.baseUrl, 'https://api.muntum.work');
+    });
+  });
+
+  group('social login contract', () {
+    test('uses the social login endpoint', () {
+      expect(ApiEndpoints.socialLogin, '/api/v1/auth/social/login');
+    });
+
+    test('serializes every Apple verification field', () {
+      const request = SocialLoginRequest(
+        provider: SocialAuthProvider.apple,
+        identityToken: 'identity-token',
+        authorizationCode: 'authorization-code',
+        nonce: 'raw-nonce',
+      );
+
+      expect(request.toJson(), {
+        'provider': 'APPLE',
+        'identityToken': 'identity-token',
+        'authorizationCode': 'authorization-code',
+        'nonce': 'raw-nonce',
+      });
     });
   });
 

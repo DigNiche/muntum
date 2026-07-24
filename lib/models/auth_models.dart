@@ -1,5 +1,37 @@
 import 'dart:convert';
 
+enum SocialAuthProvider {
+  apple('APPLE'),
+  kakao('KAKAO');
+
+  final String apiValue;
+
+  const SocialAuthProvider(this.apiValue);
+}
+
+class SocialLoginRequest {
+  final SocialAuthProvider provider;
+  final String identityToken;
+  final String authorizationCode;
+  final String nonce;
+
+  const SocialLoginRequest({
+    required this.provider,
+    required this.identityToken,
+    required this.authorizationCode,
+    required this.nonce,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'provider': provider.apiValue,
+      'identityToken': identityToken,
+      'authorizationCode': authorizationCode,
+      'nonce': nonce,
+    };
+  }
+}
+
 class AuthSession {
   final String tokenType;
   final String accessToken;

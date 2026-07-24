@@ -46,14 +46,20 @@ class AuthService {
       response,
       (data) => AuthSession.fromJson(data as Map<String, dynamic>? ?? const {}),
     ).data;
-    await _tokenStore.saveTokens(
-      accessToken: session.accessToken,
-      refreshToken: session.refreshToken,
-      userId: session.userId,
-      email: session.email,
-      nickname: session.nickname,
-      role: session.role,
+    await _saveSession(session);
+    return session;
+  }
+
+  Future<AuthSession> socialLogin(SocialLoginRequest request) async {
+    final response = await _client.post(
+      ApiEndpoints.socialLogin,
+      body: request.toJson(),
     );
+    final session = ApiResponse.fromJson(
+      response,
+      (data) => AuthSession.fromJson(data as Map<String, dynamic>? ?? const {}),
+    ).data;
+    await _saveSession(session);
     return session;
   }
 
@@ -69,7 +75,12 @@ class AuthService {
       response,
       (data) => AuthSession.fromJson(data as Map<String, dynamic>? ?? const {}),
     ).data;
-    await _tokenStore.saveTokens(
+    await _saveSession(session);
+    return session;
+  }
+
+  Future<void> _saveSession(AuthSession session) {
+    return _tokenStore.saveTokens(
       accessToken: session.accessToken,
       refreshToken: session.refreshToken,
       userId: session.userId,
@@ -77,7 +88,6 @@ class AuthService {
       nickname: session.nickname,
       role: session.role,
     );
-    return session;
   }
 
   Future<void> logout() async {

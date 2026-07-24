@@ -1,9 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/api/api_exception.dart';
 import 'package:muntum/constants/colors.dart';
+import 'package:muntum/constants/pre_update.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/components/button_solid.dart';
 import 'package:muntum/api/token_store.dart';
@@ -15,10 +17,13 @@ import 'package:muntum/screens/onboarding/components/text_field_widget.dart';
 import 'package:muntum/screens/onboarding/sign_up_screens/keyword_screen.dart';
 import 'package:muntum/screens/onboarding/sign_up_screens/nickname_screen.dart';
 import 'package:muntum/screens/onboarding/sign_up_screens/sign_up.dart';
+import 'package:muntum/services/apple_auth_service.dart';
 import 'package:muntum/services/auth_service.dart';
 import 'package:muntum/services/taste_service.dart';
 import 'package:muntum/stores/program_scrap_store.dart';
 import 'package:muntum/stores/user_preference_store.dart';
+import 'package:muntum/utils/app_toast.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 class LoginScreen extends StatefulWidget {
   final bool showBackButton;
@@ -39,6 +44,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isEmailError = false;
   bool _isPasswordError = false;
   bool _isLoading = false;
+  bool _isAppleLoading = false;
 
   @override
   void initState() {
@@ -86,7 +92,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: SingleChildScrollView(
                       child: Column(
                         children: [
-                          SizedBox(height: 200.h),
+                          SizedBox(height: 185.h),
                           SvgPicture.asset(
                             'assets/login_image.svg',
                             width: 350.w,
@@ -194,6 +200,27 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ),
+                  if (isReadyForPublish &&
+                      defaultTargetPlatform == TargetPlatform.iOS)
+                    Padding(
+                      padding: EdgeInsets.only(bottom: 12.0.h),
+                      child: ButtonSolid(
+                        leading: Text(
+                          '',
+                          style: TextStyle(
+                            color: AppColors.black,
+                            fontSize: 20.sp,
+                            height: 1,
+                          ),
+                        ),
+                        text: _isAppleLoading
+                            ? 'Apple 로그인 중...'
+                            : 'Apple로 시작하기',
+                        textColor: AppColors.black,
+                        boxColor: AppColors.white,
+                        onTap: _loginWithApple,
+                      ),
+                    ),
                   ButtonSolid(
                     text: '로그인 없이 둘러보기',
                     textColor: AppColors.gray600,
@@ -265,7 +292,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _login() async {
-    if (_isLoading) return;
+    if (_isLoading || _isAppleLoading) return;
     setState(() {
       _isLoading = true;
       _isEmailError = false;
@@ -287,6 +314,28 @@ class _LoginScreenState extends State<LoginScreen> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  Future<void> _loginWithApple() async {
+    if (_isLoading || _isAppleLoading) return;
+    setState(() => _isAppleLoading = true);
+    try {
+      final request = await AppleAuthService().authorize();
+      final session = await AuthService().socialLogin(request);
+      if (!mounted) return;
+      await _routeAfterApiLogin(session.nickname);
+    } on SignInWithAppleAuthorizationException catch (error) {
+      if (!mounted || error.code == AuthorizationErrorCode.canceled) return;
+      showAppToast(context, 'Apple 로그인에 실패했습니다. 다시 시도해주세요.', isError: true);
+    } catch (error) {
+      if (!mounted) return;
+      final message = error is ApiException && error.statusCode == 404
+          ? 'Apple 로그인 서버를 준비 중입니다.'
+          : 'Apple 로그인에 실패했습니다. 다시 시도해주세요.';
+      showAppToast(context, message, isError: true);
+    } finally {
+      if (mounted) setState(() => _isAppleLoading = false);
     }
   }
 
