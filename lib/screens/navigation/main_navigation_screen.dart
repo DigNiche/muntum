@@ -93,6 +93,62 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     setState(() => _showMyNicheCoachmark = false);
   }
 
+  Widget _buildBottomNavigationBar(bool useDarkTheme) {
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(
+                color: useDarkTheme ? AppColors.gray900 : AppColors.lineNormal,
+                width: 1.sp,
+              ),
+            ),
+            color: useDarkTheme
+                ? const Color(0xFF181818)
+                : AppColors.white.withValues(alpha: 0.93),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              NavTab(
+                icon: 'explore-filled.svg',
+                text: '발견',
+                isActive: _selectedIndex == 0,
+                useDarkTheme: useDarkTheme,
+                onTap: () => _onTabTap(0),
+              ),
+              NavTab(
+                icon: 'location-filled.svg',
+                text: '지도',
+                isActive: _selectedIndex == 1,
+                useDarkTheme: useDarkTheme,
+                onTap: () => _onTabTap(1),
+              ),
+              NavTab(
+                icon: 'scrap-filled.svg',
+                text: '스크랩',
+                isActive: _selectedIndex == 2,
+                useDarkTheme: useDarkTheme,
+                onTap: () => _onTabTap(2),
+              ),
+              NavTab(
+                icon: 'profile-filled.svg',
+                text: '프로필',
+                isActive: _selectedIndex == 3,
+                useDarkTheme: useDarkTheme,
+                onTap: () => _onTabTap(3),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final useDarkBottomNavigation =
@@ -111,66 +167,17 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               MapScreen(
                 isActive: _selectedIndex == 1,
                 initialProgram: widget.initialMapProgram,
+                onBack: widget.initialMapProgram == null
+                    ? null
+                    : () => Navigator.pop(context),
               ),
               BookmarkScreen(isActive: _selectedIndex == 2),
               const ProfileScreen(),
             ],
           ),
-          bottomNavigationBar: ClipRect(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-                decoration: BoxDecoration(
-                  border: Border(
-                    top: BorderSide(
-                      color: useDarkBottomNavigation
-                          ? AppColors.gray900
-                          : AppColors.lineNormal,
-                      width: 1.sp,
-                    ),
-                  ),
-                  color: useDarkBottomNavigation
-                      ? const Color(0xFF181818).withValues(alpha: 0.97)
-                      : AppColors.white.withValues(alpha: 0.93),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    NavTab(
-                      icon: 'explore-filled.svg',
-                      text: '발견',
-                      isActive: _selectedIndex == 0,
-                      useDarkTheme: useDarkBottomNavigation,
-                      onTap: () => _onTabTap(0),
-                    ),
-                    NavTab(
-                      icon: 'location-filled.svg',
-                      text: '지도',
-                      isActive: _selectedIndex == 1,
-                      useDarkTheme: useDarkBottomNavigation,
-                      onTap: () => _onTabTap(1),
-                    ),
-                    NavTab(
-                      icon: 'scrap-filled.svg',
-                      text: '스크랩',
-                      isActive: _selectedIndex == 2,
-                      useDarkTheme: useDarkBottomNavigation,
-                      onTap: () => _onTabTap(2),
-                    ),
-                    NavTab(
-                      icon: 'profile-filled.svg',
-                      text: '프로필',
-                      isActive: _selectedIndex == 3,
-                      useDarkTheme: useDarkBottomNavigation,
-                      onTap: () => _onTabTap(3),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
+          bottomNavigationBar: widget.initialMapProgram == null
+              ? _buildBottomNavigationBar(useDarkBottomNavigation)
+              : null,
         ),
         if (_showMyNicheCoachmark && _selectedIndex == 0)
           _MyNicheCoachmarkOverlay(onDismiss: _dismissMyNicheCoachmark),

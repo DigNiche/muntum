@@ -18,6 +18,7 @@ class TokenStore {
     String? email,
     String? nickname,
     String? role,
+    String? authProvider,
   }) async {
     _accessToken = accessToken;
     AuthState.instance.replace(
@@ -49,6 +50,9 @@ class TokenStore {
     } else {
       await prefs.remove('role');
     }
+    if (authProvider != null && authProvider.isNotEmpty) {
+      await prefs.setString('authProvider', authProvider);
+    }
     await AnalyticsService.instance.setUserId(userId);
   }
 
@@ -70,6 +74,11 @@ class TokenStore {
   Future<String?> readRole() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('role');
+  }
+
+  Future<String?> readAuthProvider() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('authProvider');
   }
 
   Future<void> saveProfile({
@@ -100,6 +109,7 @@ class TokenStore {
     await prefs.remove('email');
     await prefs.remove('nickname');
     await prefs.remove('role');
+    await prefs.remove('authProvider');
     await AnalyticsService.instance.setUserId(null);
   }
 }

@@ -142,7 +142,7 @@ class _AccountMangeScreenState extends State<AccountMangeScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const WithdrawPasswordScreen(),
+                        builder: (context) => const WithdrawScreen(),
                       ),
                     );
                   },

@@ -34,14 +34,14 @@ void main() {
         provider: SocialAuthProvider.apple,
         token: 'identity-token',
         authorizationCode: 'authorization-code',
-        nonce: 'raw-nonce',
+        nonce: 'hashed-nonce',
       );
 
       expect(request.toJson(), {
         'provider': 'APPLE',
         'token': 'identity-token',
         'authorizationCode': 'authorization-code',
-        'nonce': 'raw-nonce',
+        'nonce': 'hashed-nonce',
       });
     });
   });

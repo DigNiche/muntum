@@ -74,7 +74,7 @@ class BannerCard extends StatelessWidget {
                     children: [
                       Text(
                         program.title,
-                        maxLines: 1,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: AppTypography.title3.copyWith(
                           color: AppColors.white,

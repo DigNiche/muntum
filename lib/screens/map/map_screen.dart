@@ -25,8 +25,14 @@ import 'package:muntum/utils/app_toast.dart';
 class MapScreen extends StatefulWidget {
   final bool isActive;
   final ProgramModel? initialProgram;
+  final VoidCallback? onBack;
 
-  const MapScreen({super.key, this.isActive = true, this.initialProgram});
+  const MapScreen({
+    super.key,
+    this.isActive = true,
+    this.initialProgram,
+    this.onBack,
+  });
 
   @override
   State<MapScreen> createState() => _MapScreenState();
@@ -76,6 +82,8 @@ class _MapScreenState extends State<MapScreen> {
   );
 
   bool _showSearchHereButton = false;
+  bool get _isProgramFocusMode =>
+      widget.onBack != null && widget.initialProgram != null;
 
   @override
   void initState() {
@@ -89,6 +97,7 @@ class _MapScreenState extends State<MapScreen> {
       _initialLocationResolved = true;
       _locationInitializationStarted = true;
       _selectedProgram = initialProgram;
+      _mapPrograms = [initialProgram];
       _visiblePrograms = [initialProgram];
       _needsInitialProgram = true;
       return;
@@ -349,6 +358,20 @@ class _MapScreenState extends State<MapScreen> {
       NCameraUpdate.scrollAndZoomTo(target: center, zoom: _programFocusZoom),
     );
     if (!mounted) return;
+    if (_isProgramFocusMode) {
+      final initialProgram = widget.initialProgram!;
+      _mapPrograms = [initialProgram];
+      _visiblePrograms = [initialProgram];
+      _needsInitialProgram = false;
+      final cameraPosition = await controller.getCameraPosition();
+      await _renderProgramMarkers(
+        controller,
+        [initialProgram],
+        cameraPosition.zoom,
+        updateProgramList: true,
+      );
+      return;
+    }
     await _refreshVisibleProgramsAndMarkers(controller);
   }
 
@@ -377,6 +400,19 @@ class _MapScreenState extends State<MapScreen> {
     NaverMapController controller, {
     NLatLng? nearbyCenter,
   }) async {
+    if (_isProgramFocusMode) {
+      final initialProgram = widget.initialProgram!;
+      _mapPrograms = [initialProgram];
+      _visiblePrograms = [initialProgram];
+      final cameraPosition = await controller.getCameraPosition();
+      await _renderProgramMarkers(
+        controller,
+        [initialProgram],
+        cameraPosition.zoom,
+        updateProgramList: true,
+      );
+      return;
+    }
     final visiblePrograms = nearbyCenter == null
         ? await _programRepository.fetchInBounds(
             bounds: await controller.getContentBounds(withPadding: false),
@@ -893,7 +929,9 @@ class _MapScreenState extends State<MapScreen> {
             final isUserCameraChange =
                 reason == NCameraUpdateReason.gesture ||
                 reason == NCameraUpdateReason.control;
-            if (isUserCameraChange && !_showSearchHereButton) {
+            if (!_isProgramFocusMode &&
+                isUserCameraChange &&
+                !_showSearchHereButton) {
               setState(() {
                 _showSearchHereButton = true;
               });
@@ -903,41 +941,78 @@ class _MapScreenState extends State<MapScreen> {
             unawaited(_refreshClustersFromCache());
           },
           onMapTapped: (point, latLng) {
-            unawaited(_clearSelectedProgram());
+            if (!_isProgramFocusMode) {
+              unawaited(_clearSelectedProgram());
+            }
           },
         ),
-        Column(
-          children: [
-            SizedBox(height: 50.h),
-            Padding(
-              padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 8.h),
-              child: SearchBarWidget(
-                controller: _searchbarController,
-                backgroundColor: AppColors.white,
-                readOnly: true,
-                onTap: _openSearchScreen,
+        if (widget.onBack == null)
+          Column(
+            children: [
+              SizedBox(height: 50.h),
+              Padding(
+                padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 8.h),
+                child: SearchBarWidget(
+                  controller: _searchbarController,
+                  backgroundColor: AppColors.white,
+                  readOnly: true,
+                  onTap: _openSearchScreen,
+                ),
               ),
-            ),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              clipBehavior: Clip.none,
-              padding: EdgeInsets.symmetric(horizontal: 20.w),
-              child: Row(
-                spacing: 6.w,
-                children: [
-                  _buildMapFilterChip(Filter.nowHot, '🔥지금핫한'),
-                  _buildMapFilterChip(Filter.free, '무료'),
-                  _buildMapFilterChip(Filter.thisWeek, '이번주'),
-                  _buildMapFilterChip(Filter.noReservation, '예약없이'),
-                  ...ProgramType.values.map(
-                    (type) => _buildMapFilterChip(type.filter, type.label),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                clipBehavior: Clip.none,
+                padding: EdgeInsets.symmetric(horizontal: 20.w),
+                child: Row(
+                  spacing: 6.w,
+                  children: [
+                    _buildMapFilterChip(Filter.nowHot, '🔥지금핫한'),
+                    _buildMapFilterChip(Filter.free, '무료'),
+                    _buildMapFilterChip(Filter.thisWeek, '이번주'),
+                    _buildMapFilterChip(Filter.noReservation, '예약없이'),
+                    ...ProgramType.values.map(
+                      (type) => _buildMapFilterChip(type.filter, type.label),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          )
+        else
+          Positioned(
+            left: 20.w,
+            top: 70.h,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: widget.onBack,
+              child: Container(
+                width: 48.w,
+                height: 48.w,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF10110F).withValues(alpha: 0.1),
+                      offset: const Offset(0, 4),
+                      blurRadius: 12,
+                    ),
+                  ],
+                ),
+                child: SvgPicture.asset(
+                  'assets/icons/arrow_left-small.svg',
+                  width: 24.w,
+                  height: 24.h,
+                  colorFilter: const ColorFilter.mode(
+                    AppColors.gray900,
+                    BlendMode.srcIn,
                   ),
-                ],
+                ),
               ),
             ),
-          ],
-        ),
-        if (_showSearchHereButton)
+          ),
+        if (!_isProgramFocusMode && _showSearchHereButton)
           Positioned(
             left: 0,
             right: 0,
@@ -953,45 +1028,46 @@ class _MapScreenState extends State<MapScreen> {
               ),
             ),
           ),
-        Positioned(
-          right: 20.w,
-          bottom: 220.h,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: _isLocating ? null : _moveToCurrentLocation,
-            child: Container(
-              width: 48.w,
-              height: 48.w,
-              padding: EdgeInsets.all(12.r),
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF10110F).withValues(alpha: 0.1),
-                    offset: const Offset(0, 4),
-                    blurRadius: 12,
-                    spreadRadius: 0,
-                  ),
-                ],
-              ),
-              child: _isLocating
-                  ? const CircularProgressIndicator(
-                      color: AppColors.gray900,
-                      strokeWidth: 2,
-                    )
-                  : SvgPicture.asset(
-                      'assets/icons/mylocation.svg',
-                      width: 20.r,
-                      height: 20.r,
-                      colorFilter: const ColorFilter.mode(
-                        AppColors.gray900,
-                        BlendMode.srcIn,
-                      ),
+        if (!_isProgramFocusMode)
+          Positioned(
+            right: 20.w,
+            bottom: 220.h,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _isLocating ? null : _moveToCurrentLocation,
+              child: Container(
+                width: 48.w,
+                height: 48.w,
+                padding: EdgeInsets.all(12.r),
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF10110F).withValues(alpha: 0.1),
+                      offset: const Offset(0, 4),
+                      blurRadius: 12,
+                      spreadRadius: 0,
                     ),
+                  ],
+                ),
+                child: _isLocating
+                    ? const CircularProgressIndicator(
+                        color: AppColors.gray900,
+                        strokeWidth: 2,
+                      )
+                    : SvgPicture.asset(
+                        'assets/icons/mylocation.svg',
+                        width: 20.r,
+                        height: 20.r,
+                        colorFilter: const ColorFilter.mode(
+                          AppColors.gray900,
+                          BlendMode.srcIn,
+                        ),
+                      ),
+              ),
             ),
           ),
-        ),
         Align(
           alignment: Alignment.bottomCenter,
           child: DraggableScrollableSheet(
@@ -1012,6 +1088,9 @@ class _MapScreenState extends State<MapScreen> {
                 sheetController: _sheetController,
                 minChildSize: _sheetMinSize,
                 maxChildSize: _sheetMaxSize,
+                onProgramTap: _isProgramFocusMode
+                    ? (_) => widget.onBack?.call()
+                    : null,
               );
             },
           ),

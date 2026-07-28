@@ -46,7 +46,7 @@ class AuthService {
       response,
       (data) => AuthSession.fromJson(data as Map<String, dynamic>? ?? const {}),
     ).data;
-    await _saveSession(session);
+    await _saveSession(session, authProvider: 'EMAIL');
     return session;
   }
 
@@ -59,7 +59,7 @@ class AuthService {
       response,
       (data) => AuthSession.fromJson(data as Map<String, dynamic>? ?? const {}),
     ).data;
-    await _saveSession(session);
+    await _saveSession(session, authProvider: request.provider.apiValue);
     return session;
   }
 
@@ -79,7 +79,7 @@ class AuthService {
     return session;
   }
 
-  Future<void> _saveSession(AuthSession session) {
+  Future<void> _saveSession(AuthSession session, {String? authProvider}) {
     return _tokenStore.saveTokens(
       accessToken: session.accessToken,
       refreshToken: session.refreshToken,
@@ -87,6 +87,7 @@ class AuthService {
       email: session.email,
       nickname: session.nickname,
       role: session.role,
+      authProvider: authProvider,
     );
   }
 

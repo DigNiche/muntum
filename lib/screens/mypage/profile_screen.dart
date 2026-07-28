@@ -250,7 +250,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         builder: (context, snapshot) {
                                           return Text(
                                             '${snapshot.data ?? 0}',
-                                            style: AppTypography.headline1,
+                                            style: AppTypography.title3,
                                           );
                                         },
                                       ),
@@ -274,7 +274,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         builder: (context, snapshot) {
                                           return Text(
                                             '${snapshot.data ?? 0}',
-                                            style: AppTypography.headline1,
+                                            style: AppTypography.title3,
                                           );
                                         },
                                       ),

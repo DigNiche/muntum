@@ -12,25 +12,31 @@ import 'package:muntum/utils/program_scrap.dart';
 class HorizontalCard extends StatelessWidget {
   final ProgramModel program;
   final String entrySource;
+  final VoidCallback? onTap;
 
   const HorizontalCard({
     super.key,
     required this.program,
     this.entrySource = 'unknown',
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) =>
-                ProgramDetailScreen(program: program, entrySource: entrySource),
-          ),
-        );
-      },
+      onTap:
+          onTap ??
+          () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ProgramDetailScreen(
+                  program: program,
+                  entrySource: entrySource,
+                ),
+              ),
+            );
+          },
       child: Row(
         spacing: 16.w,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -50,11 +56,12 @@ class HorizontalCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
                       child: Text(
                         program.title,
-                        maxLines: 1,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: AppTypography.headline1.copyWith(
                           color: AppColors.gray900,
@@ -69,11 +76,7 @@ class HorizontalCard extends StatelessWidget {
                         entrySource: entrySource,
                       ),
                       child: Padding(
-                        padding: EdgeInsets.only(
-                          top: 4.h,
-                          right: 4.w,
-                          left: 16.w,
-                        ),
+                        padding: EdgeInsets.only(top: 4.h, left: 16.w),
                         child: ListenableBuilder(
                           listenable: ProgramScrapStore.instance,
                           builder: (context, _) {

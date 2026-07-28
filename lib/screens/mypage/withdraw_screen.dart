@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:muntum/api/token_store.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/button_solid.dart';
@@ -9,11 +11,110 @@ import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/screens/onboarding/login_screen.dart';
+import 'package:muntum/services/apple_auth_service.dart';
 import 'package:muntum/services/auth_service.dart';
 import 'package:muntum/services/user_service.dart';
 import 'package:muntum/stores/program_scrap_store.dart';
 import 'package:muntum/stores/user_preference_store.dart';
 import 'package:muntum/utils/app_toast.dart';
+
+class WithdrawScreen extends StatelessWidget {
+  const WithdrawScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<String?>(
+      future: TokenStore.instance.readAuthProvider(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Scaffold(
+            backgroundColor: AppColors.white,
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        return snapshot.data == 'APPLE'
+            ? const WithdrawAppleScreen()
+            : const WithdrawPasswordScreen();
+      },
+    );
+  }
+}
+
+class WithdrawAppleScreen extends StatefulWidget {
+  const WithdrawAppleScreen({super.key});
+
+  @override
+  State<WithdrawAppleScreen> createState() => _WithdrawAppleScreenState();
+}
+
+class _WithdrawAppleScreenState extends State<WithdrawAppleScreen> {
+  bool _isAuthenticating = false;
+
+  Future<void> _authenticateWithApple() async {
+    if (_isAuthenticating) return;
+    setState(() => _isAuthenticating = true);
+    try {
+      await AppleAuthService().authorize();
+      if (!mounted) return;
+      showAppToast(context, 'Apple 본인인증이 완료됐어요.');
+    } on SignInWithAppleAuthorizationException catch (error) {
+      if (!mounted || error.code == AuthorizationErrorCode.canceled) return;
+      showAppToast(context, 'Apple 본인인증에 실패했습니다. 다시 시도해주세요.', isError: true);
+    } catch (error) {
+      if (!mounted) return;
+      if (kDebugMode) {
+        debugPrint('Apple withdrawal authentication failed: $error');
+      }
+      showAppToast(context, 'Apple 본인인증에 실패했습니다. 다시 시도해주세요.', isError: true);
+    } finally {
+      if (mounted) setState(() => _isAuthenticating = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.white,
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(height: 50.h),
+          AppBarWidget(
+            centerType: AppBarCenterType.text,
+            leadingIcon: 'arrow_left.svg',
+            center: '회원 탈퇴',
+            onLeadingTap: () => Navigator.pop(context),
+          ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(20.w, 14.h, 20.w, 0),
+            child: Text(
+              '안전한 탈퇴를 위해\n본인확인이 필요해요.',
+              style: AppTypography.title1.copyWith(color: AppColors.black),
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(20.w, 40.h, 20.w, 0),
+            child: ButtonSolid(
+              leading: Text(
+                '',
+                style: TextStyle(
+                  color: AppColors.black,
+                  fontSize: 20.sp,
+                  height: 1,
+                ),
+              ),
+              text: _isAuthenticating ? 'Apple로 확인 중...' : 'Apple로 본인인증',
+              textColor: AppColors.black,
+              boxColor: AppColors.white,
+              border: BoxBorder.all(color: AppColors.gray200, width: 1.w),
+              onTap: _authenticateWithApple,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class WithdrawPasswordScreen extends StatefulWidget {
   const WithdrawPasswordScreen({super.key});

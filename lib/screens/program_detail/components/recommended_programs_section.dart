@@ -15,12 +15,13 @@ class RecommendedProgramsSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SectionHeader1(
+          verticalPadding: 0,
           text: '지금 주목받는',
           buttonName: '',
           onButtonTap: () {},
           horizontalPadding: 0,
         ),
-        SizedBox(height: 8.h),
+        SizedBox(height: 16.h),
         FutureBuilder<List<ProgramModel>>(
           future: programsFuture,
           builder: (context, snapshot) {

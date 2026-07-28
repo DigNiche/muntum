@@ -186,76 +186,104 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                 child: SingleChildScrollView(
                   key: _scrollViewportKey,
                   controller: _scrollController,
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20.w),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(height: 10.h),
-                        ProgramHeader(key: _programHeaderKey, program: program),
-                        SizedBox(height: 16.h),
-                        Center(
-                          child: ProgramPosterCarousel(images: program.images),
-                        ),
-                        SizedBox(height: 40.h),
-                        Text(
-                          program.oneLineDescription,
-                          style: AppTypography.title4.copyWith(
-                            color: AppColors.gray900,
-                          ),
-                        ),
-                        SizedBox(height: 24.h),
-                        ProgramDetailMarkdownBody(
-                          markdown: program.detail.isEmpty
-                              ? '상세 정보가 준비 중입니다.'
-                              : program.detail,
-                          onTapLink: (href) {
-                            if (href.isEmpty) return;
-                            _launchExternalUrl(
-                              program,
-                              href,
-                              linkType: 'markdown_link',
-                            );
-                          },
-                        ),
-                        SizedBox(height: 40.h),
-                        ProgramInformationSection(
-                          program: program,
-                          onTapLocation: program.hasMapCoordinates
-                              ? () => _openOnMap(program)
-                              : null,
-                          onLongPressAddress:
-                              (program.location['address'] ?? '').trim().isEmpty
-                              ? null
-                              : () =>
-                                    _copyAddress(program.location['address']!),
-                          onTapContact: (value) =>
-                              _launchRelatedInfo(program, value),
-                          onTapWebsite: program.link.isEmpty
-                              ? null
-                              : () => _launchExternalUrl(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 20.w),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(height: 10.h),
+                            ProgramHeader(
+                              key: _programHeaderKey,
+                              program: program,
+                            ),
+                            SizedBox(height: 16.h),
+                            Center(
+                              child: ProgramPosterCarousel(
+                                images: program.images,
+                              ),
+                            ),
+                            SizedBox(height: 56.h),
+                            ProgramInformationSection(
+                              program: program,
+                              onTapLocation: program.hasMapCoordinates
+                                  ? () => _openOnMap(program)
+                                  : null,
+                              onLongPressAddress:
+                                  (program.location['address'] ?? '')
+                                      .trim()
+                                      .isEmpty
+                                  ? null
+                                  : () => _copyAddress(
+                                      program.location['address']!,
+                                    ),
+                              onTapContact: (value) =>
+                                  _launchRelatedInfo(program, value),
+                              onTapWebsite: program.link.isEmpty
+                                  ? null
+                                  : () => _launchExternalUrl(
+                                      program,
+                                      program.link,
+                                      linkType: 'website',
+                                    ),
+                            ),
+                            SizedBox(height: 56.h),
+                            Text(
+                              program.oneLineDescription,
+                              style: AppTypography.title3.copyWith(
+                                color: AppColors.gray900,
+                              ),
+                            ),
+                            SizedBox(height: 24.h),
+                            ProgramDetailMarkdownBody(
+                              markdown: program.detail.isEmpty
+                                  ? '상세 정보가 준비 중입니다.'
+                                  : program.detail,
+                              onTapLink: (href) {
+                                if (href.isEmpty) return;
+                                _launchExternalUrl(
                                   program,
-                                  program.link,
-                                  linkType: 'website',
-                                ),
+                                  href,
+                                  linkType: 'markdown_link',
+                                );
+                              },
+                            ),
+                            SizedBox(height: 40.h),
+
+                            // TODO: 방문 기록 기능이 준비되면 노출한다.
+                            if (isReadyForPublish)
+                              Padding(
+                                padding: EdgeInsets.only(bottom: 40.h),
+                                child: const ProgramAttendancePrompt(),
+                              ),
+                          ],
                         ),
-                        SizedBox(height: 40.h),
-                        // TODO: 방문 기록 기능이 준비되면 노출한다.
-                        if (isReadyForPublish)
-                          Padding(
-                            padding: EdgeInsets.only(bottom: 40.h),
-                            child: const ProgramAttendancePrompt(),
-                          ),
-                        RecommendedProgramsSection(
-                          programsFuture: _recommendedFuture,
+                      ),
+                      Divider(
+                        height: 8.h,
+                        thickness: 8.h,
+                        color: AppColors.lineAlternative,
+                      ),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 20.w),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(height: 40.h),
+                            RecommendedProgramsSection(
+                              programsFuture: _recommendedFuture,
+                            ),
+                            SizedBox(height: 40.h),
+                            ReportContainer(
+                              openReportBottomSheet: _openReportBottomSheet,
+                            ),
+                            SizedBox(height: 134.h),
+                          ],
                         ),
-                        SizedBox(height: 40.h),
-                        ReportContainer(
-                          openReportBottomSheet: _openReportBottomSheet,
-                        ),
-                        SizedBox(height: 134.h),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -324,13 +352,12 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
   }
 
   void _openOnMap(ProgramModel program) {
-    Navigator.pushAndRemoveUntil(
+    Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) =>
             MainNavigationScreen(initialIndex: 1, initialMapProgram: program),
       ),
-      (route) => false,
     );
   }
 

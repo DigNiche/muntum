@@ -12,6 +12,7 @@ class MapProgramBottomPanel extends StatelessWidget {
   final double minChildSize;
   final double maxChildSize;
   final List<ProgramModel> programs;
+  final ValueChanged<ProgramModel>? onProgramTap;
 
   const MapProgramBottomPanel({
     super.key,
@@ -20,6 +21,7 @@ class MapProgramBottomPanel extends StatelessWidget {
     required this.minChildSize,
     required this.maxChildSize,
     required this.programs,
+    this.onProgramTap,
   });
 
   @override
@@ -107,6 +109,9 @@ class MapProgramBottomPanel extends StatelessWidget {
                         HorizontalCard(
                           program: programs[index],
                           entrySource: 'map',
+                          onTap: onProgramTap == null
+                              ? null
+                              : () => onProgramTap!(programs[index]),
                         ),
                         if (index != programs.length - 1)
                           SizedBox(height: 16.h),

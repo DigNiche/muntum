@@ -85,7 +85,7 @@ class _ProgramAttendancePromptState extends State<ProgramAttendancePrompt> {
               '이 프로그램 다녀오셨나요?',
               style: AppTypography.button2.copyWith(color: AppColors.gray900),
             ),
-            SizedBox(height: 2.h),
+            SizedBox(height: 4.h),
             Text(
               '평가하고 취향을 기록해보세요!',
               style: AppTypography.button3.copyWith(color: AppColors.gray600),
