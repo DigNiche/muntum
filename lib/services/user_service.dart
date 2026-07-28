@@ -50,4 +50,20 @@ class UserService {
       body: {'password': password},
     );
   }
+
+  Future<void> withdrawWithApple({
+    required String token,
+    required String authorizationCode,
+    required String nonce,
+  }) async {
+    await _client.post(
+      ApiEndpoints.me,
+      authorized: true,
+      body: {
+        'token': token,
+        'authorizationCode': authorizationCode,
+        'nonce': nonce,
+      },
+    );
+  }
 }

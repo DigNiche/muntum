@@ -2,9 +2,15 @@ import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 import 'package:muntum/models/auth_models.dart';
+import 'package:muntum/services/user_service.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 class AppleAuthService {
+  AppleAuthService({UserService? userService})
+    : _userService = userService ?? UserService();
+
+  final UserService _userService;
+
   Future<SocialLoginRequest> authorize() async {
     final rawNonce = generateNonce();
     final hashedNonce = sha256.convert(utf8.encode(rawNonce)).toString();
@@ -26,7 +32,16 @@ class AppleAuthService {
       provider: SocialAuthProvider.apple,
       token: identityToken,
       authorizationCode: credential.authorizationCode,
-      nonce: hashedNonce,
+      nonce: rawNonce,
+    );
+  }
+
+  Future<void> withdraw({SocialLoginRequest? authorization}) async {
+    final request = authorization ?? await authorize();
+    await _userService.withdrawWithApple(
+      token: request.token,
+      authorizationCode: request.authorizationCode,
+      nonce: request.nonce,
     );
   }
 }

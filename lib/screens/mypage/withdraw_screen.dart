@@ -10,6 +10,7 @@ import 'package:muntum/components/popup_widget.dart';
 import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
+import 'package:muntum/models/auth_models.dart';
 import 'package:muntum/screens/onboarding/login_screen.dart';
 import 'package:muntum/services/apple_auth_service.dart';
 import 'package:muntum/services/auth_service.dart';
@@ -49,14 +50,16 @@ class WithdrawAppleScreen extends StatefulWidget {
 
 class _WithdrawAppleScreenState extends State<WithdrawAppleScreen> {
   bool _isAuthenticating = false;
+  bool _isWithdrawing = false;
 
   Future<void> _authenticateWithApple() async {
-    if (_isAuthenticating) return;
+    if (_isAuthenticating || _isWithdrawing) return;
     setState(() => _isAuthenticating = true);
     try {
-      await AppleAuthService().authorize();
+      final authorization = await AppleAuthService().authorize();
       if (!mounted) return;
-      showAppToast(context, 'Apple 본인인증이 완료됐어요.');
+      setState(() => _isAuthenticating = false);
+      await _showWithdrawConfirmation(authorization);
     } on SignInWithAppleAuthorizationException catch (error) {
       if (!mounted || error.code == AuthorizationErrorCode.canceled) return;
       showAppToast(context, 'Apple 본인인증에 실패했습니다. 다시 시도해주세요.', isError: true);
@@ -68,6 +71,47 @@ class _WithdrawAppleScreenState extends State<WithdrawAppleScreen> {
       showAppToast(context, 'Apple 본인인증에 실패했습니다. 다시 시도해주세요.', isError: true);
     } finally {
       if (mounted) setState(() => _isAuthenticating = false);
+    }
+  }
+
+  Future<void> _showWithdrawConfirmation(
+    SocialLoginRequest authorization,
+  ) async {
+    await showPopupWidget(
+      context: context,
+      title: '정말 탈퇴하시겠습니까?',
+      description: '모든 활동 정보가 삭제되며, 복구할 수 없습니다.',
+      text1: '아니요',
+      text2: '탈퇴하기',
+      text2Color: AppColors.error,
+      onText1Tap: () {
+        Navigator.of(context, rootNavigator: true).pop();
+      },
+      onText2Tap: () async {
+        Navigator.of(context, rootNavigator: true).pop();
+        await _withdraw(authorization);
+      },
+    );
+  }
+
+  Future<void> _withdraw(SocialLoginRequest authorization) async {
+    if (_isWithdrawing) return;
+    setState(() => _isWithdrawing = true);
+    try {
+      await AppleAuthService().withdraw(authorization: authorization);
+      await TokenStore.instance.clear();
+      ProgramScrapStore.instance.clear(notify: false);
+      UserPreferenceStore.instance.clear();
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const WithdrawCompleteScreen()),
+        (route) => false,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      showAppToast(context, '$error', isError: true);
+      setState(() => _isWithdrawing = false);
     }
   }
 
@@ -103,7 +147,9 @@ class _WithdrawAppleScreenState extends State<WithdrawAppleScreen> {
                   height: 1,
                 ),
               ),
-              text: _isAuthenticating ? 'Apple로 확인 중...' : 'Apple로 본인인증',
+              text: _isAuthenticating || _isWithdrawing
+                  ? 'Apple로 확인 중...'
+                  : 'Apple로 본인인증',
               textColor: AppColors.black,
               boxColor: AppColors.white,
               border: BoxBorder.all(color: AppColors.gray200, width: 1.w),

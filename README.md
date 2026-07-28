@@ -1,8 +1,16 @@
 <div align="center">
   <img src="assets/appicon/IOS.png" width="104" alt="문틈 앱 아이콘" />
-  <h1>문틈 (Muntum)</h1>
+  <h1>문틈 - 문화의 틈</h1>
   <p><strong>취향과 위치를 연결해 일상 속 문화 프로그램을 발견하는 모바일 서비스</strong></p>
   <p>Flutter · REST API · Naver Map · Firebase Analytics</p>
+  <p>
+    <a href="https://play.google.com/store/apps/details?id=co.digniche.muntum">
+      <img src="https://img.shields.io/badge/Google_Play-다운로드-414141?logo=googleplay&logoColor=white" alt="Google Play에서 다운로드" />
+    </a>
+    <a href="https://apps.apple.com/ca/app/%EB%AC%B8%ED%8B%88-%EB%AC%B8%ED%99%94%EC%9D%98-%ED%8B%88/id6789416280">
+      <img src="https://img.shields.io/badge/App_Store-다운로드-0D96F6?logo=appstore&logoColor=white" alt="App Store에서 다운로드" />
+    </a>
+  </p>
 </div>
 
 ## 프로젝트 소개
@@ -21,7 +29,7 @@
 | 담당 영역   | Flutter 클라이언트 설계 및 구현 전반 |
 | 지원 플랫폼 | iOS 15.0 이상, Android               |
 | 디자인 기준 | 390 × 844, responsive UI             |
-| 앱 버전     | 1.0.4                                |
+| 앱 버전     | <!-- APP_VERSION -->1.0.7 (3)<!-- /APP_VERSION --> |
 
 ## 핵심 기능
 
@@ -193,6 +201,20 @@ lib/firebase_options.dart
 ```bash
 flutter pub get
 flutter run
+```
+
+### README 버전 동기화
+
+`pubspec.yaml`의 버전을 README에 반영하려면 다음 명령을 실행합니다.
+
+```bash
+dart run tool/sync_readme_version.dart
+```
+
+이 저장소는 Git hook을 활성화하면 커밋 직전에 위 작업을 자동으로 실행합니다.
+
+```bash
+git config core.hooksPath .githooks
 ```
 
 ## 개선 계획

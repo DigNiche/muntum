@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+
+dart run tool/sync_readme_version.dart
+git add README.md
