@@ -3,6 +3,7 @@ import 'package:muntum/api/api_endpoints.dart';
 import 'package:muntum/api/api_response.dart';
 import 'package:muntum/models/keyword_model.dart';
 import 'package:muntum/models/program_model.dart';
+import 'package:muntum/services/program_service.dart';
 
 class TasteService {
   TasteService({ApiClient? client}) : _client = client ?? ApiClient();
@@ -36,9 +37,13 @@ class TasteService {
       authorized: true,
       queryParameters: {'chip': chip, 'page': page, 'size': size},
     );
-    return ApiResponse.fromJson(
+    final pageResponse = ApiResponse.fromJson(
       response,
       (data) => PageResponse.fromJson(data, ProgramModel.fromJson),
     ).data;
+    return ProgramService().enrichMissingPeriodDetails(
+      pageResponse,
+      authorized: true,
+    );
   }
 }

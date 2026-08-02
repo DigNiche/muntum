@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:muntum/api/api_client.dart';
 import 'package:muntum/api/api_config.dart';
 import 'package:muntum/api/api_endpoints.dart';
 import 'package:muntum/data/report_place_search_repository.dart';
@@ -34,15 +35,45 @@ void main() {
         provider: SocialAuthProvider.apple,
         token: 'identity-token',
         authorizationCode: 'authorization-code',
-        nonce: 'raw-nonce',
+        nonce: 'hashed-nonce',
       );
 
       expect(request.toJson(), {
         'provider': 'APPLE',
         'token': 'identity-token',
         'authorizationCode': 'authorization-code',
-        'nonce': 'raw-nonce',
+        'nonce': 'hashed-nonce',
       });
+    });
+  });
+
+  group('program status', () {
+    test('uses only the ended response for the ended state', () {
+      final endedProgram = ProgramModel.fromJson({
+        'title': '종료 프로그램',
+        'status': 'ACTIVE',
+        'ended': true,
+        'endDate': '2099-12-31',
+      });
+      final activeProgram = ProgramModel.fromJson({
+        'title': '진행 프로그램',
+        'status': 'ENDED',
+        'ended': false,
+        'endDate': '2020-01-01',
+      });
+
+      expect(endedProgram.isEnded, isTrue);
+      expect(activeProgram.isEnded, isFalse);
+    });
+  });
+
+  group('program card details', () {
+    test('fills a missing card period from the detail response', () async {
+      final service = ProgramService(client: _MissingPeriodApiClient());
+
+      final page = await service.fetchHotKeywordPrograms();
+
+      expect(page.content.single.cardDateText, '26.01.01-상시');
     });
   });
 
@@ -402,5 +433,51 @@ class _FakeReportPlaceSearchRepository implements ReportPlaceSearchRepository {
               place.address.replaceAll(RegExp(r'\s+'), '').contains(normalized),
         )
         .toList();
+  }
+}
+
+class _MissingPeriodApiClient extends ApiClient {
+  @override
+  Future<Map<String, dynamic>> get(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+    bool authorized = false,
+  }) async {
+    if (path == ApiEndpoints.programsHotKeywords) {
+      return {
+        'data': {
+          'content': [
+            {
+              'id': 'open-ended-program',
+              'title': '상시 프로그램',
+              'status': 'ACTIVE',
+              'startDate': null,
+              'endDate': null,
+            },
+          ],
+          'page': 0,
+          'size': 20,
+          'totalElements': 1,
+          'totalPages': 1,
+          'first': true,
+          'last': true,
+          'hasPrevious': false,
+          'hasNext': false,
+        },
+      };
+    }
+    if (path == ApiEndpoints.program('open-ended-program')) {
+      return {
+        'data': {
+          'id': 'open-ended-program',
+          'title': '상시 프로그램',
+          'status': 'ACTIVE',
+          'startDate': null,
+          'endDate': null,
+          'operatingPeriodMeta': '2026.01.01',
+        },
+      };
+    }
+    throw StateError('Unexpected API path: $path');
   }
 }

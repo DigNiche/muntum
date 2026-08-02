@@ -16,6 +16,7 @@ class TextFieldWidget extends StatelessWidget {
   final FocusNode? focusNode;
   final bool isError;
   final String errorText;
+  final List<TextInputFormatter>? inputFormatters;
 
   const TextFieldWidget({
     super.key,
@@ -28,6 +29,7 @@ class TextFieldWidget extends StatelessWidget {
     this.focusNode,
     required this.isError,
     required this.errorText,
+    this.inputFormatters,
   });
 
   @override
@@ -54,6 +56,7 @@ class TextFieldWidget extends StatelessWidget {
             focusNode: focusNode,
             controller: controller,
             keyboardType: keyboardType,
+            inputFormatters: inputFormatters,
             obscureText: obscureText,
             cursorColor: AppColors.white,
             onTapOutside: (event) {

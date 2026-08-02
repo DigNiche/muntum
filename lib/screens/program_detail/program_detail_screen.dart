@@ -103,6 +103,7 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
         authorized: true,
       );
       detail.isBookmark = ProgramScrapStore.instance.isScrapped(detail);
+      detail.ended = detail.ended || widget.program.ended;
       return detail;
     } catch (_) {
       return widget.program;
@@ -253,7 +254,7 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                             SizedBox(height: 40.h),
 
                             // TODO: 방문 기록 기능이 준비되면 노출한다.
-                            if (isReadyForPublish)
+                            if (showLikeDislike)
                               Padding(
                                 padding: EdgeInsets.only(bottom: 40.h),
                                 child: const ProgramAttendancePrompt(),

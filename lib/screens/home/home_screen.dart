@@ -22,7 +22,7 @@ import 'package:muntum/screens/home/components/vertical_card_carousel.dart';
 import 'package:muntum/screens/home/search_screen.dart';
 import 'package:muntum/screens/home/see_more_screen.dart';
 import 'package:muntum/screens/mypage/keyword_change_screen.dart';
-import 'package:muntum/screens/onboarding/login_screen.dart';
+import 'package:muntum/screens/onboarding/initial_screen.dart';
 import 'package:muntum/services/keyword_service.dart';
 import 'package:muntum/services/program_service.dart';
 import 'package:muntum/services/analytics_service.dart';
@@ -567,7 +567,7 @@ class _GuestMyNicheView extends StatelessWidget {
                     context,
                     MaterialPageRoute(
                       builder: (context) =>
-                          const LoginScreen(showBackButton: true),
+                          const InitialScreen(showBackButton: true),
                     ),
                   );
                 },

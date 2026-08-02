@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/components/animated_scrap_icon.dart';
+import 'package:muntum/components/program_ended_badge.dart';
 import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
@@ -102,11 +103,19 @@ class HorizontalCard extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: 2.h),
-                Text(
-                  program.cardDateText,
-                  style: AppTypography.caption1.copyWith(
-                    color: AppColors.gray700,
-                  ),
+                Wrap(
+                  spacing: 4.w,
+                  runSpacing: 2.h,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(
+                      program.cardDateText,
+                      style: AppTypography.caption1.copyWith(
+                        color: AppColors.gray700,
+                      ),
+                    ),
+                    if (program.isEnded) const ProgramEndedBadge(),
+                  ],
                 ),
               ],
             ),

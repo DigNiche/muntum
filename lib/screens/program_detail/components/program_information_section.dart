@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:muntum/components/program_ended_badge.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/models/program_model.dart';
@@ -31,7 +32,11 @@ class ProgramInformationSection extends StatelessWidget {
           onTap: onTapLocation,
           onLongPress: onLongPressAddress,
         ),
-        _ProgramDescription(title: '기간', body: program.detailDateText),
+        _ProgramDescription(
+          title: '기간',
+          body: program.detailDateText,
+          bodyTrailing: program.isEnded ? const ProgramEndedBadge() : null,
+        ),
         _ProgramDescription(title: '시간', body: program.availableTime),
         _ProgramDescription(title: '가격', body: program.cost),
         _ProgramDescription(
@@ -97,15 +102,18 @@ class _LocationDescription extends StatelessWidget {
           ),
           SizedBox(height: 2.h),
           Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(width: 90.w),
-              SvgPicture.asset(
-                'assets/icons/location-filled.svg',
-                width: 16.w,
-                colorFilter: const ColorFilter.mode(
-                  AppColors.gray400,
-                  BlendMode.srcIn,
+              Padding(
+                padding: EdgeInsets.only(top: 3.h),
+                child: SvgPicture.asset(
+                  'assets/icons/location-filled.svg',
+                  width: 16.w,
+                  colorFilter: const ColorFilter.mode(
+                    AppColors.gray400,
+                    BlendMode.srcIn,
+                  ),
                 ),
               ),
               SizedBox(width: 2.w),
@@ -129,11 +137,13 @@ class _ProgramDescription extends StatelessWidget {
   final String title;
   final String body;
   final VoidCallback? onTap;
+  final Widget? bodyTrailing;
 
   const _ProgramDescription({
     required this.title,
     required this.body,
     this.onTap,
+    this.bodyTrailing,
   });
 
   @override
@@ -164,7 +174,17 @@ class _ProgramDescription extends StatelessWidget {
           child: GestureDetector(
             onTap: onTap,
             behavior: HitTestBehavior.opaque,
-            child: Text(displayBody, style: bodyStyle, softWrap: true),
+            child: bodyTrailing == null
+                ? Text(displayBody, style: bodyStyle, softWrap: true)
+                : Wrap(
+                    spacing: 6.w,
+                    runSpacing: 2.h,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(displayBody, style: bodyStyle, softWrap: true),
+                      bodyTrailing!,
+                    ],
+                  ),
           ),
         ),
       ],

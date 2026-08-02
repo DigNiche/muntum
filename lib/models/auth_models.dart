@@ -107,12 +107,14 @@ class SignupResult {
 
 class PasswordFindResult {
   final int expiresIn;
+  final int resendAfter;
 
-  const PasswordFindResult({required this.expiresIn});
+  const PasswordFindResult({required this.expiresIn, this.resendAfter = 0});
 
   factory PasswordFindResult.fromJson(Map<String, dynamic> json) {
     return PasswordFindResult(
       expiresIn: (json['expiresIn'] as num? ?? 300).toInt(),
+      resendAfter: (json['resendAfter'] as num? ?? 0).toInt(),
     );
   }
 }

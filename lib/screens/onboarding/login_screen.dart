@@ -1,34 +1,25 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/api/api_exception.dart';
+import 'package:muntum/components/appbar.dart';
 import 'package:muntum/constants/colors.dart';
-import 'package:muntum/constants/pre_update.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/components/button_solid.dart';
-import 'package:muntum/api/token_store.dart';
-import 'package:muntum/screens/home/home_screen.dart';
 import 'package:muntum/screens/mypage/profile_screen.dart';
 import 'package:muntum/screens/navigation/main_navigation_screen.dart';
 import 'package:muntum/screens/onboarding/find_password_screens/find_password_screen.dart';
 import 'package:muntum/screens/onboarding/components/text_field_widget.dart';
+import 'package:muntum/screens/onboarding/initial_screen.dart';
 import 'package:muntum/screens/onboarding/sign_up_screens/keyword_screen.dart';
 import 'package:muntum/screens/onboarding/sign_up_screens/nickname_screen.dart';
-import 'package:muntum/screens/onboarding/sign_up_screens/sign_up.dart';
-import 'package:muntum/services/apple_auth_service.dart';
 import 'package:muntum/services/auth_service.dart';
 import 'package:muntum/services/taste_service.dart';
-import 'package:muntum/stores/program_scrap_store.dart';
 import 'package:muntum/stores/user_preference_store.dart';
-import 'package:muntum/utils/app_toast.dart';
-import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 class LoginScreen extends StatefulWidget {
-  final bool showBackButton;
-
-  const LoginScreen({super.key, this.showBackButton = false});
+  const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -44,7 +35,6 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isEmailError = false;
   bool _isPasswordError = false;
   bool _isLoading = false;
-  bool _isAppleLoading = false;
 
   @override
   void initState() {
@@ -56,6 +46,9 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() {});
     });
     _emailController.addListener(() {
+      setState(() {});
+    });
+    _passwordController.addListener(() {
       setState(() {});
     });
   }
@@ -71,211 +64,123 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isKeyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
+    final isLoginEnabled =
+        _emailController.text.trim().isNotEmpty &&
+        _passwordController.text.isNotEmpty &&
+        !_isLoading;
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.light,
-        statusBarBrightness: Brightness.dark,
-      ),
+      value: SystemUiOverlayStyle.light,
       child: Scaffold(
         backgroundColor: AppColors.backgroundDark,
-        resizeToAvoidBottomInset: false,
-        body: Stack(
+        body: Column(
           children: [
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.w),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        children: [
-                          SizedBox(height: 185.h),
-                          SvgPicture.asset(
-                            'assets/login_image.svg',
-                            width: 350.w,
-                            fit: BoxFit.contain,
-                          ),
-                          SizedBox(height: 12.h),
-                          Text(
-                            "틈 사이로 발견한 새로운 문화생활",
-                            style: AppTypography.body3.copyWith(
-                              color: AppColors.primary400,
-                            ),
-                          ),
-                          SizedBox(height: 40.h),
-                          TextFieldWidget(
-                            errorText: '가입되지 않은 이메일 입니다.',
-                            isError: _isEmailError,
-                            hintText: '이메일을 입력해 주세요.',
-                            controller: _emailController,
-                            keyboardType: TextInputType.emailAddress,
-                            obscureText: false,
-                            focusNode: _emailFocusNode,
-                            suffixIcon:
-                                _emailFocusNode.hasFocus &&
-                                    _emailController.text != ''
-                                ? GestureDetector(
-                                    onTap: () {
-                                      _emailController.clear();
-                                    },
-                                    child: SvgPicture.asset(
-                                      'assets/icons/circle_close.svg',
-                                      width: 20.w,
-                                      colorFilter: const ColorFilter.mode(
-                                        AppColors.gray600,
-                                        BlendMode.srcIn,
-                                      ),
-                                    ),
-                                  )
-                                : null,
-                          ),
-                          SizedBox(height: 12.h),
-                          TextFieldWidget(
-                            errorText: '잘못된 비밀번호 입니다.',
-                            isError: _isPasswordError,
-                            hintText: '비밀번호를 입력해 주세요.',
-                            controller: _passwordController,
-                            obscureText: _obsecureText,
-                            focusNode: _passwordFocusNode,
-                            suffixIcon: GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _obsecureText = !_obsecureText;
-                                });
-                              },
+            SizedBox(height: 50.h),
+            AppBarWidget(
+              centerType: AppBarCenterType.none,
+              leadingIcon: 'arrow_left.svg',
+              leadingColor: AppColors.gray200,
+              onLeadingTap: _handleBack,
+            ),
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20.w),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(height: 40.h),
+                    Text(
+                      '이메일로\n로그인 해주세요',
+                      style: AppTypography.display.copyWith(
+                        color: AppColors.white,
+                      ),
+                    ),
+                    SizedBox(height: 40.h),
+                    TextFieldWidget(
+                      errorText: '가입되지 않은 이메일 입니다.',
+                      isError: _isEmailError,
+                      hintText: '아이디(이메일)',
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      obscureText: false,
+                      focusNode: _emailFocusNode,
+                      suffixIcon:
+                          _emailFocusNode.hasFocus &&
+                              _emailController.text.isNotEmpty
+                          ? GestureDetector(
+                              onTap: _emailController.clear,
                               child: SvgPicture.asset(
-                                !_obsecureText
-                                    ? 'assets/icons/visibility.svg'
-                                    : 'assets/icons/visibility-false.svg',
+                                'assets/icons/circle_close.svg',
                                 width: 20.w,
-                                colorFilter: ColorFilter.mode(
-                                  _isPasswordError
-                                      ? AppColors.gray700
-                                      : !_obsecureText && !_isPasswordError
-                                      ? AppColors.primary400
-                                      : AppColors.gray500,
+                                colorFilter: const ColorFilter.mode(
+                                  AppColors.gray600,
                                   BlendMode.srcIn,
                                 ),
                               ),
-                            ),
-                          ),
-                          SizedBox(height: 24.h),
-                          ButtonSolid(
-                            text: _isLoading ? '로그인 중...' : '로그인',
-                            textColor: AppColors.gray900,
-                            boxColor: AppColors.primary400,
-                            onTap: _login,
-                          ),
-                          SizedBox(height: 12.h),
-                          ButtonSolid(
-                            border: BoxBorder.all(
-                              color: AppColors.primary400,
-                              width: 1.sp,
-                            ),
-                            text: '회원가입',
-                            textColor: AppColors.primary400,
-                            boxColor: Colors.transparent,
-                            onTap: () {
-                              pushToScreen(context, SignUpScreen());
-                            },
-                          ),
-                          SizedBox(height: 24.h),
-                          GestureDetector(
-                            child: Text(
-                              '비밀번호 찾기',
-                              style: AppTypography.caption1.copyWith(
-                                color: AppColors.gray700,
-                                decoration: TextDecoration.underline,
-                                decorationColor: AppColors.gray700,
-                              ),
-                            ),
-                            onTap: () {
-                              pushToScreen(context, FindPasswordScreen());
-                            },
-                          ),
-                        ],
-                      ),
+                            )
+                          : null,
                     ),
-                  ),
-                  if (isReadyForPublish &&
-                      defaultTargetPlatform == TargetPlatform.iOS)
-                    Padding(
-                      padding: EdgeInsets.only(bottom: 12.0.h),
-                      child: ButtonSolid(
-                        leading: Text(
-                          '',
-                          style: TextStyle(
-                            color: AppColors.black,
-                            fontSize: 20.sp,
-                            height: 1,
+                    SizedBox(height: 12.h),
+                    TextFieldWidget(
+                      errorText: '잘못된 비밀번호 입니다.',
+                      isError: _isPasswordError,
+                      hintText: '비밀번호',
+                      controller: _passwordController,
+                      obscureText: _obsecureText,
+                      focusNode: _passwordFocusNode,
+                      suffixIcon: GestureDetector(
+                        onTap: () {
+                          setState(() => _obsecureText = !_obsecureText);
+                        },
+                        child: SvgPicture.asset(
+                          !_obsecureText
+                              ? 'assets/icons/visibility.svg'
+                              : 'assets/icons/visibility-false.svg',
+                          width: 20.w,
+                          colorFilter: ColorFilter.mode(
+                            _isPasswordError
+                                ? AppColors.gray700
+                                : !_obsecureText
+                                ? AppColors.primary400
+                                : AppColors.gray500,
+                            BlendMode.srcIn,
                           ),
-                        ),
-                        text: _isAppleLoading
-                            ? 'Apple 로그인 중...'
-                            : 'Apple로 시작하기',
-                        textColor: AppColors.black,
-                        boxColor: AppColors.white,
-                        onTap: _loginWithApple,
-                      ),
-                    ),
-                  ButtonSolid(
-                    text: '로그인 없이 둘러보기',
-                    textColor: AppColors.gray600,
-                    boxColor: Colors.transparent,
-                    border: BoxBorder.all(
-                      color: AppColors.lineNormal.withValues(alpha: 0.5),
-                      width: 1.w,
-                    ),
-                    onTap: () async {
-                      if (widget.showBackButton) {
-                        Navigator.pop(context);
-                        return;
-                      }
-                      await TokenStore.instance.clear();
-                      ProgramScrapStore.instance.clear(notify: false);
-                      UserPreferenceStore.instance.clear();
-                      if (!context.mounted) return;
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const MainNavigationScreen(
-                            initialHomeScreenType: ScreenTypes.entire,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  SizedBox(height: 80.h),
-                ],
-              ),
-            ),
-            if (widget.showBackButton)
-              Positioned(
-                left: 20.w,
-                top: 82.h,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: _handleBack,
-                  child: SizedBox(
-                    width: 32.r,
-                    height: 32.r,
-                    child: Center(
-                      child: SvgPicture.asset(
-                        'assets/icons/arrow_left.svg',
-                        width: 24.r,
-                        height: 24.r,
-                        colorFilter: const ColorFilter.mode(
-                          AppColors.white,
-                          BlendMode.srcIn,
                         ),
                       ),
                     ),
-                  ),
+                    const Spacer(),
+                    Align(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () =>
+                            pushToScreen(context, const FindPasswordScreen()),
+                        child: Text(
+                          '비밀번호를 잊으셨나요?',
+                          style: AppTypography.caption1.copyWith(
+                            color: AppColors.gray400,
+                            decoration: TextDecoration.underline,
+                            decorationColor: AppColors.gray400,
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 16.h),
+                    ButtonSolid(
+                      text: _isLoading ? '로그인 중...' : '로그인',
+                      textColor: isLoginEnabled
+                          ? AppColors.gray900
+                          : AppColors.gray700,
+                      boxColor: isLoginEnabled
+                          ? AppColors.primary400
+                          : AppColors.gray700.withValues(alpha: 0.1),
+                      onTap: isLoginEnabled ? _login : null,
+                    ),
+                    SizedBox(height: isKeyboardVisible ? 20.h : 40.h),
+                  ],
                 ),
               ),
+            ),
           ],
         ),
       ),
@@ -288,11 +193,13 @@ class _LoginScreenState extends State<LoginScreen> {
       navigator.pop();
       return;
     }
-    Navigator.of(context, rootNavigator: true).maybePop();
+    navigator.pushReplacement(
+      MaterialPageRoute(builder: (_) => const InitialScreen()),
+    );
   }
 
   Future<void> _login() async {
-    if (_isLoading || _isAppleLoading) return;
+    if (_isLoading) return;
     setState(() {
       _isLoading = true;
       _isEmailError = false;
@@ -314,53 +221,6 @@ class _LoginScreenState extends State<LoginScreen> {
           _isLoading = false;
         });
       }
-    }
-  }
-
-  Future<void> _loginWithApple() async {
-    if (_isLoading || _isAppleLoading) return;
-    setState(() => _isAppleLoading = true);
-    try {
-      final request = await AppleAuthService().authorize();
-      final session = await AuthService().socialLogin(request);
-      if (!mounted) return;
-      await _routeAfterApiLogin(session.nickname);
-    } on SignInWithAppleAuthorizationException catch (error) {
-      if (!mounted || error.code == AuthorizationErrorCode.canceled) return;
-      if (kDebugMode) {
-        debugPrint(
-          'Apple authorization failed: '
-          '${error.code.name} ${error.message}',
-        );
-      }
-      showAppToast(context, 'Apple 로그인에 실패했습니다. 다시 시도해주세요.', isError: true);
-    } catch (error) {
-      if (!mounted) return;
-      if (kDebugMode) {
-        if (error is ApiException) {
-          debugPrint(
-            'Apple social login failed: '
-            'status=${error.statusCode}, code=${error.code}, '
-            'message=${error.message}',
-          );
-        } else {
-          debugPrint('Apple social login failed: $error');
-        }
-      }
-      final message = switch (error) {
-        ApiException(code: '007') => '잘못된 요청입니다.',
-        ApiException(code: 'A017') => '소셜 로그인 가입에는 이메일 정보가 필요합니다.',
-        ApiException(code: 'A018') => '지원하지 않는 소셜 로그인 제공자입니다.',
-        ApiException(code: 'A016') => '유효하지 않은 소셜 로그인 토큰입니다.',
-        ApiException(code: 'A004') => '비활성화된 계정입니다.',
-        ApiException(code: 'A001') => '이미 사용 중인 이메일입니다.',
-        ApiException(code: 'T005') => '게시된 약관이 존재하지 않습니다.',
-        ApiException(code: 'E001') => '서버 오류가 발생했습니다.',
-        _ => 'Apple 로그인에 실패했습니다. 다시 시도해주세요.',
-      };
-      showAppToast(context, message, isError: true);
-    } finally {
-      if (mounted) setState(() => _isAppleLoading = false);
     }
   }
 

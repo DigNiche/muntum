@@ -18,78 +18,120 @@ import 'package:muntum/utils/app_toast.dart';
 class VerificationCodeScreen extends StatefulWidget {
   final String email;
   final int expiresIn;
+  final int resendAfter;
 
   const VerificationCodeScreen({
     super.key,
     required this.email,
     required this.expiresIn,
+    this.resendAfter = 0,
   });
 
   @override
   State<VerificationCodeScreen> createState() => _VerificationCodeScreenState();
 }
 
-class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
+class _VerificationCodeScreenState extends State<VerificationCodeScreen>
+    with WidgetsBindingObserver {
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   bool _isError = false;
   bool _isLoading = false;
   bool _isResending = false;
-  Timer? _timer;
-  Timer? _resendCooldownTimer;
-  late int _remainingSeconds;
+  String _errorText = '인증번호가 일치하지 않습니다.';
+  Timer? _ticker;
+  late DateTime _expiresAt;
+  DateTime? _resendAvailableAt;
+  int _remainingSeconds = 0;
   int _resendCooldownSeconds = 0;
 
   bool get _isExpired => _remainingSeconds <= 0;
   bool get _canResend => !_isResending && _resendCooldownSeconds <= 0;
+  bool get _canVerify =>
+      _controller.text.trim().length == 6 && !_isLoading && !_isExpired;
 
   @override
   void initState() {
     super.initState();
-    _startCountdown(widget.expiresIn);
+    WidgetsBinding.instance.addObserver(this);
+    _applyServerTiming(
+      expiresIn: widget.expiresIn,
+      resendAfter: widget.resendAfter,
+    );
     _focusNode.addListener(() {
       setState(() {});
     });
     _controller.addListener(() {
-      setState(() {});
+      setState(() {
+        _isError = false;
+        _errorText = '인증번호가 일치하지 않습니다.';
+      });
     });
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
-    _resendCooldownTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    _ticker?.cancel();
     _controller.dispose();
     _focusNode.dispose();
     super.dispose();
   }
 
-  void _startCountdown(int seconds) {
-    _timer?.cancel();
-    _remainingSeconds = seconds <= 0 ? 0 : seconds;
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) return;
-      if (_remainingSeconds <= 1) {
-        timer.cancel();
-        setState(() => _remainingSeconds = 0);
-        return;
-      }
-      setState(() => _remainingSeconds -= 1);
-    });
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _updateRemainingTime();
+    }
   }
 
-  void _startResendCooldown({int seconds = 30}) {
-    _resendCooldownTimer?.cancel();
-    setState(() => _resendCooldownSeconds = seconds);
-    _resendCooldownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) return;
-      if (_resendCooldownSeconds <= 1) {
-        timer.cancel();
-        setState(() => _resendCooldownSeconds = 0);
-        return;
-      }
-      setState(() => _resendCooldownSeconds -= 1);
+  void _applyServerTiming({
+    required int expiresIn,
+    required int resendAfter,
+    bool notify = false,
+  }) {
+    final now = DateTime.now();
+    _expiresAt = now.add(Duration(seconds: expiresIn.clamp(0, 86400)));
+    _resendAvailableAt = resendAfter > 0
+        ? now.add(Duration(seconds: resendAfter.clamp(0, 86400)))
+        : null;
+    _remainingSeconds = _secondsUntil(_expiresAt);
+    _resendCooldownSeconds = _secondsUntil(_resendAvailableAt);
+    if (notify && mounted) setState(() {});
+    _startTicker();
+  }
+
+  void _startTicker() {
+    _ticker?.cancel();
+    if (_remainingSeconds <= 0 && _resendCooldownSeconds <= 0) return;
+    _ticker = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => _updateRemainingTime(),
+    );
+  }
+
+  void _updateRemainingTime() {
+    if (!mounted) return;
+    final nextRemaining = _secondsUntil(_expiresAt);
+    final nextResendCooldown = _secondsUntil(_resendAvailableAt);
+    if (nextRemaining == _remainingSeconds &&
+        nextResendCooldown == _resendCooldownSeconds) {
+      return;
+    }
+    setState(() {
+      _remainingSeconds = nextRemaining;
+      _resendCooldownSeconds = nextResendCooldown;
     });
+    if (_remainingSeconds <= 0 && _resendCooldownSeconds <= 0) {
+      _ticker?.cancel();
+    }
+  }
+
+  int _secondsUntil(DateTime? deadline) {
+    if (deadline == null) return 0;
+    final milliseconds = deadline.difference(DateTime.now()).inMilliseconds;
+    if (milliseconds <= 0) return 0;
+    return (milliseconds / 1000).ceil();
   }
 
   String _formatRemainingTime(int seconds) {
@@ -168,10 +210,12 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                                 ),
                               )
                             : null,
-                        errorText: _isExpired
-                            ? '인증번호가 만료되었습니다.'
-                            : '인증번호가 일치하지 않습니다.',
+                        errorText: _isExpired ? '인증번호가 만료되었습니다.' : _errorText,
                         keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(6),
+                        ],
                       ),
                       SizedBox(height: 12.h),
                       Row(
@@ -213,13 +257,9 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 20.0.w),
               child: ButtonSolid(
-                text: '다음으로',
-                textColor: _controller.text != ''
-                    ? AppColors.gray900
-                    : AppColors.gray700,
-                boxColor: _controller.text != ''
-                    ? AppColors.primary400
-                    : Color(0x1AF5F5F3),
+                text: _isLoading ? '확인 중...' : '다음으로',
+                textColor: _canVerify ? AppColors.gray900 : AppColors.gray700,
+                boxColor: _canVerify ? AppColors.primary400 : Color(0x1AF5F5F3),
                 onTap: _verifyCode,
               ),
             ),
@@ -232,9 +272,19 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
 
   Future<void> _verifyCode() async {
     final code = _controller.text.trim();
-    if (code.isEmpty || _isLoading) return;
+    if (_isLoading) return;
+    if (code.length != 6) {
+      setState(() {
+        _isError = true;
+        _errorText = '인증번호 6자리를 입력해주세요.';
+      });
+      return;
+    }
     if (_isExpired) {
-      setState(() => _isError = true);
+      setState(() {
+        _isError = true;
+        _errorText = '인증번호가 만료되었습니다.';
+      });
       return;
     }
     setState(() {
@@ -254,7 +304,11 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
         _isError = true;
         if (error is ApiException && error.code == 'A011') {
           _remainingSeconds = 0;
-          _timer?.cancel();
+          _expiresAt = DateTime.now();
+          _ticker?.cancel();
+          _errorText = '인증번호가 만료되었습니다.';
+        } else if (error is ApiException && error.message.isNotEmpty) {
+          _errorText = error.message;
         }
       });
       showAppToast(context, '$error');
@@ -275,8 +329,11 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
     try {
       final result = await AuthService().requestPasswordCode(widget.email);
       if (!mounted) return;
-      _startCountdown(result.expiresIn);
-      _startResendCooldown();
+      _applyServerTiming(
+        expiresIn: result.expiresIn,
+        resendAfter: result.resendAfter,
+        notify: true,
+      );
       showAppToast(context, '인증번호를 다시 보냈어요.');
     } catch (error) {
       if (!mounted) return;

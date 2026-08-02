@@ -47,7 +47,8 @@ class ProgramModel {
   final bool isOverThisMonth;
   // 스크랩
   bool isBookmark;
-  final bool ended;
+  bool ended;
+  final String status;
   final int viewCount;
   final String? officialUrl;
   final List<String> imageUrls;
@@ -82,6 +83,7 @@ class ProgramModel {
     required this.isOverThisMonth,
     required this.isBookmark,
     this.ended = false,
+    this.status = '',
     this.viewCount = 0,
     this.officialUrl,
     this.imageUrls = const [],
@@ -103,8 +105,6 @@ class ProgramModel {
     );
     final free = json['free'] as bool? ?? false;
     final reserved = json['reserved'] as bool? ?? false;
-    final ended =
-        json['ended'] as bool? ?? _isEnded(json['endDate'] as String?);
     final startDate =
         json['startDate'] as String? ?? json['startTime'] as String? ?? '';
     final endDate =
@@ -151,7 +151,8 @@ class ProgramModel {
       isSpotlight: false,
       isOverThisMonth: _isOverThisMonth(endDate),
       isBookmark: json['scrapped'] as bool? ?? json['saved'] as bool? ?? false,
-      ended: ended,
+      ended: json['ended'] as bool? ?? false,
+      status: json['status'] as String? ?? '',
       viewCount: json['viewCount'] as int? ?? 0,
       officialUrl: json['officialUrl'] as String?,
       createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
@@ -198,16 +199,7 @@ class ProgramModel {
     return filters;
   }
 
-  static bool _isEnded(String? endDate) {
-    final parsed = DateTime.tryParse(endDate ?? '');
-    if (parsed == null) return false;
-    final now = DateTime.now();
-    return DateTime(
-      parsed.year,
-      parsed.month,
-      parsed.day,
-    ).isBefore(DateTime(now.year, now.month, now.day));
-  }
+  bool get isEnded => ended;
 
   static bool _isOverThisMonth(String? endDate) {
     final parsed = DateTime.tryParse(endDate ?? '');

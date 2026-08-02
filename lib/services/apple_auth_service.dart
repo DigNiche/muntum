@@ -32,7 +32,9 @@ class AppleAuthService {
       provider: SocialAuthProvider.apple,
       token: identityToken,
       authorizationCode: credential.authorizationCode,
-      nonce: rawNonce,
+      // The backend currently compares this value directly with the nonce
+      // claim issued for the value sent to Apple.
+      nonce: hashedNonce,
     );
   }
 

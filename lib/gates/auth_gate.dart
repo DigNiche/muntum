@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:muntum/api/token_store.dart';
 import 'package:muntum/services/auth_service.dart';
 import 'package:muntum/gates/role_gate.dart';
-import 'package:muntum/screens/onboarding/login_screen.dart';
+import 'package:muntum/screens/onboarding/initial_screen.dart';
 import 'package:muntum/screens/onboarding/sign_up_screens/keyword_screen.dart';
 import 'package:muntum/screens/onboarding/sign_up_screens/nickname_screen.dart';
 import 'package:muntum/services/taste_service.dart';
@@ -26,7 +26,7 @@ class _AuthGateState extends State<AuthGate> {
   Future<Widget> _resolveEntry() async {
     try {
       final session = await AuthService().refresh();
-      if (session == null) return const LoginScreen();
+      if (session == null) return const InitialScreen();
 
       final nickname =
           session.nickname ?? await TokenStore.instance.readNickname();
@@ -40,7 +40,7 @@ class _AuthGateState extends State<AuthGate> {
       }
       return RoleGate();
     } catch (_) {
-      return const LoginScreen();
+      return const InitialScreen();
     }
   }
 
@@ -52,7 +52,7 @@ class _AuthGateState extends State<AuthGate> {
         if (snapshot.connectionState != ConnectionState.done) {
           return const Scaffold(body: SizedBox.shrink());
         }
-        return snapshot.data ?? const LoginScreen();
+        return snapshot.data ?? const InitialScreen();
       },
     );
   }

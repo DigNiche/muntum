@@ -26,7 +26,7 @@ import 'package:muntum/screens/mypage/components/stat_card_widget.dart';
 import 'package:muntum/screens/mypage/terms_screen.dart';
 import 'package:muntum/screens/mypage/version_info_screen.dart';
 import 'package:muntum/screens/mypage/went_to_screen.dart';
-import 'package:muntum/screens/onboarding/login_screen.dart';
+import 'package:muntum/screens/onboarding/initial_screen.dart';
 import 'package:muntum/services/suggestion_service.dart';
 import 'package:muntum/stores/auth_state.dart';
 import 'package:muntum/services/taste_service.dart';
@@ -111,7 +111,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => const LoginScreen(showBackButton: true),
+              builder: (context) => const InitialScreen(showBackButton: true),
             ),
           );
         },
@@ -314,7 +314,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 },
                               ),
                               // TODO
-                              if (isReadyForPublish)
+                              if (showLikeDislike)
                                 ProfileMenuItem(
                                   text: '다녀온 프로그램 기록',
                                   onTap: () {
@@ -408,7 +408,7 @@ class _GuestProfileContent extends StatelessWidget {
                     context,
                     MaterialPageRoute(
                       builder: (context) =>
-                          const LoginScreen(showBackButton: true),
+                          const InitialScreen(showBackButton: true),
                     ),
                   );
                 },

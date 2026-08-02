@@ -11,7 +11,7 @@ import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/models/auth_models.dart';
-import 'package:muntum/screens/onboarding/login_screen.dart';
+import 'package:muntum/screens/onboarding/initial_screen.dart';
 import 'package:muntum/services/apple_auth_service.dart';
 import 'package:muntum/services/auth_service.dart';
 import 'package:muntum/services/user_service.dart';
@@ -436,45 +436,48 @@ class _WithdrawPasswordField extends StatelessWidget {
 class WithdrawCompleteScreen extends StatelessWidget {
   const WithdrawCompleteScreen({super.key});
 
-  void _goToLogin(BuildContext context) {
+  void _goToInitial(BuildContext context) {
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
+      MaterialPageRoute(builder: (context) => const InitialScreen()),
       (route) => false,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.white,
-      body: Column(
-        children: [
-          SizedBox(height: 50.h),
-          const Spacer(),
-          Text(
-            '탈퇴가 완료됐어요',
-            textAlign: TextAlign.center,
-            style: AppTypography.title4.copyWith(color: AppColors.gray900),
-          ),
-          SizedBox(height: 24.h),
-          Text(
-            '그동안 문틈을 이용해주셔서 감사합니다.',
-            textAlign: TextAlign.center,
-            style: AppTypography.body2.copyWith(color: AppColors.gray500),
-          ),
-          const Spacer(),
-          Padding(
-            padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 48.h),
-            child: ButtonSolid(
-              text: '완료',
-              textColor: AppColors.white,
-              boxColor: AppColors.black,
-              onTap: () => _goToLogin(context),
-              padding: EdgeInsets.symmetric(vertical: 14.h),
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        backgroundColor: AppColors.white,
+        body: Column(
+          children: [
+            SizedBox(height: 50.h),
+            const Spacer(),
+            Text(
+              '탈퇴가 완료됐어요',
+              textAlign: TextAlign.center,
+              style: AppTypography.title4.copyWith(color: AppColors.gray900),
             ),
-          ),
-        ],
+            SizedBox(height: 8.h),
+            Text(
+              '그동안 문틈을 이용해주셔서 감사합니다.',
+              textAlign: TextAlign.center,
+              style: AppTypography.body2.copyWith(color: AppColors.gray500),
+            ),
+            const Spacer(),
+            Padding(
+              padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 48.h),
+              child: ButtonSolid(
+                text: '완료',
+                textColor: AppColors.white,
+                boxColor: AppColors.black,
+                onTap: () => _goToInitial(context),
+                padding: EdgeInsets.symmetric(vertical: 14.h),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

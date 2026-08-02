@@ -141,7 +141,11 @@ class _FindPasswordScreenState extends State<FindPasswordScreen> {
       if (!mounted) return;
       pushToScreen(
         context,
-        VerificationCodeScreen(email: email, expiresIn: result.expiresIn),
+        VerificationCodeScreen(
+          email: email,
+          expiresIn: result.expiresIn,
+          resendAfter: result.resendAfter,
+        ),
       );
     } catch (error) {
       if (!mounted) return;

@@ -6,7 +6,7 @@ import 'package:muntum/components/appbar.dart';
 import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
-import 'package:muntum/screens/onboarding/login_screen.dart';
+import 'package:muntum/screens/onboarding/initial_screen.dart';
 import 'package:muntum/services/user_service.dart';
 import 'package:muntum/stores/program_scrap_store.dart';
 import 'package:muntum/stores/user_preference_store.dart';
@@ -118,7 +118,7 @@ class _PasswordChangeScreenState extends State<PasswordChangeScreen> {
       if (!mounted) return;
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
+        MaterialPageRoute(builder: (context) => const InitialScreen()),
         (route) => false,
       );
     } catch (_) {

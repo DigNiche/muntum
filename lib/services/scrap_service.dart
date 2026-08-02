@@ -2,6 +2,7 @@ import 'package:muntum/api/api_client.dart';
 import 'package:muntum/api/api_endpoints.dart';
 import 'package:muntum/api/api_response.dart';
 import 'package:muntum/models/program_model.dart';
+import 'package:muntum/services/program_service.dart';
 import 'package:muntum/stores/program_scrap_store.dart';
 
 class ScrapService {
@@ -31,15 +32,19 @@ class ScrapService {
       response,
       (data) => PageResponse.fromJson(data, ProgramModel.fromJson),
     ).data;
-    for (final program in pageResponse.content) {
+    final enrichedPage = await ProgramService().enrichMissingPeriodDetails(
+      pageResponse,
+      authorized: true,
+    );
+    for (final program in enrichedPage.content) {
       program.isBookmark = true;
     }
     if (syncStore) {
       ProgramScrapStore.instance.replaceScrappedPrograms(
-        pageResponse.content,
+        enrichedPage.content,
         notify: false,
       );
     }
-    return pageResponse;
+    return enrichedPage;
   }
 }

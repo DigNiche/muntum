@@ -65,10 +65,11 @@ class ProgramService {
       },
       authorized: authorized,
     );
-    return ApiResponse.fromJson(
+    final pageResponse = ApiResponse.fromJson(
       response,
       (data) => PageResponse.fromJson(data, ProgramModel.fromJson),
     ).data;
+    return enrichMissingPeriodDetails(pageResponse, authorized: authorized);
   }
 
   Future<PageResponse<ProgramModel>> fetchBannerPrograms() {
@@ -89,10 +90,11 @@ class ProgramService {
       ApiEndpoints.programsClosingSoon,
       queryParameters: {'chip': chip?.apiChip, 'page': page, 'size': size},
     );
-    return ApiResponse.fromJson(
+    final pageResponse = ApiResponse.fromJson(
       response,
       (data) => PageResponse.fromJson(data, ProgramModel.fromJson),
     ).data;
+    return enrichMissingPeriodDetails(pageResponse);
   }
 
   Future<PageResponse<ProgramModel>> fetchHotPrograms({
@@ -103,10 +105,11 @@ class ProgramService {
       ApiEndpoints.programsHot,
       queryParameters: {'page': page, 'size': size},
     );
-    return ApiResponse.fromJson(
+    final pageResponse = ApiResponse.fromJson(
       response,
       (data) => PageResponse.fromJson(data, ProgramModel.fromJson),
     ).data;
+    return enrichMissingPeriodDetails(pageResponse);
   }
 
   Future<PageResponse<ProgramModel>> fetchHotKeywordPrograms({
@@ -124,10 +127,11 @@ class ProgramService {
         'size': size,
       },
     );
-    return ApiResponse.fromJson(
+    final pageResponse = ApiResponse.fromJson(
       response,
       (data) => PageResponse.fromJson(data, ProgramModel.fromJson),
     ).data;
+    return enrichMissingPeriodDetails(pageResponse);
   }
 
   Future<PageResponse<ProgramModel>> fetchMapPrograms({
@@ -147,10 +151,11 @@ class ProgramService {
         'chip': chip,
       },
     );
-    return ApiResponse.fromJson(
+    final pageResponse = ApiResponse.fromJson(
       response,
       (data) => PageResponse.fromJson(data, ProgramModel.fromJson),
     ).data;
+    return enrichMissingPeriodDetails(pageResponse);
   }
 
   Future<PageResponse<ProgramModel>> fetchNearbyPrograms({
@@ -170,10 +175,11 @@ class ProgramService {
         'size': size,
       },
     );
-    return ApiResponse.fromJson(
+    final pageResponse = ApiResponse.fromJson(
       response,
       (data) => PageResponse.fromJson(data, ProgramModel.fromJson),
     ).data;
+    return enrichMissingPeriodDetails(pageResponse);
   }
 
   Future<ProgramModel> fetchProgram(
@@ -189,6 +195,37 @@ class ProgramService {
       (data) =>
           ProgramModel.fromJson(data as Map<String, dynamic>? ?? const {}),
     ).data;
+  }
+
+  Future<PageResponse<ProgramModel>> enrichMissingPeriodDetails(
+    PageResponse<ProgramModel> page, {
+    bool authorized = false,
+  }) async {
+    final content = await Future.wait(
+      page.content.map((program) async {
+        if (program.cardDateText.isNotEmpty || program.id.isEmpty) {
+          return program;
+        }
+        try {
+          final detail = await fetchProgram(program.id, authorized: authorized);
+          detail.ended = detail.ended || program.ended;
+          return detail;
+        } catch (_) {
+          return program;
+        }
+      }),
+    );
+    return PageResponse<ProgramModel>(
+      content: content,
+      page: page.page,
+      size: page.size,
+      totalElements: page.totalElements,
+      totalPages: page.totalPages,
+      first: page.first,
+      last: page.last,
+      hasPrevious: page.hasPrevious,
+      hasNext: page.hasNext,
+    );
   }
 
   Future<ProgramModel> updateProgram({

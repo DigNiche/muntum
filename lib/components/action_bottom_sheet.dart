@@ -5,7 +5,7 @@ import 'package:lottie/lottie.dart';
 import 'package:muntum/components/button_solid.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
-import 'package:muntum/screens/onboarding/login_screen.dart';
+import 'package:muntum/screens/onboarding/initial_screen.dart';
 
 enum ActionBottomSheetType { scrapLogin, reportLogin, reportSubmit }
 
@@ -121,7 +121,7 @@ class _ActionBottomSheetContent extends StatelessWidget {
               if (opensLogin) {
                 navigator.push(
                   MaterialPageRoute(
-                    builder: (_) => const LoginScreen(showBackButton: true),
+                    builder: (_) => const InitialScreen(showBackButton: true),
                   ),
                 );
                 return;

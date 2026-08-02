@@ -9,7 +9,7 @@ import 'package:muntum/constants/typography.dart';
 import 'package:muntum/screens/mypage/components/profile_menu_item.dart';
 import 'package:muntum/screens/mypage/password_change_screen.dart';
 import 'package:muntum/screens/mypage/withdraw_screen.dart';
-import 'package:muntum/screens/onboarding/login_screen.dart';
+import 'package:muntum/screens/onboarding/initial_screen.dart';
 import 'package:muntum/services/auth_service.dart';
 import 'package:muntum/stores/program_scrap_store.dart';
 import 'package:muntum/stores/user_preference_store.dart';
@@ -23,22 +23,24 @@ class AccountMangeScreen extends StatefulWidget {
 
 class _AccountMangeScreenState extends State<AccountMangeScreen> {
   late Future<String?> _emailFuture;
+  late Future<String?> _authProviderFuture;
 
   @override
   void initState() {
     super.initState();
     _emailFuture = _loadEmail();
+    _authProviderFuture = TokenStore.instance.readAuthProvider();
   }
 
   Future<String?> _loadEmail() async {
     return TokenStore.instance.readEmail();
   }
 
-  Future<void> _goToLogin() async {
+  Future<void> _goToInitial() async {
     if (!mounted) return;
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
+      MaterialPageRoute(builder: (context) => const InitialScreen()),
       (route) => false,
     );
   }
@@ -99,16 +101,25 @@ class _AccountMangeScreenState extends State<AccountMangeScreen> {
                   ),
                 ),
                 SizedBox(height: 10.h),
-                ProfileMenuItem(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const PasswordChangeScreen(),
-                      ),
+                FutureBuilder<String?>(
+                  future: _authProviderFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState != ConnectionState.done ||
+                        snapshot.data == 'APPLE') {
+                      return const SizedBox.shrink();
+                    }
+                    return ProfileMenuItem(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const PasswordChangeScreen(),
+                          ),
+                        );
+                      },
+                      text: '비밀번호 변경',
                     );
                   },
-                  text: '비밀번호 변경',
                 ),
                 ProfileMenuItem(
                   onTap: () {
@@ -131,7 +142,7 @@ class _AccountMangeScreenState extends State<AccountMangeScreen> {
                         await TokenStore.instance.clear();
                         ProgramScrapStore.instance.clear(notify: false);
                         UserPreferenceStore.instance.clear();
-                        await _goToLogin();
+                        await _goToInitial();
                       },
                     );
                   },

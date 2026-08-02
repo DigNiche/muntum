@@ -9,7 +9,7 @@ import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/models/program_model.dart';
 import 'package:muntum/screens/home/components/section_header.dart';
-import 'package:muntum/screens/onboarding/login_screen.dart';
+import 'package:muntum/screens/onboarding/initial_screen.dart';
 import 'package:muntum/services/scrap_service.dart';
 import 'package:muntum/stores/program_scrap_store.dart';
 
@@ -310,7 +310,7 @@ class _GuestBookmarkView extends StatelessWidget {
                     context,
                     MaterialPageRoute(
                       builder: (context) =>
-                          const LoginScreen(showBackButton: true),
+                          const InitialScreen(showBackButton: true),
                     ),
                   );
                 },
