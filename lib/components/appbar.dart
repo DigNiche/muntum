@@ -45,7 +45,24 @@ class AppBarWidget extends StatelessWidget {
     return Container(
       height: 64.h,
       padding: EdgeInsets.symmetric(vertical: 6.h, horizontal: 20.w),
-      child: isSearchBar ? _buildSearchLayout() : _buildStandardLayout(),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned.fill(
+            child: isSearchBar ? _buildSearchLayout() : _buildStandardLayout(),
+          ),
+          if (onLeadingTap != null)
+            Positioned(
+              left: -20.w,
+              top: -6.h,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onLeadingTap,
+                child: SizedBox(width: 64.w, height: 64.h),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -87,19 +104,16 @@ class AppBarWidget extends StatelessWidget {
   }
 
   Widget _buildLeading() {
-    return GestureDetector(
-      onTap: onLeadingTap,
-      child: SizedBox(
-        width: 24.w,
-        height: 24.h,
-        child: SvgPicture.asset(
-          'assets/icons/$leadingIcon',
-          width: 10.w,
-          height: 18.h,
-          colorFilter: ColorFilter.mode(
-            leadingColor ?? AppColors.gray900,
-            BlendMode.srcIn,
-          ),
+    return SizedBox(
+      width: 24.w,
+      height: 24.h,
+      child: SvgPicture.asset(
+        'assets/icons/$leadingIcon',
+        width: 10.w,
+        height: 18.h,
+        colorFilter: ColorFilter.mode(
+          leadingColor ?? AppColors.gray900,
+          BlendMode.srcIn,
         ),
       ),
     );
