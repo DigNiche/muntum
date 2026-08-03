@@ -137,7 +137,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _loadAuthenticatedProfileData();
         }
         return ColoredBox(
-          color: AppColors.white,
+          color: Colors.transparent,
           child: Column(
             children: [
               SizedBox(height: 50.h),

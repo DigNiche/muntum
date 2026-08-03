@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoTheme;
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
@@ -26,24 +27,37 @@ class ProgramDetailMarkdownBody extends StatelessWidget {
       multiLine: true,
     ).firstMatch(fixedMarkdown);
     final styleSheet = _styleSheet(context);
+    final Widget content;
 
     if (pointTitleMatch == null || pointTitleMatch.start <= 0) {
-      return _buildMarkdown(fixedMarkdown, styleSheet);
+      content = _buildMarkdown(fixedMarkdown, styleSheet);
+    } else {
+      final afterStart = fixedMarkdown.codeUnitAt(pointTitleMatch.start) == 10
+          ? pointTitleMatch.start + 1
+          : pointTitleMatch.start;
+      final before = fixedMarkdown.substring(0, afterStart).trimRight();
+      final after = fixedMarkdown.substring(afterStart).trimLeft();
+
+      content = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (before.isNotEmpty) _buildMarkdown(before, styleSheet),
+          SizedBox(height: 28.h),
+          _buildMarkdown(after, styleSheet),
+        ],
+      );
     }
 
-    final afterStart = fixedMarkdown.codeUnitAt(pointTitleMatch.start) == 10
-        ? pointTitleMatch.start + 1
-        : pointTitleMatch.start;
-    final before = fixedMarkdown.substring(0, afterStart).trimRight();
-    final after = fixedMarkdown.substring(afterStart).trimLeft();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (before.isNotEmpty) _buildMarkdown(before, styleSheet),
-        SizedBox(height: 28.h),
-        _buildMarkdown(after, styleSheet),
-      ],
+    return CupertinoTheme(
+      data: CupertinoTheme.of(context).copyWith(primaryColor: AppColors.black),
+      child: TextSelectionTheme(
+        data: TextSelectionThemeData(
+          cursorColor: AppColors.black,
+          selectionColor: AppColors.black.withValues(alpha: 0.18),
+          selectionHandleColor: AppColors.black,
+        ),
+        child: content,
+      ),
     );
   }
 

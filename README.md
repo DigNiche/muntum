@@ -29,7 +29,7 @@
 | 담당 영역   | Flutter 클라이언트 설계 및 구현 전반 |
 | 지원 플랫폼 | iOS 15.0 이상, Android               |
 | 디자인 기준 | 390 × 844, responsive UI             |
-| 앱 버전     | <!-- APP_VERSION -->1.0.8 (5)<!-- /APP_VERSION --> |
+| 앱 버전     | <!-- APP_VERSION -->1.0.8 (6)<!-- /APP_VERSION --> |
 
 ## 핵심 기능
 

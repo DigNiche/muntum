@@ -127,7 +127,7 @@ class _EntireScreenState extends State<EntireScreen> {
         statusBarBrightness: Brightness.light,
       ),
       child: ColoredBox(
-        color: AppColors.white,
+        color: Colors.transparent,
         child: Column(
           children: [
             SizedBox(height: 50.h),

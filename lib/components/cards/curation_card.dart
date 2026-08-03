@@ -89,7 +89,7 @@ class CurationCard extends StatelessWidget {
                 children: [
                   Text(
                     program.title,
-                    maxLines: 3,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: AppTypography.title2.copyWith(
                       color: AppColors.white,

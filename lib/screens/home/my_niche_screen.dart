@@ -44,7 +44,7 @@ class _MyNicheScreenState extends State<MyNicheScreen> {
   static const double _activeCardHeight = 414;
   static const double _sideCardWidth = 290;
   static const double _sideCardHeight = 386.67;
-  static const double _carouselHeight = 484;
+  static const double _carouselHeight = 498;
   static const double _ctaOffset = 85;
   static const double _lastCardRevealOffset = 146;
 
@@ -61,6 +61,7 @@ class _MyNicheScreenState extends State<MyNicheScreen> {
   int _programRequestId = 0;
   bool _hasNextPage = true;
   bool _isLoadingPrograms = false;
+  bool _isReturningToFirst = false;
   double? _dragStartPage;
 
   @override
@@ -151,7 +152,9 @@ class _MyNicheScreenState extends State<MyNicheScreen> {
       ProgramScrapStore.instance.clear(notify: false);
       UserPreferenceStore.instance.clear();
       if (!mounted) return;
-      setState(() => _isLoggedInFuture = Future.value(false));
+      setState(() {
+        _isLoggedInFuture = Future.value(false);
+      });
     } finally {
       if (mounted && requestId == _programRequestId) {
         setState(() => _isLoadingPrograms = false);
@@ -224,12 +227,30 @@ class _MyNicheScreenState extends State<MyNicheScreen> {
   }
 
   Future<void> _returnToFirstProgram() async {
-    if (!_pageController.hasClients || _currentProgramIndex == 0) return;
-    await _pageController.animateToPage(
-      0,
-      duration: const Duration(milliseconds: 450),
-      curve: Curves.easeOutCubic,
-    );
+    if (!_pageController.hasClients ||
+        _currentProgramIndex == 0 ||
+        _isReturningToFirst) {
+      return;
+    }
+
+    _dragStartPage = null;
+    setState(() {
+      _isReturningToFirst = true;
+    });
+
+    try {
+      await _pageController.animateToPage(
+        0,
+        duration: const Duration(milliseconds: 450),
+        curve: Curves.easeOutCubic,
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isReturningToFirst = false;
+        });
+      }
+    }
   }
 
   void _onProgramPageChanged(int index) {
@@ -304,7 +325,7 @@ class _MyNicheScreenState extends State<MyNicheScreen> {
     final selectedKeywords = UserPreferenceStore.instance.selectedKeywords
         .map((keyword) => keyword.trim())
         .toSet();
-    final keywords = program.keywords.take(3).toList();
+    final keywords = program.keywords.toList();
     if (keywords.isEmpty) return SizedBox(height: 58.h);
 
     return SizedBox(
@@ -314,7 +335,7 @@ class _MyNicheScreenState extends State<MyNicheScreen> {
           alignment: WrapAlignment.center,
           runAlignment: WrapAlignment.center,
           spacing: 6.w,
-          runSpacing: 6.h,
+          runSpacing: 4.h,
           children: keywords.map((keyword) {
             final isMatched = selectedKeywords.contains(keyword.trim());
             return Container(
@@ -521,7 +542,7 @@ class _MyNicheScreenState extends State<MyNicheScreen> {
       children: [
         SizedBox(height: 12.h),
         SizedBox(height: _carouselHeight.h, child: _buildCarousel()),
-        SizedBox(height: 20.h),
+        SizedBox(height: 6.h),
         _buildProgramProgress(),
         SizedBox(height: 30.h),
       ],
@@ -553,25 +574,28 @@ class _MyNicheScreenState extends State<MyNicheScreen> {
 
     return NotificationListener<ScrollNotification>(
       onNotification: _onCarouselScroll,
-      child: PageView.builder(
-        controller: _pageController,
-        padEnds: true,
-        physics: _CarouselPagePhysics(dragStartPage: () => _dragStartPage),
-        onPageChanged: _onProgramPageChanged,
-        itemCount: _programs.length + (showKeywordCta ? 1 : 0),
-        itemBuilder: (context, index) {
-          if (index == _programs.length) {
-            return Transform.translate(
-              offset: Offset(_ctaOffset.w, 0),
-              child: MyNicheKeywordCta(onTap: _openKeywordChangeScreen),
+      child: IgnorePointer(
+        ignoring: _isReturningToFirst,
+        child: PageView.builder(
+          controller: _pageController,
+          padEnds: true,
+          physics: _CarouselPagePhysics(dragStartPage: () => _dragStartPage),
+          onPageChanged: _onProgramPageChanged,
+          itemCount: _programs.length + (showKeywordCta ? 1 : 0),
+          itemBuilder: (context, index) {
+            if (index == _programs.length) {
+              return Transform.translate(
+                offset: Offset(_ctaOffset.w, 0),
+                child: MyNicheKeywordCta(onTap: _openKeywordChangeScreen),
+              );
+            }
+            return _buildProgramPage(
+              program: _programs[index],
+              index: index,
+              showKeywordCta: showKeywordCta,
             );
-          }
-          return _buildProgramPage(
-            program: _programs[index],
-            index: index,
-            showKeywordCta: showKeywordCta,
-          );
-        },
+          },
+        ),
       ),
     );
   }
@@ -592,6 +616,8 @@ class _MyNicheScreenState extends State<MyNicheScreen> {
         final distance = (_visiblePage - index).abs().clamp(0.0, 1.0);
         final scaleX = 1 - (1 - _sideCardWidth / _activeCardWidth) * distance;
         final scaleY = 1 - (1 - _sideCardHeight / _activeCardHeight) * distance;
+        final keywordOffsetY =
+            -(_activeCardHeight - _sideCardHeight) / 2 * distance;
         final isLastProgram = index == _programs.length - 1;
         final ctaReveal = showKeywordCta && isLastProgram
             ? (_visiblePage - index).clamp(0.0, 1.0)
@@ -611,7 +637,10 @@ class _MyNicheScreenState extends State<MyNicheScreen> {
                 ),
               ),
               SizedBox(height: 16.h),
-              keywords,
+              Transform.translate(
+                offset: Offset(0, keywordOffsetY.h),
+                child: keywords,
+              ),
             ],
           ),
         );
@@ -628,7 +657,7 @@ class _MyNicheScreenState extends State<MyNicheScreen> {
         statusBarBrightness: Brightness.dark,
       ),
       child: ColoredBox(
-        color: AppColors.backgroundDark,
+        color: Colors.transparent,
         child: Column(
           children: [
             SizedBox(height: 50.h),

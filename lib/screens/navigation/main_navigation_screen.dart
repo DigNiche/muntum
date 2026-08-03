@@ -63,7 +63,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     });
   }
 
-  Widget _buildAnimatedTab({required int index, required Widget child}) {
+  Widget _buildTab({required int index, required Widget child}) {
     final isActive = _selectedIndex == index;
 
     return Positioned.fill(
@@ -71,9 +71,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         ignoring: !isActive,
         child: ExcludeSemantics(
           excluding: !isActive,
-          child: AnimatedOpacity(
-            duration: AppColorTransition.duration,
-            curve: AppColorTransition.curve,
+          child: Opacity(
             opacity: isActive ? 1 : 0,
             child: TickerMode(enabled: isActive, child: child),
           ),
@@ -176,15 +174,15 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             : AppColors.white,
         child: Stack(
           children: [
-            _buildAnimatedTab(
+            _buildTab(
               index: 0,
               child: MyNicheScreen(isActive: _selectedIndex == 0),
             ),
-            _buildAnimatedTab(
+            _buildTab(
               index: 1,
               child: EntireScreen(isActive: _selectedIndex == 1),
             ),
-            _buildAnimatedTab(
+            _buildTab(
               index: 2,
               child: MapScreen(
                 isActive: _selectedIndex == 2,
@@ -194,11 +192,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                     : () => Navigator.pop(context),
               ),
             ),
-            _buildAnimatedTab(
+            _buildTab(
               index: 3,
               child: BookmarkScreen(isActive: _selectedIndex == 3),
             ),
-            _buildAnimatedTab(index: 4, child: const ProfileScreen()),
+            _buildTab(index: 4, child: const ProfileScreen()),
           ],
         ),
       ),
