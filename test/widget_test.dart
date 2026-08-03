@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:muntum/api/api_client.dart';
 import 'package:muntum/api/api_config.dart';
 import 'package:muntum/api/api_endpoints.dart';
+import 'package:muntum/components/update_dialog.dart';
 import 'package:muntum/data/report_place_search_repository.dart';
 import 'package:muntum/models/auth_models.dart';
 import 'package:muntum/models/program_model.dart';
@@ -15,6 +16,7 @@ import 'package:muntum/screens/mypage/report_submit_screen.dart';
 import 'package:muntum/screens/program_detail/components/program_information_section.dart';
 import 'package:muntum/services/program_service.dart';
 import 'package:muntum/services/program_reaction_service.dart';
+import 'package:muntum/services/update_service.dart';
 import 'package:muntum/stores/program_scrap_store.dart';
 import 'package:muntum/stores/user_preference_store.dart';
 import 'package:muntum/utils/program_keyword_match.dart';
@@ -25,6 +27,64 @@ void main() {
     test('uses the production API by default', () {
       expect(ApiConfig.baseUrl, 'https://api.muntum.work');
     });
+  });
+
+  group('app update versions', () {
+    test('compares semantic versions before build numbers', () {
+      final installed = AppReleaseVersion.parse('1.0.8', build: 100);
+      final latest = AppReleaseVersion.parse('1.0.9', build: 1);
+
+      expect(installed.compareTo(latest), isNegative);
+    });
+
+    test('compares build numbers when semantic versions are equal', () {
+      final installed = AppReleaseVersion.parse('1.0.8', build: 5);
+      final latest = AppReleaseVersion.parse('1.0.8', build: 6);
+
+      expect(installed.compareTo(latest), isNegative);
+    });
+
+    test('does not treat a newer semantic version as outdated', () {
+      final installed = AppReleaseVersion.parse('1.1.0', build: 1);
+      final latest = AppReleaseVersion.parse('1.0.99', build: 999);
+
+      expect(installed.compareTo(latest), isPositive);
+    });
+  });
+
+  testWidgets('recommended update dialog lets the user update later', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ScreenUtilPlusInit(
+        designSize: const Size(390, 844),
+        builder: (context, child) => MaterialApp(home: child),
+        child: const _UpdateDialogTestHost(isRequired: false),
+      ),
+    );
+
+    await tester.tap(find.text('업데이트 확인'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('새로운 버전이 있어요'), findsOneWidget);
+    expect(find.text('나중에'), findsOneWidget);
+    expect(find.text('지금 업데이트'), findsOneWidget);
+  });
+
+  testWidgets('required update dialog hides the later action', (tester) async {
+    await tester.pumpWidget(
+      ScreenUtilPlusInit(
+        designSize: const Size(390, 844),
+        builder: (context, child) => MaterialApp(home: child),
+        child: const _UpdateDialogTestHost(isRequired: true),
+      ),
+    );
+
+    await tester.tap(find.text('업데이트 확인'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('나중에'), findsNothing);
+    expect(find.text('지금 업데이트'), findsOneWidget);
   });
 
   group('social login contract', () {
@@ -430,6 +490,35 @@ void main() {
 
     expect(didLongPressAddress, isTrue);
   });
+}
+
+class _UpdateDialogTestHost extends StatelessWidget {
+  final bool isRequired;
+
+  const _UpdateDialogTestHost({required this.isRequired});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: TextButton(
+          onPressed: () => showAppUpdateDialog(
+            context: context,
+            updateInfo: AppUpdateInfo(
+              isRequired: isRequired,
+              title: '새로운 버전이 있어요',
+              message: '문틈의 최신 버전을 사용해보세요.',
+              storeUrl: Uri.parse('https://example.com'),
+              installedVersion: AppReleaseVersion.parse('1.0.8', build: 5),
+              latestVersion: AppReleaseVersion.parse('1.0.9', build: 6),
+            ),
+            onUpdate: () async {},
+          ),
+          child: const Text('업데이트 확인'),
+        ),
+      ),
+    );
+  }
 }
 
 ProgramModel _program({

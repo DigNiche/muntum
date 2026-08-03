@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -82,62 +83,80 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   }
 
   Widget _buildBottomNavigationBar(bool useDarkTheme) {
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-        child: AnimatedContainer(
-          duration: AppColorTransition.duration,
-          curve: AppColorTransition.curve,
-          decoration: BoxDecoration(
-            border: Border(
-              top: BorderSide(
-                color: useDarkTheme ? AppColors.gray900 : AppColors.lineNormal,
-                width: 1.sp,
+    final androidBottomInset = defaultTargetPlatform == TargetPlatform.android
+        ? MediaQuery.viewPaddingOf(context).bottom
+        : 0.0;
+    final navigationHeight = androidBottomInset > 0
+        ? 64.h + androidBottomInset
+        : 84.h;
+
+    return SizedBox(
+      height: navigationHeight,
+      child: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          child: AnimatedContainer(
+            duration: AppColorTransition.duration,
+            curve: AppColorTransition.curve,
+            decoration: BoxDecoration(
+              border: Border(
+                top: BorderSide(
+                  color: useDarkTheme
+                      ? AppColors.gray900
+                      : AppColors.lineNormal,
+                  width: 1.sp,
+                ),
+              ),
+              color: useDarkTheme
+                  ? const Color(0xFF181818)
+                  : AppColors.white.withValues(alpha: 0.93),
+            ),
+            child: SafeArea(
+              top: false,
+              left: false,
+              right: false,
+              bottom: defaultTargetPlatform == TargetPlatform.android,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  NavTab(
+                    icon: 'interests.svg',
+                    text: '내취향',
+                    isActive: _selectedIndex == 0,
+                    useDarkTheme: useDarkTheme,
+                    onTap: () => _onTabTap(0),
+                  ),
+                  NavTab(
+                    icon: 'page_menu_ios.svg',
+                    text: '전체',
+                    isActive: _selectedIndex == 1,
+                    useDarkTheme: useDarkTheme,
+                    onTap: () => _onTabTap(1),
+                  ),
+                  NavTab(
+                    icon: 'location-filled.svg',
+                    text: '지도',
+                    isActive: _selectedIndex == 2,
+                    useDarkTheme: useDarkTheme,
+                    onTap: () => _onTabTap(2),
+                  ),
+                  NavTab(
+                    icon: 'scrap-filled.svg',
+                    text: '스크랩',
+                    isActive: _selectedIndex == 3,
+                    useDarkTheme: useDarkTheme,
+                    onTap: () => _onTabTap(3),
+                  ),
+                  NavTab(
+                    icon: 'profile-filled.svg',
+                    text: '프로필',
+                    isActive: _selectedIndex == 4,
+                    useDarkTheme: useDarkTheme,
+                    onTap: () => _onTabTap(4),
+                  ),
+                ],
               ),
             ),
-            color: useDarkTheme
-                ? const Color(0xFF181818)
-                : AppColors.white.withValues(alpha: 0.93),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              NavTab(
-                icon: 'interests.svg',
-                text: '내취향',
-                isActive: _selectedIndex == 0,
-                useDarkTheme: useDarkTheme,
-                onTap: () => _onTabTap(0),
-              ),
-              NavTab(
-                icon: 'page_menu_ios.svg',
-                text: '전체',
-                isActive: _selectedIndex == 1,
-                useDarkTheme: useDarkTheme,
-                onTap: () => _onTabTap(1),
-              ),
-              NavTab(
-                icon: 'location-filled.svg',
-                text: '지도',
-                isActive: _selectedIndex == 2,
-                useDarkTheme: useDarkTheme,
-                onTap: () => _onTabTap(2),
-              ),
-              NavTab(
-                icon: 'scrap-filled.svg',
-                text: '스크랩',
-                isActive: _selectedIndex == 3,
-                useDarkTheme: useDarkTheme,
-                onTap: () => _onTabTap(3),
-              ),
-              NavTab(
-                icon: 'profile-filled.svg',
-                text: '프로필',
-                isActive: _selectedIndex == 4,
-                useDarkTheme: useDarkTheme,
-                onTap: () => _onTabTap(4),
-              ),
-            ],
           ),
         ),
       ),
@@ -220,7 +239,7 @@ class NavTab extends StatelessWidget {
           color: targetColor,
           builder: (context, color, child) {
             return Container(
-              height: 84.h,
+              height: double.infinity,
               padding: EdgeInsets.symmetric(vertical: 8.h),
               child: Column(
                 children: [

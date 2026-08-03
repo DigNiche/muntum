@@ -41,127 +41,133 @@ class _InitialScreenState extends State<InitialScreen> {
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
         backgroundColor: AppColors.backgroundDark,
-        body: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20.w),
-          child: Column(
-            children: [
-              if (widget.showBackButton)
-                Column(
-                  children: [
-                    SizedBox(height: 50.h),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () => Navigator.pop(context),
-                        child: SizedBox(
-                          width: 32.r,
-                          height: 32.r,
-                          child: Center(
-                            child: SvgPicture.asset(
-                              'assets/icons/arrow_left.svg',
-                              width: 24.r,
-                              height: 24.r,
-                              colorFilter: const ColorFilter.mode(
-                                AppColors.white,
-                                BlendMode.srcIn,
+        body: SafeArea(
+          top: false,
+          left: false,
+          right: false,
+          bottom: defaultTargetPlatform == TargetPlatform.android,
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20.w),
+            child: Column(
+              children: [
+                if (widget.showBackButton)
+                  Column(
+                    children: [
+                      SizedBox(height: 50.h),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () => Navigator.pop(context),
+                          child: SizedBox(
+                            width: 32.r,
+                            height: 32.r,
+                            child: Center(
+                              child: SvgPicture.asset(
+                                'assets/icons/arrow_left.svg',
+                                width: 24.r,
+                                height: 24.r,
+                                colorFilter: const ColorFilter.mode(
+                                  AppColors.white,
+                                  BlendMode.srcIn,
+                                ),
                               ),
                             ),
                           ),
                         ),
                       ),
+                    ],
+                  ),
+                const Spacer(),
+                SvgPicture.asset(
+                  'assets/login_image.svg',
+                  width: 350.w,
+                  fit: BoxFit.contain,
+                ),
+                SizedBox(height: 20.h),
+                Text(
+                  '내 주변의 문화라이프',
+                  style: AppTypography.title4.copyWith(color: AppColors.white),
+                ),
+                const Spacer(),
+                ButtonSolid(
+                  text: '이메일로 로그인',
+                  textColor: AppColors.white,
+                  boxColor: Colors.transparent,
+                  border: Border.all(
+                    color: AppColors.white.withValues(alpha: 0.25),
+                    width: 1.w,
+                  ),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const LoginScreen()),
+                    );
+                  },
+                ),
+                if (showSocialLogin &&
+                    defaultTargetPlatform == TargetPlatform.iOS) ...[
+                  SizedBox(height: 12.h),
+                  ButtonSolid(
+                    leading: Text(
+                      '',
+                      style: TextStyle(
+                        color: AppColors.black,
+                        fontSize: 24.sp,
+                        height: 1,
+                      ),
+                    ),
+                    border: Border.all(color: Colors.transparent, width: 1.w),
+                    text: _isAppleLoading ? 'Apple 로그인 중...' : 'Apple로 시작하기',
+                    textColor: AppColors.black,
+                    boxColor: AppColors.white,
+                    onTap: _loginWithApple,
+                  ),
+                ],
+                SizedBox(height: 24.h),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _TextAction(text: '둘러보기', onTap: _browseWithoutLogin),
+                    Container(
+                      width: 1.w,
+                      height: 14.h,
+                      margin: EdgeInsets.symmetric(horizontal: 24.w),
+                      color: AppColors.gray700,
+                    ),
+                    _TextAction(
+                      text: '회원가입',
+                      onTap: () => _push(const SignUpScreen()),
                     ),
                   ],
                 ),
-              const Spacer(),
-              SvgPicture.asset(
-                'assets/login_image.svg',
-                width: 350.w,
-                fit: BoxFit.contain,
-              ),
-              SizedBox(height: 20.h),
-              Text(
-                '내 주변의 문화라이프',
-                style: AppTypography.title4.copyWith(color: AppColors.white),
-              ),
-              const Spacer(),
-              ButtonSolid(
-                text: '이메일로 로그인',
-                textColor: AppColors.white,
-                boxColor: Colors.transparent,
-                border: Border.all(
-                  color: AppColors.white.withValues(alpha: 0.25),
-                  width: 1.w,
+                SizedBox(height: 32.h),
+                Text(
+                  '회원가입 시 문틈의 정책 및 약관에 동의합니다.',
+                  style: AppTypography.caption1.copyWith(
+                    color: AppColors.gray600,
+                  ),
                 ),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const LoginScreen()),
-                  );
-                },
-              ),
-              if (showSocialLogin &&
-                  defaultTargetPlatform == TargetPlatform.iOS) ...[
-                SizedBox(height: 12.h),
-                ButtonSolid(
-                  leading: Text(
-                    '',
-                    style: TextStyle(
-                      color: AppColors.black,
-                      fontSize: 24.sp,
-                      height: 1,
+                SizedBox(height: 4.h),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _TermsLink(
+                      text: '서비스 이용약관',
+                      onTap: () =>
+                          _push(const TermsDetailScreen(title: '서비스 이용약관')),
                     ),
-                  ),
-                  border: Border.all(color: Colors.transparent, width: 1.w),
-                  text: _isAppleLoading ? 'Apple 로그인 중...' : 'Apple로 시작하기',
-                  textColor: AppColors.black,
-                  boxColor: AppColors.white,
-                  onTap: _loginWithApple,
+                    SizedBox(width: 12.w),
+                    _TermsLink(
+                      text: '개인정보 처리방침',
+                      onTap: () =>
+                          _push(const TermsDetailScreen(title: '개인정보 처리방침')),
+                    ),
+                  ],
                 ),
+                SizedBox(height: 24.h),
               ],
-              SizedBox(height: 24.h),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _TextAction(text: '둘러보기', onTap: _browseWithoutLogin),
-                  Container(
-                    width: 1.w,
-                    height: 14.h,
-                    margin: EdgeInsets.symmetric(horizontal: 24.w),
-                    color: AppColors.gray700,
-                  ),
-                  _TextAction(
-                    text: '회원가입',
-                    onTap: () => _push(const SignUpScreen()),
-                  ),
-                ],
-              ),
-              SizedBox(height: 32.h),
-              Text(
-                '회원가입 시 문틈의 정책 및 약관에 동의합니다.',
-                style: AppTypography.caption1.copyWith(
-                  color: AppColors.gray600,
-                ),
-              ),
-              SizedBox(height: 4.h),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _TermsLink(
-                    text: '서비스 이용약관',
-                    onTap: () =>
-                        _push(const TermsDetailScreen(title: '서비스 이용약관')),
-                  ),
-                  SizedBox(width: 12.w),
-                  _TermsLink(
-                    text: '개인정보 처리방침',
-                    onTap: () =>
-                        _push(const TermsDetailScreen(title: '개인정보 처리방침')),
-                  ),
-                ],
-              ),
-              SizedBox(height: 24.h),
-            ],
+            ),
           ),
         ),
       ),

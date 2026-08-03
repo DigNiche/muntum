@@ -1,0 +1,74 @@
+{
+  "conditions": [],
+  "parameters": {
+    "update_enabled": {
+      "defaultValue": { "value": "false" },
+      "description": "앱 실행 시 업데이트 확인 활성화 여부",
+      "valueType": "BOOLEAN"
+    },
+    "update_title": {
+      "defaultValue": { "value": "새로운 버전이 있어요" },
+      "description": "업데이트 안내 모달 제목",
+      "valueType": "STRING"
+    },
+    "update_message": {
+      "defaultValue": { "value": "문틈의 최신 버전을 사용해보세요." },
+      "description": "업데이트 안내 모달 설명",
+      "valueType": "STRING"
+    },
+    "android_latest_version": {
+      "defaultValue": { "value": "1.0.8" },
+      "description": "Android 최신 권장 versionName",
+      "valueType": "STRING"
+    },
+    "android_latest_build": {
+      "defaultValue": { "value": "5" },
+      "description": "Android 최신 권장 versionCode",
+      "valueType": "NUMBER"
+    },
+    "android_minimum_version": {
+      "defaultValue": { "value": "0.0.0" },
+      "description": "Android 최소 지원 versionName",
+      "valueType": "STRING"
+    },
+    "android_minimum_build": {
+      "defaultValue": { "value": "0" },
+      "description": "Android 최소 지원 versionCode",
+      "valueType": "NUMBER"
+    },
+    "android_store_url": {
+      "defaultValue": {
+        "value": "https://play.google.com/store/apps/details?id=co.digniche.muntum"
+      },
+      "description": "Google Play 문틈 URL",
+      "valueType": "STRING"
+    },
+    "ios_latest_version": {
+      "defaultValue": { "value": "1.0.8" },
+      "description": "iOS 최신 권장 CFBundleShortVersionString",
+      "valueType": "STRING"
+    },
+    "ios_latest_build": {
+      "defaultValue": { "value": "5" },
+      "description": "iOS 최신 권장 CFBundleVersion",
+      "valueType": "NUMBER"
+    },
+    "ios_minimum_version": {
+      "defaultValue": { "value": "0.0.0" },
+      "description": "iOS 최소 지원 CFBundleShortVersionString",
+      "valueType": "STRING"
+    },
+    "ios_minimum_build": {
+      "defaultValue": { "value": "0" },
+      "description": "iOS 최소 지원 CFBundleVersion",
+      "valueType": "NUMBER"
+    },
+    "ios_store_url": {
+      "defaultValue": {
+        "value": "https://apps.apple.com/app/id6789416280"
+      },
+      "description": "App Store 문틈 URL",
+      "valueType": "STRING"
+    }
+  }
+}

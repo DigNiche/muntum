@@ -7,6 +7,7 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_naver_map/flutter_naver_map.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/gates/auth_gate.dart';
+import 'package:muntum/gates/update_gate.dart';
 import 'package:muntum/firebase_options.dart';
 
 Future<void> main() async {
@@ -56,7 +57,7 @@ class MuntumApp extends StatelessWidget {
         ],
         debugShowCheckedModeBanner: false,
       ),
-      child: const AuthGate(),
+      child: const UpdateGate(child: AuthGate()),
     );
   }
 }

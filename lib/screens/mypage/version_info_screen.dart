@@ -3,15 +3,19 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
+import 'package:muntum/services/update_service.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 class VersionInfoScreen extends StatelessWidget {
   const VersionInfoScreen({super.key});
 
-  static const bool _needsUpdate = false;
-
-  Future<PackageInfo> _loadPackageInfo() {
-    return PackageInfo.fromPlatform();
+  Future<_VersionInfoData> _loadVersionInfo() async {
+    final packageInfoFuture = PackageInfo.fromPlatform();
+    final updateInfoFuture = UpdateService.instance.checkForUpdate();
+    return _VersionInfoData(
+      packageInfo: await packageInfoFuture,
+      updateInfo: await updateInfoFuture,
+    );
   }
 
   @override
@@ -27,10 +31,11 @@ class VersionInfoScreen extends StatelessWidget {
             center: '버전정보',
             onLeadingTap: () => Navigator.pop(context),
           ),
-          FutureBuilder<PackageInfo>(
-            future: _loadPackageInfo(),
+          FutureBuilder<_VersionInfoData>(
+            future: _loadVersionInfo(),
             builder: (context, snapshot) {
-              final packageInfo = snapshot.data;
+              final packageInfo = snapshot.data?.packageInfo;
+              final needsUpdate = snapshot.data?.updateInfo != null;
               final versionText = packageInfo == null
                   ? '-'
                   : '${packageInfo.version} (${packageInfo.buildNumber})';
@@ -56,7 +61,7 @@ class VersionInfoScreen extends StatelessWidget {
                       ),
                       SizedBox(height: 4.h),
                       Text(
-                        '$versionText (${_needsUpdate ? '업데이트 필요' : '최신'})',
+                        '$versionText (${needsUpdate ? '업데이트 필요' : '최신'})',
                         style: AppTypography.caption1.copyWith(
                           color: AppColors.gray500,
                         ),
@@ -71,4 +76,11 @@ class VersionInfoScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+class _VersionInfoData {
+  final PackageInfo packageInfo;
+  final AppUpdateInfo? updateInfo;
+
+  const _VersionInfoData({required this.packageInfo, required this.updateInfo});
 }

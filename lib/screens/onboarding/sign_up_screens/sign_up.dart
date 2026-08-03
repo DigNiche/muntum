@@ -7,7 +7,6 @@ import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/button_solid.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
-import 'package:muntum/screens/mypage/terms_detail_screen.dart';
 import 'package:muntum/screens/onboarding/components/text_field_widget.dart';
 import 'package:muntum/screens/onboarding/sign_up_screens/sign_up_complete_screen.dart';
 import 'package:muntum/services/auth_service.dart';
@@ -219,56 +218,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ],
                 ),
               ),
-            ),
-            Text(
-              '회원가입 시 문틈의 정책 및 약관에 동의합니다.',
-              textAlign: TextAlign.center,
-              style: AppTypography.caption1.copyWith(color: AppColors.gray700),
-            ),
-            const SizedBox(height: 5),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                GestureDetector(
-                  child: Text(
-                    '서비스 이용약관',
-                    style: AppTypography.caption1.copyWith(
-                      color: AppColors.gray700,
-                      decoration: TextDecoration.underline,
-                      decorationColor: AppColors.gray700,
-                    ),
-                  ),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            const TermsDetailScreen(title: '서비스 이용약관'),
-                      ),
-                    );
-                  },
-                ),
-                SizedBox(width: 16.h),
-                GestureDetector(
-                  child: Text(
-                    '개인정보 처리방침',
-                    style: AppTypography.caption1.copyWith(
-                      color: AppColors.gray700,
-                      decoration: TextDecoration.underline,
-                      decorationColor: AppColors.gray700,
-                    ),
-                  ),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            const TermsDetailScreen(title: '개인정보 처리방침'),
-                      ),
-                    );
-                  },
-                ),
-              ],
             ),
             SizedBox(height: 16.h),
             Padding(
