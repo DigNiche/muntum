@@ -3,7 +3,7 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
-import 'package:muntum/components/cards/horizontal.dart';
+import 'package:muntum/components/cards/map_horizontal_card.dart';
 import 'package:muntum/models/program_model.dart';
 
 class MapProgramBottomPanel extends StatelessWidget {
@@ -106,7 +106,7 @@ class MapProgramBottomPanel extends StatelessWidget {
                       ),
                       SizedBox(height: 16.h),
                       for (var index = 0; index < programs.length; index++) ...[
-                        HorizontalCard(
+                        MapHorizontalCard(
                           program: programs[index],
                           entrySource: 'map',
                           onTap: onProgramTap == null

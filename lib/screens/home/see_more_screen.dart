@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/cards/horizontal.dart';
+import 'package:muntum/components/scroll_to_top_button.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/models/program_model.dart';
@@ -35,6 +36,7 @@ class _SeeMoreScreenState extends State<SeeMoreScreen> {
   int _totalElements = 0;
   bool _hasNextPage = true;
   bool _isLoading = false;
+  bool _showScrollToTopButton = false;
   int _requestId = 0;
 
   @override
@@ -90,14 +92,30 @@ class _SeeMoreScreenState extends State<SeeMoreScreen> {
   }
 
   void _handleScroll() {
+    final shouldShowScrollToTopButton = _scrollController.offset > 200.h;
+    if (shouldShowScrollToTopButton != _showScrollToTopButton) {
+      setState(() => _showScrollToTopButton = shouldShowScrollToTopButton);
+    }
     if (_scrollController.position.extentAfter < 400.h) {
       _loadPrograms(reset: false);
     }
   }
 
+  Future<void> _scrollToTop() async {
+    if (!_scrollController.hasClients) return;
+    await _scrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 450),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
   void _selectFilter(Filter? filter) {
     if (_selectedFilter == filter) return;
-    setState(() => _selectedFilter = filter);
+    setState(() {
+      _selectedFilter = filter;
+      _showScrollToTopButton = false;
+    });
     _loadPrograms(reset: true);
     if (_scrollController.hasClients) _scrollController.jumpTo(0);
   }
@@ -121,94 +139,106 @@ class _SeeMoreScreenState extends State<SeeMoreScreen> {
       ),
       child: Scaffold(
         backgroundColor: AppColors.white,
-        body: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        body: Stack(
           children: [
-            SizedBox(height: 50.h),
-            AppBarWidget(
-              centerType: AppBarCenterType.text,
-              leadingIcon: 'arrow_left.svg',
-              onLeadingTap: () => Navigator.pop(context),
-              center: widget.title,
-            ),
-            if (showTypeTabs)
-              ProgramTypeTabs(
-                selectedFilter: _selectedFilter,
-                onSelected: _selectFilter,
-              ),
-            Expanded(
-              child: Builder(
-                builder: (context) {
-                  final programs = _programs;
-                  return CustomScrollView(
-                    controller: _scrollController,
-                    slivers: [
-                      SliverPadding(
-                        padding: EdgeInsets.fromLTRB(
-                          20.w,
-                          14.h,
-                          20.w,
-                          programs.isEmpty ? 0 : 24.h,
-                        ),
-                        sliver: SliverList(
-                          delegate: SliverChildListDelegate([
-                            Text(
-                              '프로그램 ${_totalElements > 0 ? _totalElements : programs.length}개',
-                              style: AppTypography.headline2.copyWith(
-                                color: AppColors.gray900,
-                              ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(height: 50.h),
+                AppBarWidget(
+                  centerType: AppBarCenterType.text,
+                  leadingIcon: 'arrow_left.svg',
+                  onLeadingTap: () => Navigator.pop(context),
+                  center: widget.title,
+                ),
+                if (showTypeTabs)
+                  ProgramTypeTabs(
+                    selectedFilter: _selectedFilter,
+                    onSelected: _selectFilter,
+                  ),
+                Expanded(
+                  child: Builder(
+                    builder: (context) {
+                      final programs = _programs;
+                      return CustomScrollView(
+                        controller: _scrollController,
+                        slivers: [
+                          SliverPadding(
+                            padding: EdgeInsets.fromLTRB(
+                              20.w,
+                              14.h,
+                              20.w,
+                              programs.isEmpty ? 0 : 24.h,
                             ),
-                            SizedBox(height: 16.h),
-                            for (
-                              var index = 0;
-                              index < programs.length;
-                              index++
-                            ) ...[
-                              HorizontalCard(
-                                program: programs[index],
-                                entrySource:
-                                    widget.type == SeeMoreType.allPrograms
-                                    ? 'all_collection'
-                                    : 'all_closing_soon',
-                              ),
-                              if (index != programs.length - 1)
-                                SizedBox(height: 16.h),
-                            ],
-                            if (_isLoading && programs.isNotEmpty) ...[
-                              SizedBox(height: 16.h),
-                              Padding(
-                                padding: EdgeInsets.symmetric(vertical: 12.h),
-                                child: const Center(
-                                  child: CircularProgressIndicator(
+                            sliver: SliverList(
+                              delegate: SliverChildListDelegate([
+                                Text(
+                                  '프로그램 ${_totalElements > 0 ? _totalElements : programs.length}개',
+                                  style: AppTypography.headline2.copyWith(
                                     color: AppColors.gray900,
                                   ),
                                 ),
-                              ),
-                            ],
-                          ]),
-                        ),
-                      ),
-                      if (programs.isEmpty)
-                        SliverFillRemaining(
-                          hasScrollBody: false,
-                          child: Center(
-                            child: _isLoading
-                                ? const CircularProgressIndicator(
-                                    color: AppColors.gray900,
-                                  )
-                                : Text(
-                                    '조건에 맞는 프로그램이 없어요.',
-                                    style: AppTypography.body2.copyWith(
-                                      color: AppColors.gray500,
+                                SizedBox(height: 16.h),
+                                for (
+                                  var index = 0;
+                                  index < programs.length;
+                                  index++
+                                ) ...[
+                                  HorizontalCard(
+                                    program: programs[index],
+                                    entrySource:
+                                        widget.type == SeeMoreType.allPrograms
+                                        ? 'all_collection'
+                                        : 'all_closing_soon',
+                                  ),
+                                  if (index != programs.length - 1)
+                                    SizedBox(height: 16.h),
+                                ],
+                                if (_isLoading && programs.isNotEmpty) ...[
+                                  SizedBox(height: 16.h),
+                                  Padding(
+                                    padding: EdgeInsets.symmetric(
+                                      vertical: 12.h,
+                                    ),
+                                    child: const Center(
+                                      child: CircularProgressIndicator(
+                                        color: AppColors.gray900,
+                                      ),
                                     ),
                                   ),
+                                ],
+                              ]),
+                            ),
                           ),
-                        ),
-                    ],
-                  );
-                },
-              ),
+                          if (programs.isEmpty)
+                            SliverFillRemaining(
+                              hasScrollBody: false,
+                              child: Center(
+                                child: _isLoading
+                                    ? const CircularProgressIndicator(
+                                        color: AppColors.gray900,
+                                      )
+                                    : Text(
+                                        '조건에 맞는 프로그램이 없어요.',
+                                        style: AppTypography.body2.copyWith(
+                                          color: AppColors.gray500,
+                                        ),
+                                      ),
+                              ),
+                            ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
+            if (_showScrollToTopButton)
+              Positioned(
+                right: 20.w,
+                bottom: 24.h,
+                child: ScrollToTopButton(onTap: _scrollToTop),
+              ),
           ],
         ),
       ),

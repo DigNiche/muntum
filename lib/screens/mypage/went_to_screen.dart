@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
+import 'package:muntum/components/app_color_transition.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/cards/horizontal.dart';
 import 'package:muntum/constants/colors.dart';
@@ -295,22 +296,31 @@ class _WentToTab extends StatelessWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        child: Container(
-          height: 48.h,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            border: isSelected
-                ? Border(
-                    bottom: BorderSide(color: AppColors.gray900, width: 2.h),
-                  )
-                : null,
-          ),
-          child: Text(
-            text,
-            style: AppTypography.button2.copyWith(
-              color: isSelected ? AppColors.gray900 : AppColors.gray500,
-            ),
-          ),
+        child: AppColorTransition(
+          color: isSelected ? AppColors.gray900 : AppColors.gray500,
+          builder: (context, textColor, _) {
+            return AppColorTransition(
+              color: isSelected ? AppColors.gray900 : AppColors.lineNormal,
+              builder: (context, lineColor, _) {
+                return Container(
+                  height: 48.h,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(
+                        color: lineColor,
+                        width: isSelected ? 2.h : 1.h,
+                      ),
+                    ),
+                  ),
+                  child: Text(
+                    text,
+                    style: AppTypography.button2.copyWith(color: textColor),
+                  ),
+                );
+              },
+            );
+          },
         ),
       ),
     );
