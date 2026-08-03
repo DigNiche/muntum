@@ -106,7 +106,7 @@ class _LocationDescription extends StatelessWidget {
             children: [
               SizedBox(width: 90.w),
               Padding(
-                padding: EdgeInsets.only(top: 3.h),
+                padding: EdgeInsets.only(top: 3.5.h),
                 child: SvgPicture.asset(
                   'assets/icons/location-filled.svg',
                   width: 16.w,

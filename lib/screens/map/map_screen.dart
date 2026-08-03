@@ -100,6 +100,7 @@ class _MapScreenState extends State<MapScreen> {
       _mapPrograms = [initialProgram];
       _visiblePrograms = [initialProgram];
       _needsInitialProgram = true;
+      unawaited(_initializeProgramFocusCurrentLocation());
       return;
     }
     if (widget.isActive) {
@@ -164,6 +165,48 @@ class _MapScreenState extends State<MapScreen> {
         }
       });
     }
+  }
+
+  Future<void> _initializeProgramFocusCurrentLocation() async {
+    String? errorMessage;
+    var permissionDenied = false;
+
+    try {
+      final position = await _locationService.determineCurrentPosition();
+      if (!mounted) return;
+
+      final currentLocation = NLatLng(position.latitude, position.longitude);
+      _currentLocation = currentLocation;
+
+      final controller = _mapController;
+      if (controller != null) {
+        await _locationOverlayController.update(
+          context: context,
+          mapController: controller,
+          location: currentLocation,
+          isActive: widget.isActive,
+        );
+      }
+      return;
+    } on TimeoutException {
+      errorMessage = '현재 위치를 확인하지 못했어요. 잠시 후 다시 시도해주세요.';
+    } on LocationServiceDisabledException {
+      errorMessage = '기기의 위치 서비스를 켜주세요.';
+    } on PermissionDeniedException {
+      permissionDenied = true;
+    } catch (_) {
+      errorMessage = '현재 위치를 불러오지 못했어요.';
+    }
+
+    if (!mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !widget.isActive) return;
+      if (permissionDenied) {
+        _showLocationPermissionPopup();
+      } else if (errorMessage != null) {
+        _showLocationMessage(errorMessage);
+      }
+    });
   }
 
   void _setLocating(bool value) {

@@ -140,7 +140,7 @@ class _InitialScreenState extends State<InitialScreen> {
               SizedBox(height: 32.h),
               Text(
                 '회원가입 시 문틈의 정책 및 약관에 동의합니다.',
-                style: AppTypography.caption3.copyWith(
+                style: AppTypography.caption1.copyWith(
                   color: AppColors.gray600,
                 ),
               ),
@@ -283,7 +283,7 @@ class _TermsLink extends StatelessWidget {
       onTap: onTap,
       child: Text(
         text,
-        style: AppTypography.caption3.copyWith(
+        style: AppTypography.caption1.copyWith(
           color: AppColors.gray700,
           decoration: TextDecoration.underline,
           decorationColor: AppColors.gray600,

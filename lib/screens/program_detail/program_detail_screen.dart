@@ -46,6 +46,7 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
   final GlobalKey _programHeaderKey = GlobalKey();
   late Future<ProgramModel> _programFuture;
   late Future<List<ProgramModel>> _recommendedFuture;
+  late Future<bool> _isLoggedInFuture;
   bool _showAppBarTitle = false;
 
   @override
@@ -66,6 +67,7 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
     );
     _programFuture = _loadProgram();
     _recommendedFuture = _loadRecommendedPrograms();
+    _isLoggedInFuture = _isLoggedIn();
   }
 
   void _updateAppBarTitleVisibility() {
@@ -255,9 +257,17 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
 
                             // TODO: 방문 기록 기능이 준비되면 노출한다.
                             if (showLikeDislike)
-                              Padding(
-                                padding: EdgeInsets.only(bottom: 40.h),
-                                child: const ProgramAttendancePrompt(),
+                              FutureBuilder<bool>(
+                                future: _isLoggedInFuture,
+                                builder: (context, snapshot) {
+                                  if (snapshot.data != true) {
+                                    return const SizedBox.shrink();
+                                  }
+                                  return Padding(
+                                    padding: EdgeInsets.only(bottom: 40.h),
+                                    child: const ProgramAttendancePrompt(),
+                                  );
+                                },
                               ),
                           ],
                         ),
