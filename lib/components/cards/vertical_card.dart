@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/components/animated_scrap_icon.dart';
-import 'package:muntum/components/program_ended_badge.dart';
 import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
@@ -54,27 +53,6 @@ class VerticalCard extends StatelessWidget {
                         : program.images.first,
                   ),
                 ),
-                // 그라데이션
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  child: Container(
-                    height: 100.h,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(
-                        AppBorderRadius.radius_8,
-                      ),
-                      gradient: LinearGradient(
-                        begin: Alignment.bottomCenter,
-                        end: Alignment.topCenter,
-                        colors: [
-                          Colors.transparent,
-                          Colors.black.withValues(alpha: 0.15),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
                 // 스크랩 아이콘
                 Positioned(
                   right: 8.w,
@@ -108,36 +86,25 @@ class VerticalCard extends StatelessWidget {
               ],
             ),
             SizedBox(height: 12.h),
-            Padding(
-              padding: EdgeInsets.symmetric(vertical: 4.0.r),
-              child: Text(
-                program.title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: AppTypography.headline1.copyWith(
-                  color: AppColors.gray900,
-                ),
-              ),
+            Text(
+              program.title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: AppTypography.headline1.copyWith(color: AppColors.gray900),
             ),
-            SizedBox(height: 6.h),
+            SizedBox(height: 4.h),
             Text(
               program.locationName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: AppTypography.caption1.copyWith(color: AppColors.gray700),
             ),
             SizedBox(height: 2.h),
-            Wrap(
-              spacing: 4.w,
-              runSpacing: 2.h,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Text(
-                  program.cardDateText,
-                  style: AppTypography.caption1.copyWith(
-                    color: AppColors.gray700,
-                  ),
-                ),
-                if (program.isEnded) const ProgramEndedBadge(),
-              ],
+            Text(
+              program.cardDateText,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTypography.caption1.copyWith(color: AppColors.gray700),
             ),
           ],
         ),

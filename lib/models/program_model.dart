@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:muntum/models/keyword_model.dart';
 import 'package:muntum/models/program_filter.dart';
+import 'package:muntum/models/program_reaction.dart';
 import 'package:muntum/models/program_type.dart';
 
 export 'package:muntum/models/program_filter.dart';
@@ -57,6 +58,7 @@ class ProgramModel {
   final DateTime? updatedAt;
   final String startDate;
   final String endDate;
+  final ProgramReactionSummary reaction;
 
   ProgramModel({
     this.id = '',
@@ -92,6 +94,7 @@ class ProgramModel {
     this.updatedAt,
     this.startDate = '',
     this.endDate = '',
+    this.reaction = const ProgramReactionSummary(),
   });
 
   factory ProgramModel.fromJson(Map<String, dynamic> json) {
@@ -157,6 +160,7 @@ class ProgramModel {
       officialUrl: json['officialUrl'] as String?,
       createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
       updatedAt: DateTime.tryParse(json['updatedAt'] as String? ?? ''),
+      reaction: ProgramReactionSummary.fromJson(json['reaction']),
     );
   }
 

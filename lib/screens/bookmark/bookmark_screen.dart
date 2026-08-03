@@ -140,11 +140,12 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(height: 50.h),
-          const PageHeader(
-            firstText: '스크랩',
-            icon: SizedBox.shrink(),
-            firstTextColor: AppColors.black,
-            showIndicator: false,
+          PageHeader(
+            title: Text(
+              '스크랩',
+              style: AppTypography.title2.copyWith(color: AppColors.black),
+            ),
+            icon: const SizedBox.shrink(),
           ),
           Expanded(
             child: FutureBuilder<bool>(

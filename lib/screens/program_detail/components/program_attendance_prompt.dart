@@ -4,11 +4,19 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
-
-enum _AttendanceRating { disliked, liked }
+import 'package:muntum/models/program_reaction.dart';
+import 'package:muntum/services/program_reaction_service.dart';
+import 'package:muntum/utils/app_toast.dart';
 
 class ProgramAttendancePrompt extends StatefulWidget {
-  const ProgramAttendancePrompt({super.key});
+  final String programId;
+  final ProgramReaction? initialReaction;
+
+  const ProgramAttendancePrompt({
+    super.key,
+    required this.programId,
+    required this.initialReaction,
+  });
 
   @override
   State<ProgramAttendancePrompt> createState() =>
@@ -16,8 +24,30 @@ class ProgramAttendancePrompt extends StatefulWidget {
 }
 
 class _ProgramAttendancePromptState extends State<ProgramAttendancePrompt> {
-  _AttendanceRating? _rating;
+  late ProgramReaction? _reaction;
   bool _isExpanded = true;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncFromWidget();
+  }
+
+  @override
+  void didUpdateWidget(covariant ProgramAttendancePrompt oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_isSaving) return;
+    if (oldWidget.programId != widget.programId ||
+        oldWidget.initialReaction != widget.initialReaction) {
+      _syncFromWidget();
+    }
+  }
+
+  void _syncFromWidget() {
+    _reaction = widget.initialReaction;
+    _isExpanded = _reaction == null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +55,7 @@ class _ProgramAttendancePromptState extends State<ProgramAttendancePrompt> {
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeInOut,
       child: Container(
-        padding: _rating == null
+        padding: _reaction == null
             ? EdgeInsets.symmetric(vertical: 16.h, horizontal: 20.w)
             : EdgeInsets.all(16.r),
         decoration: BoxDecoration(
@@ -37,7 +67,7 @@ class _ProgramAttendancePromptState extends State<ProgramAttendancePrompt> {
             GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: _toggleExpanded,
-              child: _rating == null
+              child: _reaction == null
                   ? _buildQuestionHeader()
                   : _buildRecordedHeader(),
             ),
@@ -50,8 +80,8 @@ class _ProgramAttendancePromptState extends State<ProgramAttendancePrompt> {
                       text: '아쉬웠어요',
                       iconPath: 'assets/icons/thumb_down.svg',
                       selectedIconPath: 'assets/icons/thumb_down_filled.svg',
-                      isSelected: _rating == _AttendanceRating.disliked,
-                      onTap: () => _selectRating(_AttendanceRating.disliked),
+                      isSelected: _reaction == ProgramReaction.dislike,
+                      onTap: () => _selectReaction(ProgramReaction.dislike),
                     ),
                   ),
                   SizedBox(width: 10.w),
@@ -60,8 +90,8 @@ class _ProgramAttendancePromptState extends State<ProgramAttendancePrompt> {
                       text: '좋았어요',
                       iconPath: 'assets/icons/thumb_up.svg',
                       selectedIconPath: 'assets/icons/thumb_up_filled.svg',
-                      isSelected: _rating == _AttendanceRating.liked,
-                      onTap: () => _selectRating(_AttendanceRating.liked),
+                      isSelected: _reaction == ProgramReaction.like,
+                      onTap: () => _selectReaction(ProgramReaction.like),
                     ),
                   ),
                 ],
@@ -98,7 +128,7 @@ class _ProgramAttendancePromptState extends State<ProgramAttendancePrompt> {
   }
 
   Widget _buildRecordedHeader() {
-    final isLiked = _rating == _AttendanceRating.liked;
+    final isLiked = _reaction == ProgramReaction.like;
     return Row(
       children: [
         SvgPicture.asset(
@@ -132,15 +162,39 @@ class _ProgramAttendancePromptState extends State<ProgramAttendancePrompt> {
     });
   }
 
-  void _selectRating(_AttendanceRating rating) {
+  Future<void> _selectReaction(ProgramReaction selectedReaction) async {
+    if (_isSaving || widget.programId.isEmpty) return;
+    final previousReaction = _reaction;
+    final nextReaction = previousReaction == selectedReaction
+        ? null
+        : selectedReaction;
+
     setState(() {
-      _rating = _rating == rating ? null : rating;
-      if (_rating == null) {
-        _isExpanded = true;
-      } else {
-        _isExpanded = false;
-      }
+      _reaction = nextReaction;
+      _isExpanded = nextReaction == null;
+      _isSaving = true;
     });
+
+    try {
+      final savedReaction = await ProgramReactionService().updateReaction(
+        programId: widget.programId,
+        reaction: nextReaction,
+      );
+      if (!mounted) return;
+      setState(() {
+        _reaction = savedReaction;
+        _isExpanded = savedReaction == null;
+        _isSaving = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _reaction = previousReaction;
+        _isExpanded = previousReaction == null;
+        _isSaving = false;
+      });
+      showAppToast(context, '기록을 저장하지 못했어요. 다시 시도해주세요.', isError: true);
+    }
   }
 }
 

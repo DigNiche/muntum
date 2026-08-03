@@ -33,6 +33,9 @@ class ApiEndpoints {
   static const programsNearby = '/api/v1/programs/nearby';
   static const programThumbnails = '/api/v1/programs/thumbnails';
   static String program(String id) => '/api/v1/programs/$id';
+  static String programReaction(String programId) =>
+      '/api/v1/program-reactions/$programId';
+  static const myProgramReactions = '/api/v1/program-reactions/me';
 
   static String scrap(String programId) => '/api/v1/scraps/$programId';
   static const myScraps = '/api/v1/scraps/me';

@@ -6,7 +6,6 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/api/token_store.dart';
 import 'package:muntum/components/action_bottom_sheet.dart';
 import 'package:muntum/constants/colors.dart';
-import 'package:muntum/constants/pre_update.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/models/program_model.dart';
 import 'package:muntum/screens/map/map_program_coordinates.dart';
@@ -255,20 +254,22 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                             ),
                             SizedBox(height: 40.h),
 
-                            // TODO: 방문 기록 기능이 준비되면 노출한다.
-                            if (showLikeDislike)
-                              FutureBuilder<bool>(
-                                future: _isLoggedInFuture,
-                                builder: (context, snapshot) {
-                                  if (snapshot.data != true) {
-                                    return const SizedBox.shrink();
-                                  }
-                                  return Padding(
-                                    padding: EdgeInsets.only(bottom: 40.h),
-                                    child: const ProgramAttendancePrompt(),
-                                  );
-                                },
-                              ),
+                            FutureBuilder<bool>(
+                              future: _isLoggedInFuture,
+                              builder: (context, snapshot) {
+                                if (snapshot.data != true) {
+                                  return const SizedBox.shrink();
+                                }
+                                return Padding(
+                                  padding: EdgeInsets.only(bottom: 40.h),
+                                  child: ProgramAttendancePrompt(
+                                    programId: program.id,
+                                    initialReaction:
+                                        program.reaction.myReaction,
+                                  ),
+                                );
+                              },
+                            ),
                           ],
                         ),
                       ),

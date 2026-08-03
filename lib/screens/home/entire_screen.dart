@@ -6,8 +6,10 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/components/page_header.dart';
 import 'package:muntum/constants/colors.dart';
+import 'package:muntum/constants/typography.dart';
 import 'package:muntum/models/program_model.dart';
 import 'package:muntum/screens/home/components/banner_carousel.dart';
+import 'package:muntum/screens/home/components/program_type_tabs.dart';
 import 'package:muntum/screens/home/components/section_header.dart';
 import 'package:muntum/screens/home/components/vertical_card_carousel.dart';
 import 'package:muntum/screens/home/search_screen.dart';
@@ -25,7 +27,13 @@ class EntireScreen extends StatefulWidget {
 }
 
 class _EntireScreenState extends State<EntireScreen> {
+  static const double _collectionProgramsHeight = 370;
+
   late Future<_EntireScreenPrograms> _programsFuture;
+  Filter? _selectedCollectionFilter;
+  List<ProgramModel> _filteredCollectionPrograms = const [];
+  bool _isLoadingCollection = false;
+  int _collectionRequestId = 0;
 
   @override
   void initState() {
@@ -42,6 +50,56 @@ class _EntireScreenState extends State<EntireScreen> {
 
   void _logTabView() {
     unawaited(AnalyticsService.instance.logHomeTabView('all'));
+  }
+
+  Future<void> _selectCollectionFilter(Filter? filter) async {
+    if (_selectedCollectionFilter == filter) return;
+
+    final requestId = ++_collectionRequestId;
+    setState(() {
+      _selectedCollectionFilter = filter;
+      _filteredCollectionPrograms = const [];
+      _isLoadingCollection = filter != null;
+    });
+    if (filter == null) return;
+
+    try {
+      final page = await ProgramService().fetchHotKeywordPrograms(
+        chip: filter,
+        size: 8,
+      );
+      if (!mounted || requestId != _collectionRequestId) return;
+      setState(() => _filteredCollectionPrograms = page.content);
+    } catch (_) {
+      if (!mounted || requestId != _collectionRequestId) return;
+      setState(() => _filteredCollectionPrograms = const []);
+    } finally {
+      if (mounted && requestId == _collectionRequestId) {
+        setState(() => _isLoadingCollection = false);
+      }
+    }
+  }
+
+  Widget _buildCollectionPrograms(List<ProgramModel> allPrograms) {
+    if (_isLoadingCollection) {
+      return SizedBox(
+        height: _collectionProgramsHeight.h,
+        child: const Center(
+          child: CircularProgressIndicator(color: AppColors.gray900),
+        ),
+      );
+    }
+
+    final programs = _selectedCollectionFilter == null
+        ? allPrograms
+        : _filteredCollectionPrograms;
+    return SizedBox(
+      height: _collectionProgramsHeight.h,
+      child: VerticalCardCarousel(
+        programs: programs,
+        entrySource: 'all_collection',
+      ),
+    );
   }
 
   Future<_EntireScreenPrograms> _loadPrograms() async {
@@ -74,8 +132,10 @@ class _EntireScreenState extends State<EntireScreen> {
           children: [
             SizedBox(height: 50.h),
             PageHeader(
-              firstText: '전체',
-              firstTextColor: AppColors.black,
+              title: Text(
+                '전체',
+                style: AppTypography.title2.copyWith(color: AppColors.black),
+              ),
               icon: GestureDetector(
                 onTap: () {
                   Navigator.push(
@@ -99,7 +159,6 @@ class _EntireScreenState extends State<EntireScreen> {
                   ),
                 ),
               ),
-              showIndicator: false,
             ),
             Expanded(
               child: FutureBuilder<_EntireScreenPrograms>(
@@ -117,17 +176,17 @@ class _EntireScreenState extends State<EntireScreen> {
                   return ListView(
                     padding: EdgeInsets.zero,
                     children: [
-                      SizedBox(height: 10.h),
+                      SizedBox(height: 8.h),
                       BannerCarousel(
                         programs: data.banners,
                         entrySource: 'all_banner',
                       ),
-                      SizedBox(height: 48.h),
+                      SizedBox(height: 56.h),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           SectionHeader1(
-                            text: '모아보기',
+                            text: '유형별 모아보기',
                             buttonName: '전체보기',
                             onButtonTap: () {
                               Navigator.push(
@@ -140,13 +199,14 @@ class _EntireScreenState extends State<EntireScreen> {
                               );
                             },
                           ),
-                          SizedBox(height: 8.h),
-                          VerticalCardCarousel(
-                            programs: data.all,
-                            entrySource: 'all_collection',
+                          ProgramTypeTabs(
+                            selectedFilter: _selectedCollectionFilter,
+                            onSelected: _selectCollectionFilter,
                           ),
+                          SizedBox(height: 16.h),
+                          _buildCollectionPrograms(data.all),
                           SectionHeader1(
-                            text: '지금 주목받는',
+                            text: '🔥인기 있는',
                             buttonName: '',
                             onButtonTap: () {},
                           ),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
-import 'package:muntum/components/button_solid.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 
@@ -11,24 +11,36 @@ class MyNicheKeywordCta extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(top: 64.h, bottom: 80.h),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(
-            '키워드를 추가하면\n더 많은 큐레이션을 받을 수 있어요!',
-            textAlign: TextAlign.center,
-            style: AppTypography.body2.copyWith(color: AppColors.gray500),
-          ),
-          SizedBox(height: 24.h),
-          IntrinsicWidth(
-            child: ButtonSolid(
-              text: '키워드 추가하기',
-              textColor: AppColors.gray900,
-              boxColor: AppColors.primary400,
-              padding: EdgeInsets.fromLTRB(20.w, 11.h, 20.w, 10.h),
-              onTap: onTap,
+          Container(
+            width: 48.r,
+            height: 48.r,
+            decoration: const BoxDecoration(
+              color: AppColors.primary400,
+              shape: BoxShape.circle,
             ),
+            child: Center(
+              child: SvgPicture.asset(
+                'assets/icons/plus.svg',
+                width: 24.r,
+                height: 24.r,
+                colorFilter: const ColorFilter.mode(
+                  AppColors.black,
+                  BlendMode.srcIn,
+                ),
+              ),
+            ),
+          ),
+          SizedBox(height: 20.h),
+          Text(
+            '키워드 추가하고\n더 다양한 큐레이션 받기',
+            textAlign: TextAlign.center,
+            style: AppTypography.headline2.copyWith(color: AppColors.gray50),
           ),
         ],
       ),

@@ -3,12 +3,18 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 
 class FilterList extends StatelessWidget {
   final List<Widget> listOfChip;
-  const FilterList({super.key, required this.listOfChip});
+  final double verticalPadding;
+
+  const FilterList({
+    super.key,
+    required this.listOfChip,
+    this.verticalPadding = 20,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 10.h),
+      padding: EdgeInsets.symmetric(vertical: verticalPadding.h),
       child: SingleChildScrollView(
         padding: EdgeInsets.symmetric(horizontal: 20.w),
         scrollDirection: Axis.horizontal,

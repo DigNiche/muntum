@@ -7,7 +7,6 @@ import 'package:muntum/components/page_header.dart';
 import 'package:muntum/components/popup_widget.dart';
 import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
-import 'package:muntum/constants/pre_update.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/api/token_store.dart';
 import 'package:muntum/screens/mypage/account_mange_screen.dart';
@@ -143,7 +142,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               SizedBox(height: 50.h),
               PageHeader(
-                firstText: '프로필',
+                title: Text(
+                  '프로필',
+                  style: AppTypography.title2.copyWith(
+                    color: AppColors.gray900,
+                  ),
+                ),
                 icon: GestureDetector(
                   onTap: () {
                     Navigator.push(
@@ -160,8 +164,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                 ),
-                firstTextColor: AppColors.gray900,
-                showIndicator: false,
               ),
               if (!isLoggedIn)
                 const Expanded(child: _GuestProfileContent())
@@ -313,14 +315,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   if (mounted) _reloadProfile();
                                 },
                               ),
-                              // TODO
-                              if (showLikeDislike)
-                                ProfileMenuItem(
-                                  text: '다녀온 프로그램 기록',
-                                  onTap: () {
-                                    pushToScreen(context, WentToScreen());
-                                  },
-                                ),
+                              ProfileMenuItem(
+                                text: '다녀온 프로그램 기록',
+                                onTap: () {
+                                  pushToScreen(context, WentToScreen());
+                                },
+                              ),
                               ProfileMenuItem(
                                 text: '계정관리',
                                 onTap: () {

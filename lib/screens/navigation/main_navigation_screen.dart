@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:muntum/components/app_color_transition.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/models/program_model.dart';
@@ -31,8 +32,6 @@ class MainNavigationScreen extends StatefulWidget {
 }
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
-  static const _tabAnimationDuration = Duration(milliseconds: 300);
-
   late int _selectedIndex;
 
   @override
@@ -72,8 +71,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         child: ExcludeSemantics(
           excluding: !isActive,
           child: AnimatedOpacity(
-            duration: _tabAnimationDuration,
-            curve: Curves.easeInOut,
+            duration: AppColorTransition.duration,
+            curve: AppColorTransition.curve,
             opacity: isActive ? 1 : 0,
             child: TickerMode(enabled: isActive, child: child),
           ),
@@ -87,8 +86,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
         child: AnimatedContainer(
-          duration: _tabAnimationDuration,
-          curve: Curves.easeInOut,
+          duration: AppColorTransition.duration,
+          curve: AppColorTransition.curve,
           decoration: BoxDecoration(
             border: Border(
               top: BorderSide(
@@ -151,8 +150,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
     return Scaffold(
       body: AnimatedContainer(
-        duration: _tabAnimationDuration,
-        curve: Curves.easeInOut,
+        duration: AppColorTransition.duration,
+        curve: AppColorTransition.curve,
         color: useDarkBottomNavigation
             ? AppColors.backgroundDark
             : AppColors.white,
@@ -217,12 +216,9 @@ class NavTab extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
-        child: TweenAnimationBuilder<Color?>(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-          tween: ColorTween(end: targetColor),
-          builder: (context, animatedColor, child) {
-            final color = animatedColor ?? targetColor;
+        child: AppColorTransition(
+          color: targetColor,
+          builder: (context, color, child) {
             return Container(
               height: 84.h,
               padding: EdgeInsets.symmetric(vertical: 8.h),

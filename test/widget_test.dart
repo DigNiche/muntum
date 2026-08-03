@@ -7,12 +7,14 @@ import 'package:muntum/api/api_endpoints.dart';
 import 'package:muntum/data/report_place_search_repository.dart';
 import 'package:muntum/models/auth_models.dart';
 import 'package:muntum/models/program_model.dart';
+import 'package:muntum/models/program_reaction.dart';
 import 'package:muntum/models/report_model.dart';
 import 'package:muntum/screens/map/map_clustering.dart';
 import 'package:muntum/screens/mypage/components/report_form_field.dart';
 import 'package:muntum/screens/mypage/report_submit_screen.dart';
 import 'package:muntum/screens/program_detail/components/program_information_section.dart';
 import 'package:muntum/services/program_service.dart';
+import 'package:muntum/services/program_reaction_service.dart';
 import 'package:muntum/stores/program_scrap_store.dart';
 import 'package:muntum/stores/user_preference_store.dart';
 import 'package:muntum/utils/program_keyword_match.dart';
@@ -64,6 +66,61 @@ void main() {
 
       expect(endedProgram.isEnded, isTrue);
       expect(activeProgram.isEnded, isFalse);
+    });
+  });
+
+  group('program reactions', () {
+    test('parses reaction summary from a program detail response', () {
+      final program = ProgramModel.fromJson({
+        'id': 'reaction-program',
+        'title': '반응 프로그램',
+        'reaction': {'myReaction': 'LIKE', 'likeCount': 15, 'dislikeCount': 2},
+      });
+
+      expect(program.reaction.myReaction, ProgramReaction.like);
+      expect(program.reaction.likeCount, 15);
+      expect(program.reaction.dislikeCount, 2);
+    });
+
+    test('sends the final reaction state documented by the API', () async {
+      final client = _ProgramReactionApiClient();
+      final service = ProgramReactionService(client: client);
+
+      final result = await service.updateReaction(
+        programId: 'reaction-program',
+        reaction: ProgramReaction.dislike,
+      );
+
+      expect(client.lastPath, ApiEndpoints.programReaction('reaction-program'));
+      expect(client.lastBody, {'reactionState': 'DISLIKE'});
+      expect(client.lastAuthorized, isTrue);
+      expect(result, ProgramReaction.dislike);
+
+      await service.updateReaction(
+        programId: 'reaction-program',
+        reaction: null,
+      );
+      expect(client.lastBody, {'reactionState': 'NONE'});
+    });
+
+    test('requests my reaction list with paging parameters', () async {
+      final client = _ProgramReactionApiClient();
+      final service = ProgramReactionService(client: client);
+
+      final page = await service.fetchMyPrograms(
+        reaction: ProgramReaction.like,
+        page: 2,
+        size: 20,
+      );
+
+      expect(client.lastPath, ApiEndpoints.myProgramReactions);
+      expect(client.lastQueryParameters, {
+        'reactionType': 'LIKE',
+        'page': 2,
+        'size': 20,
+      });
+      expect(client.lastAuthorized, isTrue);
+      expect(page.content.single.id, 'reaction-program');
     });
   });
 
@@ -479,5 +536,56 @@ class _MissingPeriodApiClient extends ApiClient {
       };
     }
     throw StateError('Unexpected API path: $path');
+  }
+}
+
+class _ProgramReactionApiClient extends ApiClient {
+  String? lastPath;
+  Map<String, dynamic>? lastBody;
+  Map<String, dynamic>? lastQueryParameters;
+  bool? lastAuthorized;
+
+  @override
+  Future<Map<String, dynamic>> put(
+    String path, {
+    Map<String, dynamic>? body,
+    bool authorized = false,
+  }) async {
+    lastPath = path;
+    lastBody = body;
+    lastAuthorized = authorized;
+    return {
+      'data': {
+        'myReaction': body?['reactionState'] == 'NONE'
+            ? null
+            : body?['reactionState'],
+      },
+    };
+  }
+
+  @override
+  Future<Map<String, dynamic>> get(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+    bool authorized = false,
+  }) async {
+    lastPath = path;
+    lastQueryParameters = queryParameters;
+    lastAuthorized = authorized;
+    return {
+      'data': {
+        'content': [
+          {'id': 'reaction-program', 'title': '반응 프로그램'},
+        ],
+        'page': 2,
+        'size': 20,
+        'totalElements': 1,
+        'totalPages': 3,
+        'first': false,
+        'last': true,
+        'hasPrevious': true,
+        'hasNext': false,
+      },
+    };
   }
 }
