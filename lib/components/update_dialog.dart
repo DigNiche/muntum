@@ -22,7 +22,7 @@ Future<void> showAppUpdateDialog({
           backgroundColor: Colors.transparent,
           insetPadding: EdgeInsets.symmetric(horizontal: 20.w),
           child: Container(
-            width: double.infinity,
+            width: 316.w,
             padding: EdgeInsets.fromLTRB(16.w, 24.h, 16.w, 16.h),
             decoration: BoxDecoration(
               color: AppColors.white,

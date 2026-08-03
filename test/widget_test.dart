@@ -29,29 +29,6 @@ void main() {
     });
   });
 
-  group('app update versions', () {
-    test('compares semantic versions before build numbers', () {
-      final installed = AppReleaseVersion.parse('1.0.8', build: 100);
-      final latest = AppReleaseVersion.parse('1.0.9', build: 1);
-
-      expect(installed.compareTo(latest), isNegative);
-    });
-
-    test('compares build numbers when semantic versions are equal', () {
-      final installed = AppReleaseVersion.parse('1.0.8', build: 5);
-      final latest = AppReleaseVersion.parse('1.0.8', build: 6);
-
-      expect(installed.compareTo(latest), isNegative);
-    });
-
-    test('does not treat a newer semantic version as outdated', () {
-      final installed = AppReleaseVersion.parse('1.1.0', build: 1);
-      final latest = AppReleaseVersion.parse('1.0.99', build: 999);
-
-      expect(installed.compareTo(latest), isPositive);
-    });
-  });
-
   testWidgets('recommended update dialog lets the user update later', (
     tester,
   ) async {

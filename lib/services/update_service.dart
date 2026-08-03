@@ -41,7 +41,7 @@ class AppUpdateInfo {
   });
 }
 
-class AppReleaseVersion implements Comparable<AppReleaseVersion> {
+class AppReleaseVersion {
   final List<int> parts;
   final int build;
 
@@ -58,8 +58,7 @@ class AppReleaseVersion implements Comparable<AppReleaseVersion> {
     );
   }
 
-  @override
-  int compareTo(AppReleaseVersion other) {
+  int compareVersionTo(AppReleaseVersion other) {
     final partCount = parts.length > other.parts.length
         ? parts.length
         : other.parts.length;
@@ -69,7 +68,23 @@ class AppReleaseVersion implements Comparable<AppReleaseVersion> {
       final comparison = currentPart.compareTo(otherPart);
       if (comparison != 0) return comparison;
     }
-    return build.compareTo(other.build);
+    return 0;
+  }
+}
+
+class AppUpdatePolicy {
+  const AppUpdatePolicy._();
+
+  static bool isOutdated({
+    required TargetPlatform platform,
+    required AppReleaseVersion installed,
+    required AppReleaseVersion target,
+  }) {
+    return switch (platform) {
+      TargetPlatform.android => installed.build < target.build,
+      TargetPlatform.iOS => installed.compareVersionTo(target) < 0,
+      _ => false,
+    };
   }
 }
 
@@ -105,7 +120,8 @@ class UpdateService {
   }
 
   Future<AppUpdateInfo?> _checkRemoteConfig() async {
-    final platformPrefix = switch (defaultTargetPlatform) {
+    final platform = defaultTargetPlatform;
+    final platformPrefix = switch (platform) {
       TargetPlatform.android => 'android',
       TargetPlatform.iOS => 'ios',
       _ => null,
@@ -162,8 +178,16 @@ class UpdateService {
       '${platformPrefix}_minimum_version',
       '${platformPrefix}_minimum_build',
     );
-    final isRequired = installedVersion.compareTo(minimumVersion) < 0;
-    final needsUpdate = installedVersion.compareTo(latestVersion) < 0;
+    final isRequired = AppUpdatePolicy.isOutdated(
+      platform: platform,
+      installed: installedVersion,
+      target: minimumVersion,
+    );
+    final needsUpdate = AppUpdatePolicy.isOutdated(
+      platform: platform,
+      installed: installedVersion,
+      target: latestVersion,
+    );
     if (!isRequired && !needsUpdate) return null;
 
     final storeUrlValue = remoteConfig

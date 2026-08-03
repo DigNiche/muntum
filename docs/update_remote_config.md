@@ -37,8 +37,10 @@ Remote Config 조회에 실패하거나 `update_enabled`가 `false`이면 앱 �
 
 - 설치 버전이 최신 권장 버전보다 낮음: `나중에`, `지금 업데이트` 표시
 - 설치 버전이 최소 지원 버전보다 낮음: `지금 업데이트`만 표시하고 뒤로가기 차단
-- `version`이 같을 때는 `build` 번호를 비교한다.
-- 앱 버전이 Remote Config 버전보다 높은 개발 빌드라면 모달을 표시하지 않는다.
+- Android는 Google Play와 동일하게 `build`(`versionCode`)만 비교한다.
+- iOS는 App Store 출시 단위인 `version`(`CFBundleShortVersionString`)만 비교한다.
+- Android의 version과 iOS의 build는 관리·확인용이며 업데이트 판정에는 사용하지 않는다.
+- 앱의 플랫폼별 판정값이 Remote Config보다 높다면 모달을 표시하지 않는다.
 
 ## 배포 명령
 
