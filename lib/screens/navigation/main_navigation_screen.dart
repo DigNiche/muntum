@@ -7,7 +7,8 @@ import 'package:muntum/constants/typography.dart';
 import 'package:muntum/models/program_model.dart';
 import 'package:muntum/models/report_model.dart';
 import 'package:muntum/screens/bookmark/bookmark_screen.dart';
-import 'package:muntum/screens/home/home_screen.dart';
+import 'package:muntum/screens/home/entire_screen.dart';
+import 'package:muntum/screens/home/my_niche_screen.dart';
 import 'package:muntum/screens/map/map_screen.dart';
 import 'package:muntum/screens/mypage/profile_screen.dart';
 import 'package:muntum/screens/mypage/report_detail_screen.dart';
@@ -15,14 +16,12 @@ import 'package:muntum/screens/mypage/reportlist_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   final int initialIndex;
-  final ScreenTypes initialHomeScreenType;
   final ReportModel? initialReportDetail;
   final ProgramModel? initialMapProgram;
 
   const MainNavigationScreen({
     super.key,
     this.initialIndex = 0,
-    this.initialHomeScreenType = ScreenTypes.myNiche,
     this.initialReportDetail,
     this.initialMapProgram,
   });
@@ -32,14 +31,14 @@ class MainNavigationScreen extends StatefulWidget {
 }
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
+  static const _tabAnimationDuration = Duration(milliseconds: 300);
+
   late int _selectedIndex;
-  late ScreenTypes _homeScreenType;
 
   @override
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
-    _homeScreenType = widget.initialHomeScreenType;
     if (widget.initialReportDetail != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
@@ -64,9 +63,23 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     });
   }
 
-  void _onHomeScreenTypeChanged(ScreenTypes screenType) {
-    if (_homeScreenType == screenType) return;
-    setState(() => _homeScreenType = screenType);
+  Widget _buildAnimatedTab({required int index, required Widget child}) {
+    final isActive = _selectedIndex == index;
+
+    return Positioned.fill(
+      child: IgnorePointer(
+        ignoring: !isActive,
+        child: ExcludeSemantics(
+          excluding: !isActive,
+          child: AnimatedOpacity(
+            duration: _tabAnimationDuration,
+            curve: Curves.easeInOut,
+            opacity: isActive ? 1 : 0,
+            child: TickerMode(enabled: isActive, child: child),
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildBottomNavigationBar(bool useDarkTheme) {
@@ -74,7 +87,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
+          duration: _tabAnimationDuration,
           curve: Curves.easeInOut,
           decoration: BoxDecoration(
             border: Border(
@@ -91,32 +104,39 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               NavTab(
-                icon: 'explore-filled.svg',
-                text: '발견',
+                icon: 'interests.svg',
+                text: '내취향',
                 isActive: _selectedIndex == 0,
                 useDarkTheme: useDarkTheme,
                 onTap: () => _onTabTap(0),
               ),
               NavTab(
-                icon: 'location-filled.svg',
-                text: '지도',
+                icon: 'page_menu_ios.svg',
+                text: '전체',
                 isActive: _selectedIndex == 1,
                 useDarkTheme: useDarkTheme,
                 onTap: () => _onTabTap(1),
               ),
               NavTab(
-                icon: 'scrap-filled.svg',
-                text: '스크랩',
+                icon: 'location-filled.svg',
+                text: '지도',
                 isActive: _selectedIndex == 2,
                 useDarkTheme: useDarkTheme,
                 onTap: () => _onTabTap(2),
               ),
               NavTab(
-                icon: 'profile-filled.svg',
-                text: '프로필',
+                icon: 'scrap-filled.svg',
+                text: '스크랩',
                 isActive: _selectedIndex == 3,
                 useDarkTheme: useDarkTheme,
                 onTap: () => _onTabTap(3),
+              ),
+              NavTab(
+                icon: 'profile-filled.svg',
+                text: '프로필',
+                isActive: _selectedIndex == 4,
+                useDarkTheme: useDarkTheme,
+                onTap: () => _onTabTap(4),
               ),
             ],
           ),
@@ -127,27 +147,42 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final useDarkBottomNavigation =
-        _selectedIndex == 0 && _homeScreenType == ScreenTypes.myNiche;
+    final useDarkBottomNavigation = _selectedIndex == 0;
 
     return Scaffold(
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: [
-          HomeScreen(
-            initialScreenType: widget.initialHomeScreenType,
-            onScreenTypeChanged: _onHomeScreenTypeChanged,
-          ),
-          MapScreen(
-            isActive: _selectedIndex == 1,
-            initialProgram: widget.initialMapProgram,
-            onBack: widget.initialMapProgram == null
-                ? null
-                : () => Navigator.pop(context),
-          ),
-          BookmarkScreen(isActive: _selectedIndex == 2),
-          const ProfileScreen(),
-        ],
+      body: AnimatedContainer(
+        duration: _tabAnimationDuration,
+        curve: Curves.easeInOut,
+        color: useDarkBottomNavigation
+            ? AppColors.backgroundDark
+            : AppColors.white,
+        child: Stack(
+          children: [
+            _buildAnimatedTab(
+              index: 0,
+              child: MyNicheScreen(isActive: _selectedIndex == 0),
+            ),
+            _buildAnimatedTab(
+              index: 1,
+              child: EntireScreen(isActive: _selectedIndex == 1),
+            ),
+            _buildAnimatedTab(
+              index: 2,
+              child: MapScreen(
+                isActive: _selectedIndex == 2,
+                initialProgram: widget.initialMapProgram,
+                onBack: widget.initialMapProgram == null
+                    ? null
+                    : () => Navigator.pop(context),
+              ),
+            ),
+            _buildAnimatedTab(
+              index: 3,
+              child: BookmarkScreen(isActive: _selectedIndex == 3),
+            ),
+            _buildAnimatedTab(index: 4, child: const ProfileScreen()),
+          ],
+        ),
       ),
       bottomNavigationBar: widget.initialMapProgram == null
           ? _buildBottomNavigationBar(useDarkBottomNavigation)

@@ -10,17 +10,13 @@ import 'package:muntum/api/api_response.dart';
 import 'package:muntum/components/button_solid.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
-import 'package:muntum/screens/home/components/banner_carousel.dart';
 import 'package:muntum/components/cards/curation_card.dart';
 import 'package:muntum/components/filter_chip.dart';
 import 'package:muntum/models/program_model.dart';
 import 'package:muntum/screens/home/components/filter_list.dart';
 import 'package:muntum/screens/home/components/my_niche_keyword_cta.dart';
 import 'package:muntum/components/page_header.dart';
-import 'package:muntum/screens/home/components/section_header.dart';
-import 'package:muntum/screens/home/components/vertical_card_carousel.dart';
 import 'package:muntum/screens/home/search_screen.dart';
-import 'package:muntum/screens/home/see_more_screen.dart';
 import 'package:muntum/screens/mypage/keyword_change_screen.dart';
 import 'package:muntum/screens/onboarding/initial_screen.dart';
 import 'package:muntum/services/keyword_service.dart';
@@ -32,131 +28,89 @@ import 'package:muntum/stores/program_scrap_store.dart';
 import 'package:muntum/stores/user_preference_store.dart';
 import 'package:muntum/utils/app_toast.dart';
 
-enum ScreenTypes { myNiche, entire }
+class MyNicheScreen extends StatefulWidget {
+  final bool isActive;
 
-class HomeScreen extends StatefulWidget {
-  final ScreenTypes initialScreenType;
-  final ValueChanged<ScreenTypes>? onScreenTypeChanged;
-
-  const HomeScreen({
-    super.key,
-    this.initialScreenType = ScreenTypes.myNiche,
-    this.onScreenTypeChanged,
-  });
+  const MyNicheScreen({super.key, required this.isActive});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<MyNicheScreen> createState() => _MyNicheScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  late ScreenTypes screenType;
-
+class _MyNicheScreenState extends State<MyNicheScreen> {
   @override
   void initState() {
     super.initState();
-    screenType = widget.initialScreenType;
-    unawaited(
-      AnalyticsService.instance.logHomeTabView(
-        screenType == ScreenTypes.myNiche ? 'my_taste' : 'all',
-      ),
-    );
+    if (widget.isActive) _logTabView();
   }
 
-  void _selectScreen(ScreenTypes nextScreen) {
-    if (screenType == nextScreen) return;
-    setState(() => screenType = nextScreen);
-    widget.onScreenTypeChanged?.call(nextScreen);
-    unawaited(
-      AnalyticsService.instance.logHomeTabView(
-        nextScreen == ScreenTypes.myNiche ? 'my_taste' : 'all',
-      ),
-    );
+  @override
+  void didUpdateWidget(covariant MyNicheScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!oldWidget.isActive && widget.isActive) _logTabView();
+  }
+
+  void _logTabView() {
+    unawaited(AnalyticsService.instance.logHomeTabView('my_taste'));
   }
 
   @override
   Widget build(BuildContext context) {
-    final isMyNiche = screenType == ScreenTypes.myNiche;
-
-    return TweenAnimationBuilder<Color?>(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-      tween: ColorTween(
-        end: isMyNiche ? AppColors.backgroundDark : AppColors.white,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
       ),
-      builder: (context, animatedBackgroundColor, child) {
-        return AnnotatedRegion<SystemUiOverlayStyle>(
-          value: SystemUiOverlayStyle(
-            statusBarColor: Colors.transparent,
-            statusBarIconBrightness: isMyNiche
-                ? Brightness.light
-                : Brightness.dark,
-            statusBarBrightness: isMyNiche ? Brightness.dark : Brightness.light,
-          ),
-          child: ColoredBox(
-            color: animatedBackgroundColor ?? AppColors.white,
-            child: Column(
-              children: [
-                SizedBox(height: 50.h),
-                PageHeader(
-                  firstText: '내취향',
-                  firstTextColor: isMyNiche
-                      ? AppColors.white
-                      : AppColors.gray300,
-                  onFirstTextTap: () {
-                    _selectScreen(ScreenTypes.myNiche);
-                  },
-                  secondText: '전체',
-                  secondTextColor: isMyNiche
-                      ? AppColors.gray600
-                      : AppColors.black,
-                  onSecondTextTap: () {
-                    _selectScreen(ScreenTypes.entire);
-                  },
-                  icon: GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const SearchScreen(),
-                        ),
-                      );
-                    },
-                    child: SizedBox(
-                      width: 24.w,
-                      height: 24.h,
-                      child: SvgPicture.asset(
-                        'assets/icons/search.svg',
-                        width: 18.sp,
-                        height: 18.sp,
-                        colorFilter: ColorFilter.mode(
-                          isMyNiche ? AppColors.white : AppColors.gray600,
-                          BlendMode.srcIn,
-                        ),
-                      ),
+      child: ColoredBox(
+        color: AppColors.backgroundDark,
+        child: Column(
+          children: [
+            SizedBox(height: 50.h),
+            PageHeader(
+              firstText: '내취향',
+              firstTextColor: AppColors.white,
+              icon: GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SearchScreen(),
+                    ),
+                  );
+                },
+                child: SizedBox(
+                  width: 24.w,
+                  height: 24.h,
+                  child: SvgPicture.asset(
+                    'assets/icons/search.svg',
+                    width: 18.sp,
+                    height: 18.sp,
+                    colorFilter: const ColorFilter.mode(
+                      AppColors.white,
+                      BlendMode.srcIn,
                     ),
                   ),
-                  showIndicator: isMyNiche,
                 ),
-                Expanded(
-                  child: isMyNiche ? const MyNichePage() : const EntirePage(),
-                ),
-              ],
+              ),
+              showIndicator: true,
             ),
-          ),
-        );
-      },
+            const Expanded(child: _MyNichePage()),
+          ],
+        ),
+      ),
     );
   }
 }
 
-class MyNichePage extends StatefulWidget {
-  const MyNichePage({super.key});
+class _MyNichePage extends StatefulWidget {
+  const _MyNichePage();
 
   @override
-  State<MyNichePage> createState() => _MyNichePageState();
+  State<_MyNichePage> createState() => _MyNichePageState();
 }
 
-class _MyNichePageState extends State<MyNichePage> {
+class _MyNichePageState extends State<_MyNichePage> {
   static const int _pageSize = 20;
   final ScrollController _scrollController = ScrollController();
   String? selectedFilter;
@@ -578,129 +532,4 @@ class _GuestMyNicheView extends StatelessWidget {
       ),
     );
   }
-}
-
-class EntirePage extends StatefulWidget {
-  const EntirePage({super.key});
-
-  @override
-  State<EntirePage> createState() => _EntirePageState();
-}
-
-class _EntirePageState extends State<EntirePage> {
-  late Future<_EntirePagePrograms> _programsFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _programsFuture = _loadPrograms();
-  }
-
-  Future<_EntirePagePrograms> _loadPrograms() async {
-    final service = ProgramService();
-    final results = await Future.wait([
-      service.fetchBannerPrograms(),
-      service.fetchHotKeywordPrograms(size: 8),
-      service.fetchHotPrograms(size: 8),
-      service.fetchClosingSoon(size: 8),
-    ]);
-    return _EntirePagePrograms(
-      banners: results[0].content,
-      all: results[1].content,
-      hot: results[2].content,
-      closingSoon: results[3].content,
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<_EntirePagePrograms>(
-      future: _programsFuture,
-      builder: (context, snapshot) {
-        final data = snapshot.data;
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(
-            child: CircularProgressIndicator(color: AppColors.gray900),
-          );
-        }
-        if (data == null) {
-          return const SizedBox.shrink();
-        }
-        return ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            SizedBox(height: 10.h),
-            BannerCarousel(programs: data.banners, entrySource: 'all_banner'),
-            SizedBox(height: 48.h),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SectionHeader1(
-                  text: '모아보기',
-                  buttonName: '전체보기',
-                  onButtonTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            const SeeMoreScreen(type: SeeMoreType.allPrograms),
-                      ),
-                    );
-                  },
-                ),
-                SizedBox(height: 8.h),
-                VerticalCardCarousel(
-                  programs: data.all,
-                  entrySource: 'all_collection',
-                ),
-                SectionHeader1(
-                  text: '지금 주목받는',
-                  buttonName: '',
-                  onButtonTap: () {},
-                ),
-                SizedBox(height: 8.h),
-                VerticalCardCarousel(
-                  programs: data.hot,
-                  entrySource: 'all_hot',
-                ),
-                SectionHeader1(
-                  text: '이번달에 끝나는',
-                  buttonName: '전체보기',
-                  onButtonTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const SeeMoreScreen(
-                          type: SeeMoreType.endingThisMonth,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                SizedBox(height: 8.h),
-                VerticalCardCarousel(
-                  programs: data.closingSoon,
-                  entrySource: 'all_closing_soon',
-                ),
-              ],
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _EntirePagePrograms {
-  final List<ProgramModel> banners;
-  final List<ProgramModel> all;
-  final List<ProgramModel> hot;
-  final List<ProgramModel> closingSoon;
-
-  const _EntirePagePrograms({
-    required this.banners,
-    required this.all,
-    required this.hot,
-    required this.closingSoon,
-  });
 }

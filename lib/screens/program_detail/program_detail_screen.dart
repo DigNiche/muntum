@@ -367,7 +367,7 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
       context,
       MaterialPageRoute(
         builder: (context) =>
-            MainNavigationScreen(initialIndex: 1, initialMapProgram: program),
+            MainNavigationScreen(initialIndex: 2, initialMapProgram: program),
       ),
     );
   }

@@ -6,7 +6,6 @@ import 'package:muntum/components/button_solid.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/models/report_model.dart';
-import 'package:muntum/screens/home/home_screen.dart';
 import 'package:muntum/screens/navigation/main_navigation_screen.dart';
 
 class ReportCompleteScreen extends StatelessWidget {
@@ -18,10 +17,7 @@ class ReportCompleteScreen extends StatelessWidget {
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(
-        builder: (context) => const MainNavigationScreen(
-          initialIndex: 0,
-          initialHomeScreenType: ScreenTypes.entire,
-        ),
+        builder: (context) => const MainNavigationScreen(initialIndex: 1),
       ),
       (route) => false,
     );
@@ -32,7 +28,7 @@ class ReportCompleteScreen extends StatelessWidget {
       context,
       MaterialPageRoute(
         builder: (context) =>
-            MainNavigationScreen(initialIndex: 3, initialReportDetail: report),
+            MainNavigationScreen(initialIndex: 4, initialReportDetail: report),
       ),
       (route) => false,
     );

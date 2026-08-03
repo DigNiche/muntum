@@ -9,7 +9,6 @@ import 'package:muntum/components/button_solid.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/pre_update.dart';
 import 'package:muntum/constants/typography.dart';
-import 'package:muntum/screens/home/home_screen.dart';
 import 'package:muntum/screens/mypage/terms_detail_screen.dart';
 import 'package:muntum/screens/navigation/main_navigation_screen.dart';
 import 'package:muntum/screens/onboarding/login_screen.dart';
@@ -186,9 +185,7 @@ class _InitialScreenState extends State<InitialScreen> {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (_) => const MainNavigationScreen(
-          initialHomeScreenType: ScreenTypes.entire,
-        ),
+        builder: (_) => const MainNavigationScreen(initialIndex: 1),
       ),
     );
   }
