@@ -114,59 +114,109 @@ class _HorizontalCardDetails extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final keywords = program.keywords.take(3).toList();
     final titleColor = program.isEnded ? AppColors.gray800 : AppColors.gray900;
     final detailColor = program.isEnded ? AppColors.gray500 : AppColors.gray700;
     final keywordColor = program.isEnded
         ? AppColors.gray500
         : AppColors.gray600;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          program.title,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: AppTypography.headline1.copyWith(color: titleColor),
-        ),
-        SizedBox(height: 8.h),
-        Text(
-          program.locationName,
-          style: AppTypography.caption1.copyWith(color: detailColor),
-        ),
-        SizedBox(height: 2.h),
-        Wrap(
-          spacing: 4.w,
-          runSpacing: 2.h,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            Text(
-              program.cardDateText,
-              style: AppTypography.caption1.copyWith(color: detailColor),
-            ),
-            if (program.isEnded) const ProgramEndedBadge(),
-          ],
-        ),
-        SizedBox(height: 10.h),
-        Wrap(
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 8.0.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            program.title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: AppTypography.headline1.copyWith(color: titleColor),
+          ),
+          SizedBox(height: 8.h),
+          Text(
+            program.locationName,
+            style: AppTypography.caption1.copyWith(color: detailColor),
+          ),
+          SizedBox(height: 2.h),
+          Wrap(
+            spacing: 4.w,
+            runSpacing: 2.h,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text(
+                program.cardDateText,
+                style: AppTypography.caption1.copyWith(color: detailColor),
+              ),
+              if (program.isEnded) const ProgramEndedBadge(),
+            ],
+          ),
+          SizedBox(height: 10.h),
+          _HorizontalCardKeywords(
+            keywords: program.keywords,
+            textColor: keywordColor,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HorizontalCardKeywords extends StatelessWidget {
+  final List<String> keywords;
+  final Color textColor;
+
+  const _HorizontalCardKeywords({
+    required this.keywords,
+    required this.textColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (keywords.isEmpty) return const SizedBox.shrink();
+
+    final textStyle = AppTypography.badge.copyWith(color: textColor);
+    final firstThreeKeywords = keywords.take(3).toList();
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final firstThreeWidth = firstThreeKeywords.fold<double>(0, (
+          width,
+          keyword,
+        ) {
+          final painter = TextPainter(
+            text: TextSpan(text: keyword, style: textStyle),
+            maxLines: 1,
+            textDirection: Directionality.of(context),
+            textScaler: MediaQuery.textScalerOf(context),
+          )..layout();
+          return width + painter.width + 8.w;
+        });
+        final canShowAllThree =
+            keywords.length <= 3 &&
+            firstThreeWidth + (5.w * (firstThreeKeywords.length - 1)) <=
+                constraints.maxWidth;
+        final visibleKeywords = canShowAllThree
+            ? firstThreeKeywords
+            : keywords.take(2).toList();
+        final remainingCount = keywords.length - visibleKeywords.length;
+        final labels = [
+          ...visibleKeywords,
+          if (remainingCount > 0) '+$remainingCount',
+        ];
+
+        return Row(
           spacing: 5.w,
-          runSpacing: 5.h,
-          children: keywords.map((keyword) {
+          children: labels.map((label) {
             return Container(
-              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+              padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 3.h),
               decoration: BoxDecoration(
-                color: Color(0xfff7f7f7),
+                color: const Color(0xfff7f7f7),
                 borderRadius: BorderRadius.circular(6.r),
               ),
-              child: Text(
-                keyword,
-                style: AppTypography.caption3.copyWith(color: keywordColor),
-              ),
+              child: Text(label, maxLines: 1, style: textStyle),
             );
           }).toList(),
-        ),
-      ],
+        );
+      },
     );
   }
 }

@@ -14,8 +14,9 @@ enum SeeMoreType { allPrograms, endingThisMonth }
 
 class SeeMoreScreen extends StatefulWidget {
   final SeeMoreType type;
+  final Filter? initialFilter;
 
-  const SeeMoreScreen({super.key, required this.type});
+  const SeeMoreScreen({super.key, required this.type, this.initialFilter});
 
   String get title => switch (type) {
     SeeMoreType.allPrograms => '유형별 모아보기',
@@ -42,6 +43,7 @@ class _SeeMoreScreenState extends State<SeeMoreScreen> {
   @override
   void initState() {
     super.initState();
+    _selectedFilter = widget.initialFilter;
     _scrollController.addListener(_handleScroll);
     _loadPrograms(reset: true);
   }

@@ -192,8 +192,9 @@ class _EntireScreenState extends State<EntireScreen> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => const SeeMoreScreen(
+                                  builder: (context) => SeeMoreScreen(
                                     type: SeeMoreType.allPrograms,
+                                    initialFilter: _selectedCollectionFilter,
                                   ),
                                 ),
                               );

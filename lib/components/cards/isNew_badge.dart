@@ -16,7 +16,7 @@ class IsNewBadge extends StatelessWidget {
       ),
       child: Text(
         'NEW',
-        style: AppTypography.caption2.copyWith(color: AppColors.black),
+        style: AppTypography.badge.copyWith(color: AppColors.black),
       ),
     );
   }

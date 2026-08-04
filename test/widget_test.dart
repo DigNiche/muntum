@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:muntum/api/api_client.dart';
 import 'package:muntum/api/api_config.dart';
 import 'package:muntum/api/api_endpoints.dart';
+import 'package:muntum/components/cards/horizontal.dart';
 import 'package:muntum/components/update_dialog.dart';
 import 'package:muntum/data/report_place_search_repository.dart';
 import 'package:muntum/models/auth_models.dart';
@@ -477,6 +478,80 @@ void main() {
     await tester.longPress(find.text(program.location['address']!));
 
     expect(didLongPressAddress, isTrue);
+  });
+
+  testWidgets('horizontal card replaces overflowing keywords with a count', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final program = _program(
+      id: 'keyword-overflow-program',
+      title: '키워드 표시 테스트',
+      keywords: const ['조용한', '도파민', '한 줄에 들어가지 않는 매우 긴 세 번째 키워드'],
+    );
+
+    await tester.pumpWidget(
+      ScreenUtilPlusInit(
+        designSize: const Size(390, 844),
+        builder: (context, child) => MaterialApp(home: child),
+        child: Scaffold(
+          body: Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: 350,
+              child: HorizontalCard(program: program),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('조용한'), findsOneWidget);
+    expect(find.text('도파민'), findsOneWidget);
+    expect(find.text('한 줄에 들어가지 않는 매우 긴 세 번째 키워드'), findsNothing);
+    expect(find.text('+1'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('horizontal card shows all three keywords when they fit', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final program = _program(
+      id: 'three-keyword-program',
+      title: '키워드 표시 테스트',
+      keywords: const ['전시', '사진', '역사'],
+    );
+
+    await tester.pumpWidget(
+      ScreenUtilPlusInit(
+        designSize: const Size(390, 844),
+        builder: (context, child) => MaterialApp(home: child),
+        child: Scaffold(
+          body: Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: 350,
+              child: HorizontalCard(program: program),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('전시'), findsOneWidget);
+    expect(find.text('사진'), findsOneWidget);
+    expect(find.text('역사'), findsOneWidget);
+    expect(find.text('+1'), findsNothing);
+    expect(tester.takeException(), isNull);
   });
 }
 
