@@ -56,37 +56,40 @@ class MapHorizontalCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        program.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTypography.headline1.copyWith(
-                          color: AppColors.gray900,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8.0.h),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          program.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.headline1.copyWith(
+                            color: AppColors.gray900,
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 4.h),
-                      Text(
-                        program.locationName,
-                        style: AppTypography.caption1.copyWith(
-                          color: AppColors.gray700,
+                        SizedBox(height: 4.h),
+                        Text(
+                          program.locationName,
+                          style: AppTypography.caption1.copyWith(
+                            color: AppColors.gray700,
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 2.h),
-                      Text(
-                        program.cardDateText,
-                        style: AppTypography.caption1.copyWith(
-                          color: AppColors.gray700,
+                        SizedBox(height: 2.h),
+                        Text(
+                          program.cardDateText,
+                          style: AppTypography.caption1.copyWith(
+                            color: AppColors.gray700,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
                 SizedBox(width: 16.w),
                 Padding(
-                  padding: EdgeInsets.only(top: 4.h),
+                  padding: EdgeInsets.only(top: 8.h),
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: () => toggleProgramScrap(

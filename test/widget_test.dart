@@ -14,6 +14,7 @@ import 'package:muntum/models/report_model.dart';
 import 'package:muntum/screens/map/map_clustering.dart';
 import 'package:muntum/screens/mypage/components/report_form_field.dart';
 import 'package:muntum/screens/mypage/report_submit_screen.dart';
+import 'package:muntum/screens/home/components/two_row_horizontal_card_carousel.dart';
 import 'package:muntum/screens/program_detail/components/program_information_section.dart';
 import 'package:muntum/services/program_service.dart';
 import 'package:muntum/services/program_reaction_service.dart';
@@ -551,6 +552,46 @@ void main() {
     expect(find.text('사진'), findsOneWidget);
     expect(find.text('역사'), findsOneWidget);
     expect(find.text('+1'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('two-row carousel scrolls both map-card rows together', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final programs = List.generate(
+      4,
+      (index) => _program(id: 'hot-program-$index', title: '인기 ${index + 1}'),
+    );
+
+    await tester.pumpWidget(
+      ScreenUtilPlusInit(
+        designSize: const Size(390, 844),
+        builder: (context, child) => MaterialApp(home: child),
+        child: Scaffold(
+          body: TwoRowHorizontalCardCarousel(
+            programs: programs,
+            entrySource: 'all_hot',
+          ),
+        ),
+      ),
+    );
+
+    final beforeTop = tester.getTopLeft(find.text('인기 3'));
+    final beforeBottom = tester.getTopLeft(find.text('인기 4'));
+    expect(beforeTop.dx, closeTo(beforeBottom.dx, 0.01));
+
+    await tester.drag(find.byType(GridView), const Offset(-200, 0));
+    await tester.pumpAndSettle();
+
+    final afterTop = tester.getTopLeft(find.text('인기 3'));
+    final afterBottom = tester.getTopLeft(find.text('인기 4'));
+    expect(afterTop.dx, closeTo(afterBottom.dx, 0.01));
+    expect(afterTop.dx, lessThan(beforeTop.dx));
     expect(tester.takeException(), isNull);
   });
 }

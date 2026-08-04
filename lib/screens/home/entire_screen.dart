@@ -11,6 +11,7 @@ import 'package:muntum/models/program_model.dart';
 import 'package:muntum/screens/home/components/banner_carousel.dart';
 import 'package:muntum/screens/home/components/program_type_tabs.dart';
 import 'package:muntum/screens/home/components/section_header.dart';
+import 'package:muntum/screens/home/components/two_row_horizontal_card_carousel.dart';
 import 'package:muntum/screens/home/components/vertical_card_carousel.dart';
 import 'package:muntum/screens/home/search_screen.dart';
 import 'package:muntum/screens/home/see_more_screen.dart';
@@ -212,7 +213,7 @@ class _EntireScreenState extends State<EntireScreen> {
                             onButtonTap: () {},
                           ),
                           SizedBox(height: 8.h),
-                          VerticalCardCarousel(
+                          TwoRowHorizontalCardCarousel(
                             programs: data.hot,
                             entrySource: 'all_hot',
                           ),
