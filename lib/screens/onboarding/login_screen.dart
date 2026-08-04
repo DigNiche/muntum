@@ -143,7 +143,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ? AppColors.gray700
                                 : !_obsecureText
                                 ? AppColors.primary400
-                                : AppColors.gray500,
+                                : AppColors.gray600,
                             BlendMode.srcIn,
                           ),
                         ),

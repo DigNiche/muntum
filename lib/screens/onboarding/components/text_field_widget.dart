@@ -13,10 +13,13 @@ class TextFieldWidget extends StatelessWidget {
   final TextInputType keyboardType;
   final bool obscureText;
   final Widget? suffixIcon;
+  final EdgeInsetsGeometry? suffixIconPadding;
   final FocusNode? focusNode;
   final bool isError;
+  final bool showErrorMessage;
   final String errorText;
   final List<TextInputFormatter>? inputFormatters;
+  final bool readOnly;
 
   const TextFieldWidget({
     super.key,
@@ -26,10 +29,13 @@ class TextFieldWidget extends StatelessWidget {
     this.keyboardType = TextInputType.text,
     required this.obscureText,
     this.suffixIcon,
+    this.suffixIconPadding,
     this.focusNode,
     required this.isError,
+    this.showErrorMessage = true,
     required this.errorText,
     this.inputFormatters,
+    this.readOnly = false,
   });
 
   @override
@@ -57,6 +63,7 @@ class TextFieldWidget extends StatelessWidget {
             controller: controller,
             keyboardType: keyboardType,
             inputFormatters: inputFormatters,
+            readOnly: readOnly,
             obscureText: obscureText,
             cursorColor: AppColors.white,
             onTapOutside: (event) {
@@ -70,13 +77,11 @@ class TextFieldWidget extends StatelessWidget {
               filled: true,
               fillColor: AppColors.white.withValues(alpha: 0.1),
               hintText: hintText,
-              hintStyle: AppTypography.body1.copyWith(
-                color: focusNode?.hasFocus == true
-                    ? AppColors.gray800
-                    : AppColors.gray500,
-              ),
+              hintStyle: AppTypography.body1.copyWith(color: AppColors.gray600),
               suffixIcon: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 16.h),
+                padding:
+                    suffixIconPadding ??
+                    EdgeInsets.symmetric(horizontal: 10.w, vertical: 16.h),
                 child: suffixIcon,
               ),
               suffixIconConstraints: BoxConstraints(
@@ -112,7 +117,7 @@ class TextFieldWidget extends StatelessWidget {
             ),
           ),
         ),
-        if (isError)
+        if (isError && showErrorMessage)
           Column(
             children: [
               SizedBox(height: 8.h),
@@ -125,7 +130,10 @@ class TextFieldWidget extends StatelessWidget {
                     child: SvgPicture.asset(
                       'assets/icons/error.svg',
                       width: 16.w,
-                      color: AppColors.error,
+                      colorFilter: const ColorFilter.mode(
+                        AppColors.error,
+                        BlendMode.srcIn,
+                      ),
                     ),
                   ),
                   Text(

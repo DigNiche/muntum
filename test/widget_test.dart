@@ -11,10 +11,11 @@ import 'package:muntum/models/auth_models.dart';
 import 'package:muntum/models/program_model.dart';
 import 'package:muntum/models/program_reaction.dart';
 import 'package:muntum/models/report_model.dart';
+import 'package:muntum/screens/home/components/two_row_horizontal_card_carousel.dart';
 import 'package:muntum/screens/map/map_clustering.dart';
 import 'package:muntum/screens/mypage/components/report_form_field.dart';
 import 'package:muntum/screens/mypage/report_submit_screen.dart';
-import 'package:muntum/screens/home/components/two_row_horizontal_card_carousel.dart';
+import 'package:muntum/screens/onboarding/sign_up_screens/sign_up.dart';
 import 'package:muntum/screens/program_detail/components/program_information_section.dart';
 import 'package:muntum/services/program_service.dart';
 import 'package:muntum/services/program_reaction_service.dart';
@@ -593,6 +594,76 @@ void main() {
     expect(afterTop.dx, closeTo(afterBottom.dx, 0.01));
     expect(afterTop.dx, lessThan(beforeTop.dx));
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('sign-up UI moves from email verification to password setup', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      ScreenUtilPlusInit(
+        designSize: const Size(390, 844),
+        builder: (context, child) => MaterialApp(home: child),
+        child: const SignUpScreen(),
+      ),
+    );
+
+    await tester.enterText(find.byType(TextField).first, 'user@example.com');
+    await tester.pump();
+    await tester.tap(find.text('인증하기'));
+    await tester.pump();
+
+    expect(find.text('05:00'), findsOneWidget);
+    expect(find.byType(TextField), findsNWidgets(2));
+
+    await tester.enterText(find.byType(TextField).last, '123456');
+    await tester.pump();
+    await tester.tap(find.text('인증 확인'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('비밀번호를\n설정해주세요'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('expired sign-up code resets when resend is tapped', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      ScreenUtilPlusInit(
+        designSize: const Size(390, 844),
+        builder: (context, child) => MaterialApp(home: child),
+        child: const SignUpScreen(),
+      ),
+    );
+
+    await tester.enterText(find.byType(TextField).first, 'user@example.com');
+    await tester.pump();
+    await tester.tap(find.text('인증하기'));
+    await tester.pump();
+    await tester.enterText(find.byType(TextField).last, '123456');
+    await tester.pump();
+    await tester.pump(const Duration(minutes: 5));
+
+    expect(find.text('00:00'), findsOneWidget);
+    expect(find.text('인증 시간이 만료되었습니다. 재발송을 눌러주세요.'), findsOneWidget);
+
+    await tester.tap(find.text('재발송'));
+    await tester.pump();
+
+    expect(find.text('05:00'), findsOneWidget);
+    expect(find.text('인증 시간이 만료되었습니다. 재발송을 눌러주세요.'), findsNothing);
+
+    await tester.pumpWidget(const SizedBox.shrink());
   });
 }
 

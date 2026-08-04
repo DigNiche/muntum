@@ -7,7 +7,6 @@ import 'package:muntum/api/api_exception.dart';
 import 'package:muntum/api/token_store.dart';
 import 'package:muntum/components/button_solid.dart';
 import 'package:muntum/constants/colors.dart';
-import 'package:muntum/constants/pre_update.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/screens/mypage/terms_detail_screen.dart';
 import 'package:muntum/screens/navigation/main_navigation_screen.dart';
@@ -105,8 +104,7 @@ class _InitialScreenState extends State<InitialScreen> {
                     );
                   },
                 ),
-                if (showSocialLogin &&
-                    defaultTargetPlatform == TargetPlatform.iOS) ...[
+                if (defaultTargetPlatform == TargetPlatform.iOS) ...[
                   SizedBox(height: 12.h),
                   ButtonSolid(
                     leading: Text(
