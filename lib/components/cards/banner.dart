@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
+import 'package:muntum/components/cards/isNew_badge.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/models/program_model.dart';
@@ -67,11 +68,14 @@ class BannerCard extends StatelessWidget {
                 Positioned(
                   left: 20.w,
                   right: 20.w,
-                  bottom: 42.h,
+                  bottom: 54.h,
                   child: Column(
-                    spacing: 4.h,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      if (program.isNew) ...[
+                        IsNewBadge(),
+                        SizedBox(height: 12.h),
+                      ],
                       Text(
                         program.title,
                         maxLines: 2,
@@ -80,6 +84,7 @@ class BannerCard extends StatelessWidget {
                           color: AppColors.white,
                         ),
                       ),
+                      SizedBox(height: 4.h),
                       // 장소명 · 날짜
                       Text(
                         '${program.locationName} · ${program.cardDateText}',

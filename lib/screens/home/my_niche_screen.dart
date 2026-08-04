@@ -325,7 +325,18 @@ class _MyNicheScreenState extends State<MyNicheScreen> {
     final selectedKeywords = UserPreferenceStore.instance.selectedKeywords
         .map((keyword) => keyword.trim())
         .toSet();
-    final keywords = program.keywords.toList();
+    final matchedKeywords = <String>[];
+    final otherKeywords = <String>[];
+
+    for (final keyword in program.keywords) {
+      if (selectedKeywords.contains(keyword.trim())) {
+        matchedKeywords.add(keyword);
+      } else {
+        otherKeywords.add(keyword);
+      }
+    }
+
+    final keywords = [...matchedKeywords, ...otherKeywords];
     if (keywords.isEmpty) return SizedBox(height: 58.h);
 
     return SizedBox(

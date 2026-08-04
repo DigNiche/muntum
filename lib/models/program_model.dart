@@ -44,6 +44,8 @@ class ProgramModel {
   final List<Filter> filters;
   // 지금 주목받는지
   final bool isSpotlight;
+  // 신규 프로그램인지
+  final bool isNew;
   // 이번달에 끝나는지
   final bool isOverThisMonth;
   // 스크랩
@@ -82,6 +84,7 @@ class ProgramModel {
     required this.link,
     required this.filters,
     required this.isSpotlight,
+    this.isNew = false,
     required this.isOverThisMonth,
     required this.isBookmark,
     this.ended = false,
@@ -152,6 +155,7 @@ class ProgramModel {
         reserved: reserved,
       ),
       isSpotlight: false,
+      isNew: json['isNew'] as bool? ?? false,
       isOverThisMonth: _isOverThisMonth(endDate),
       isBookmark: json['scrapped'] as bool? ?? json['saved'] as bool? ?? false,
       ended: json['ended'] as bool? ?? false,

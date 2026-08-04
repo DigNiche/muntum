@@ -83,7 +83,7 @@ class CurationCard extends StatelessWidget {
             Positioned(
               left: 24.w,
               right: 24.w,
-              bottom: 32.h,
+              bottom: 28.h,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -96,29 +96,20 @@ class CurationCard extends StatelessWidget {
                     ),
                   ),
                   SizedBox(height: 8.h),
-                  Wrap(
-                    spacing: 6.w,
-                    runSpacing: 4.h,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      if (program.locationName.isNotEmpty)
-                        Text(
-                          program.locationName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTypography.caption1.copyWith(
-                            color: AppColors.white.withValues(alpha: 0.65),
-                          ),
-                        ),
-                      if (program.cardDateText.isNotEmpty)
-                        Text(
-                          program.cardDateText,
-                          style: AppTypography.caption1.copyWith(
-                            color: AppColors.white.withValues(alpha: 0.65),
-                          ),
-                        ),
-                      if (program.isEnded) const ProgramEndedBadge(),
-                    ],
+                  Text(
+                    program.locationName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.caption1.copyWith(
+                      color: AppColors.white.withValues(alpha: 0.65),
+                    ),
+                  ),
+                  SizedBox(height: 2.h),
+                  Text(
+                    program.cardDateText,
+                    style: AppTypography.caption1.copyWith(
+                      color: AppColors.white.withValues(alpha: 0.65),
+                    ),
                   ),
                 ],
               ),

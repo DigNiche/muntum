@@ -104,6 +104,17 @@ void main() {
       expect(endedProgram.isEnded, isTrue);
       expect(activeProgram.isEnded, isFalse);
     });
+
+    test('parses the new program flag only when isNew is true', () {
+      final newProgram = ProgramModel.fromJson({
+        'title': '새 프로그램',
+        'isNew': true,
+      });
+      final existingProgram = ProgramModel.fromJson({'title': '기존 프로그램'});
+
+      expect(newProgram.isNew, isTrue);
+      expect(existingProgram.isNew, isFalse);
+    });
   });
 
   group('program reactions', () {

@@ -140,4 +140,11 @@ class AppTypography {
     letterSpacingPercent: -1.5,
     fontWeight: FontWeight.w600,
   );
+
+  static final badge = _style(
+    fontSize: 11.sp,
+    lineHeight: 1.3,
+    letterSpacingPercent: -2.5,
+    fontWeight: FontWeight.w600,
+  );
 }
