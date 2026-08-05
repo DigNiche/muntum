@@ -16,6 +16,7 @@ import 'package:muntum/screens/map/map_clustering.dart';
 import 'package:muntum/screens/mypage/components/report_form_field.dart';
 import 'package:muntum/screens/mypage/report_submit_screen.dart';
 import 'package:muntum/screens/onboarding/sign_up_screens/sign_up.dart';
+import 'package:muntum/services/auth_service.dart';
 import 'package:muntum/screens/program_detail/components/program_information_section.dart';
 import 'package:muntum/services/program_service.dart';
 import 'package:muntum/services/program_reaction_service.dart';
@@ -87,6 +88,51 @@ void main() {
         'nonce': 'hashed-nonce',
       });
     });
+  });
+
+  group('signup email verification contract', () {
+    test('uses the documented email verification endpoints', () {
+      expect(ApiEndpoints.signupEmailSendCode, '/api/v1/auth/email/send-code');
+      expect(
+        ApiEndpoints.signupEmailVerifyCode,
+        '/api/v1/auth/email/verify-code',
+      );
+    });
+
+    test(
+      'sends email, code, and signup token with the exact field names',
+      () async {
+        final client = _RecordingAuthApiClient();
+        final service = AuthService(client: client);
+
+        final timing = await service.requestSignupEmailCode('user@example.com');
+        final verification = await service.verifySignupEmailCode(
+          email: 'user@example.com',
+          code: '482913',
+        );
+        await service.signup(
+          email: 'user@example.com',
+          password: 'Password!1',
+          signupToken: verification.signupToken,
+        );
+
+        expect(timing.expiresIn, 300);
+        expect(timing.resendAfter, 60);
+        expect(client.calls[0], {
+          'path': ApiEndpoints.signupEmailSendCode,
+          'body': {'email': 'user@example.com'},
+        });
+        expect(client.calls[1], {
+          'path': ApiEndpoints.signupEmailVerifyCode,
+          'body': {'email': 'user@example.com', 'code': '482913'},
+        });
+        expect(client.calls[2]['path'], ApiEndpoints.signup);
+        expect(
+          client.calls[2]['body'],
+          containsPair('signupToken', 'signup-token'),
+        );
+      },
+    );
   });
 
   group('program status', () {
@@ -608,7 +654,7 @@ void main() {
       ScreenUtilPlusInit(
         designSize: const Size(390, 844),
         builder: (context, child) => MaterialApp(home: child),
-        child: const SignUpScreen(),
+        child: SignUpScreen(authService: _FakeSignupAuthService()),
       ),
     );
 
@@ -642,7 +688,7 @@ void main() {
       ScreenUtilPlusInit(
         designSize: const Size(390, 844),
         builder: (context, child) => MaterialApp(home: child),
-        child: const SignUpScreen(),
+        child: SignUpScreen(authService: _FakeSignupAuthService()),
       ),
     );
 
@@ -665,6 +711,54 @@ void main() {
 
     await tester.pumpWidget(const SizedBox.shrink());
   });
+}
+
+class _FakeSignupAuthService extends AuthService {
+  @override
+  Future<SignupEmailCodeResult> requestSignupEmailCode(String email) async {
+    return const SignupEmailCodeResult(expiresIn: 300, resendAfter: 60);
+  }
+
+  @override
+  Future<SignupEmailVerificationResult> verifySignupEmailCode({
+    required String email,
+    required String code,
+  }) async {
+    return const SignupEmailVerificationResult(signupToken: 'signup-token');
+  }
+}
+
+class _RecordingAuthApiClient extends ApiClient {
+  final List<Map<String, Object?>> calls = [];
+
+  @override
+  Future<Map<String, dynamic>> post(
+    String path, {
+    Map<String, dynamic>? body,
+    Map<String, dynamic>? queryParameters,
+    bool authorized = false,
+  }) async {
+    calls.add({'path': path, 'body': body});
+    return switch (path) {
+      ApiEndpoints.signupEmailSendCode => {
+        'message': '인증번호가 이메일로 발송되었습니다.',
+        'data': {'expiresIn': 300, 'resendAfter': 60},
+      },
+      ApiEndpoints.signupEmailVerifyCode => {
+        'message': '이메일 인증이 완료되었습니다.',
+        'data': {'signupToken': 'signup-token'},
+      },
+      ApiEndpoints.signup => {
+        'message': '회원가입이 완료되었습니다.',
+        'data': {
+          'userId': 'user-id',
+          'email': 'user@example.com',
+          'createdAt': '2026-08-05T00:00:00Z',
+        },
+      },
+      _ => {'message': '', 'data': <String, dynamic>{}},
+    };
+  }
 }
 
 class _UpdateDialogTestHost extends StatelessWidget {

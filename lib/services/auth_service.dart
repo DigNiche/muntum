@@ -15,6 +15,7 @@ class AuthService {
   Future<SignupResult> signup({
     required String email,
     required String password,
+    required String signupToken,
     String role = 'AUDIENCE',
     String userTermsAgreementVersion = '1.0',
   }) async {
@@ -23,6 +24,7 @@ class AuthService {
       body: {
         'email': email,
         'password': password,
+        'signupToken': signupToken,
         'role': role,
         'userTermsAgreementVersion': userTermsAgreementVersion,
       },
@@ -31,6 +33,35 @@ class AuthService {
       response,
       (data) =>
           SignupResult.fromJson(data as Map<String, dynamic>? ?? const {}),
+    ).data;
+  }
+
+  Future<SignupEmailCodeResult> requestSignupEmailCode(String email) async {
+    final response = await _client.post(
+      ApiEndpoints.signupEmailSendCode,
+      body: {'email': email},
+    );
+    return ApiResponse.fromJson(
+      response,
+      (data) => SignupEmailCodeResult.fromJson(
+        data as Map<String, dynamic>? ?? const {},
+      ),
+    ).data;
+  }
+
+  Future<SignupEmailVerificationResult> verifySignupEmailCode({
+    required String email,
+    required String code,
+  }) async {
+    final response = await _client.post(
+      ApiEndpoints.signupEmailVerifyCode,
+      body: {'email': email, 'code': code},
+    );
+    return ApiResponse.fromJson(
+      response,
+      (data) => SignupEmailVerificationResult.fromJson(
+        data as Map<String, dynamic>? ?? const {},
+      ),
     ).data;
   }
 

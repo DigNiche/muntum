@@ -105,6 +105,35 @@ class SignupResult {
   }
 }
 
+class SignupEmailCodeResult {
+  final int expiresIn;
+  final int resendAfter;
+
+  const SignupEmailCodeResult({
+    required this.expiresIn,
+    required this.resendAfter,
+  });
+
+  factory SignupEmailCodeResult.fromJson(Map<String, dynamic> json) {
+    return SignupEmailCodeResult(
+      expiresIn: (json['expiresIn'] as num? ?? 300).toInt(),
+      resendAfter: (json['resendAfter'] as num? ?? 60).toInt(),
+    );
+  }
+}
+
+class SignupEmailVerificationResult {
+  final String signupToken;
+
+  const SignupEmailVerificationResult({required this.signupToken});
+
+  factory SignupEmailVerificationResult.fromJson(Map<String, dynamic> json) {
+    return SignupEmailVerificationResult(
+      signupToken: json['signupToken'] as String? ?? '',
+    );
+  }
+}
+
 class PasswordFindResult {
   final int expiresIn;
   final int resendAfter;

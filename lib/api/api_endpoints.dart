@@ -2,6 +2,8 @@ class ApiEndpoints {
   const ApiEndpoints._();
 
   static const signup = '/api/v1/auth/signup';
+  static const signupEmailSendCode = '/api/v1/auth/email/send-code';
+  static const signupEmailVerifyCode = '/api/v1/auth/email/verify-code';
   static const login = '/api/v1/auth/login';
   static const socialLogin = '/api/v1/auth/social/login';
   static const refresh = '/api/v1/auth/refresh';
