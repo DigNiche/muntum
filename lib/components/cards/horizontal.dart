@@ -72,6 +72,21 @@ class _HorizontalCardImage extends StatelessWidget {
             program.images.isEmpty
                 ? const ColoredBox(color: Color(0xffD2F2FD))
                 : program.images.first,
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 60.h,
+              child: const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Color(0x4D000000), Colors.transparent],
+                  ),
+                ),
+              ),
+            ),
             if (program.isEnded)
               ColoredBox(color: AppColors.white.withValues(alpha: 0.3)),
             Positioned(

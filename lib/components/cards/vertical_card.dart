@@ -41,70 +41,99 @@ class VerticalCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(AppBorderRadius.radius_8),
-                  child: SizedBox(
+            ClipRRect(
+              borderRadius: BorderRadius.circular(AppBorderRadius.radius_8),
+              child: Stack(
+                children: [
+                  SizedBox(
                     height: 213.h,
                     width: cardWidth,
                     child: program.images.isEmpty
                         ? const ColoredBox(color: Color(0xffD1F3FD))
                         : program.images.first,
                   ),
-                ),
-                // 스크랩 아이콘
-                Positioned(
-                  right: 8.w,
-                  top: 10.h,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => toggleProgramScrap(
-                      context,
-                      program,
-                      entrySource: entrySource,
-                    ),
-                    child: ListenableBuilder(
-                      listenable: ProgramScrapStore.instance,
-                      builder: (context, _) {
-                        final isBookmarked = ProgramScrapStore.instance
-                            .isScrapped(program);
-                        return SizedBox(
-                          width: 24.w,
-                          height: 24.h,
-                          child: AnimatedScrapIcon(
-                            isScrapped: isBookmarked,
-                            size: 24,
-                            activeColor: AppColors.primary400,
-                            inactiveColor: AppColors.white,
-                          ),
-                        );
-                      },
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: 80.h,
+                    child: const DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Color(0x4D000000), Colors.transparent],
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                  // 스크랩 아이콘
+                  Positioned(
+                    right: 8.w,
+                    top: 10.h,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => toggleProgramScrap(
+                        context,
+                        program,
+                        entrySource: entrySource,
+                      ),
+                      child: ListenableBuilder(
+                        listenable: ProgramScrapStore.instance,
+                        builder: (context, _) {
+                          final isBookmarked = ProgramScrapStore.instance
+                              .isScrapped(program);
+                          return SizedBox(
+                            width: 24.w,
+                            height: 24.h,
+                            child: AnimatedScrapIcon(
+                              isScrapped: isBookmarked,
+                              size: 24,
+                              activeColor: AppColors.primary400,
+                              inactiveColor: AppColors.white,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
             SizedBox(height: 12.h),
-            Text(
-              program.title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: AppTypography.headline1.copyWith(color: AppColors.gray900),
-            ),
-            SizedBox(height: 4.h),
-            Text(
-              program.locationName,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppTypography.caption1.copyWith(color: AppColors.gray700),
-            ),
-            SizedBox(height: 2.h),
-            Text(
-              program.cardDateText,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppTypography.caption1.copyWith(color: AppColors.gray700),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 4.0.w),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    program.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.headline1.copyWith(
+                      color: AppColors.gray900,
+                    ),
+                  ),
+                  SizedBox(height: 4.h),
+                  Text(
+                    program.locationName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.caption1.copyWith(
+                      color: AppColors.gray700,
+                    ),
+                  ),
+                  SizedBox(height: 2.h),
+                  Text(
+                    program.cardDateText,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.caption1.copyWith(
+                      color: AppColors.gray700,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),

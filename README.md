@@ -26,7 +26,7 @@
 | 지원 플랫폼 | iOS 15 이상, Android |
 | 기준 해상도 | 390 × 844, 반응형 UI |
 | 클라이언트 | Flutter / Dart |
-| 현재 버전 | <!-- APP_VERSION -->1.0.8 (7)<!-- /APP_VERSION --> |
+| 현재 버전 | <!-- APP_VERSION -->1.0.8 (8)<!-- /APP_VERSION --> |
 | 담당 | Flutter 클라이언트 설계 및 구현 |
 
 ## 주요 기능
