@@ -206,7 +206,7 @@ class _SignUpPasswordScreenState extends State<SignUpPasswordScreen> {
       );
     } catch (error) {
       if (!mounted) return;
-      if (error is ApiException && error.code == 'A019') {
+      if (error is ApiException && error.code == 'A022') {
         Navigator.pop(context, SignUpPasswordResult.restartEmailVerification);
         return;
       }

@@ -66,7 +66,7 @@ class _EntireScreenState extends State<EntireScreen> {
 
     try {
       final page = await ProgramService().fetchHotKeywordPrograms(
-        chip: filter,
+        programType: ProgramType.fromFilter(filter),
         size: 8,
       );
       if (!mounted || requestId != _collectionRequestId) return;

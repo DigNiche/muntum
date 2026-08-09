@@ -113,6 +113,7 @@ class ProgramService {
   }
 
   Future<PageResponse<ProgramModel>> fetchHotKeywordPrograms({
+    ProgramType? programType,
     Filter? chip,
     int topN = 5,
     int page = 0,
@@ -121,6 +122,7 @@ class ProgramService {
     final response = await _client.get(
       ApiEndpoints.programsHotKeywords,
       queryParameters: {
+        'programType': programType?.apiValue,
         'chip': chip?.apiChip,
         'topN': topN,
         'page': page,

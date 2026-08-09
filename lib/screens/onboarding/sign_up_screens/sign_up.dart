@@ -491,15 +491,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   void _handleSendCodeError(Object error, {bool showInlineError = true}) {
     final exception = error is ApiException ? error : null;
-    if (exception?.code == 'A020' && _isVerificationRequested) {
+    if (exception?.code == 'A023' && _isVerificationRequested) {
       setState(() => _resendCooldownSeconds = 60);
       _startTimer();
     }
     final message = switch (exception?.code) {
       '007' => '이메일 형식이 올바르지 않습니다.',
       'A001' => '이미 가입된 이메일입니다.',
-      'A020' => '재발송은 60초 후에 가능합니다.',
-      'A021' => '일일 인증번호 발송 한도를 초과했습니다.',
+      'A023' => '재발송은 60초 후에 가능합니다.',
+      'A024' => '일일 인증번호 발송 한도를 초과했습니다.',
       _ =>
         exception?.message.isNotEmpty == true
             ? exception!.message

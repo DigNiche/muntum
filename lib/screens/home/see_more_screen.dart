@@ -31,6 +31,7 @@ class _SeeMoreScreenState extends State<SeeMoreScreen> {
   static const int _pageSize = 20;
 
   Filter? _selectedFilter;
+  Filter? _selectedDetailFilter;
   final ScrollController _scrollController = ScrollController();
   List<ProgramModel> _programs = const [];
   int _nextPage = 0;
@@ -70,7 +71,10 @@ class _SeeMoreScreenState extends State<SeeMoreScreen> {
               size: _pageSize,
             )
           : await service.fetchHotKeywordPrograms(
-              chip: _selectedFilter,
+              programType: _selectedFilter == null
+                  ? null
+                  : ProgramType.fromFilter(_selectedFilter!),
+              chip: _selectedDetailFilter,
               page: requestedPage,
               size: _pageSize,
             );
@@ -116,6 +120,16 @@ class _SeeMoreScreenState extends State<SeeMoreScreen> {
     if (_selectedFilter == filter) return;
     setState(() {
       _selectedFilter = filter;
+      _showScrollToTopButton = false;
+    });
+    _loadPrograms(reset: true);
+    if (_scrollController.hasClients) _scrollController.jumpTo(0);
+  }
+
+  void _selectDetailFilter(Filter? filter) {
+    if (_selectedDetailFilter == filter) return;
+    setState(() {
+      _selectedDetailFilter = filter;
       _showScrollToTopButton = false;
     });
     _loadPrograms(reset: true);
@@ -168,19 +182,27 @@ class _SeeMoreScreenState extends State<SeeMoreScreen> {
                           SliverPadding(
                             padding: EdgeInsets.fromLTRB(
                               20.w,
-                              14.h,
+                              showTypeTabs ? 12.h : 14.h,
                               20.w,
                               programs.isEmpty ? 0 : 24.h,
                             ),
                             sliver: SliverList(
                               delegate: SliverChildListDelegate([
-                                Text(
-                                  '프로그램 ${_totalElements > 0 ? _totalElements : programs.length}개',
-                                  style: AppTypography.headline2.copyWith(
-                                    color: AppColors.gray900,
+                                if (showTypeTabs) ...[
+                                  ProgramDetailFilterChips(
+                                    selectedFilter: _selectedDetailFilter,
+                                    onSelected: _selectDetailFilter,
                                   ),
-                                ),
-                                SizedBox(height: 16.h),
+                                  SizedBox(height: 12.h),
+                                ],
+                                if (!showTypeTabs)
+                                  Text(
+                                    '프로그램 ${_totalElements > 0 ? _totalElements : programs.length}개',
+                                    style: AppTypography.headline2.copyWith(
+                                      color: AppColors.gray900,
+                                    ),
+                                  ),
+                                SizedBox(height: showTypeTabs ? 12.h : 16.h),
                                 for (
                                   var index = 0;
                                   index < programs.length;

@@ -231,6 +231,28 @@ void main() {
     });
   });
 
+  group('hot keyword program filters', () {
+    test('sends programType and detail chip as separate parameters', () async {
+      final client = _HotKeywordFilterApiClient();
+
+      await ProgramService(client: client).fetchHotKeywordPrograms(
+        programType: ProgramType.exhibition,
+        chip: Filter.free,
+        page: 1,
+        size: 20,
+      );
+
+      expect(client.lastPath, ApiEndpoints.programsHotKeywords);
+      expect(client.lastQueryParameters, {
+        'programType': 'EXHIBITION',
+        'chip': 'FREE',
+        'topN': 5,
+        'page': 1,
+        'size': 20,
+      });
+    });
+  });
+
   group('map API chip mapping', () {
     test('maps every map filter to the documented chip value', () {
       expect(Filter.nowHot.mapApiChip, 'HOT');
@@ -894,6 +916,34 @@ class _MissingPeriodApiClient extends ApiClient {
       };
     }
     throw StateError('Unexpected API path: $path');
+  }
+}
+
+class _HotKeywordFilterApiClient extends ApiClient {
+  String? lastPath;
+  Map<String, dynamic>? lastQueryParameters;
+
+  @override
+  Future<Map<String, dynamic>> get(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+    bool authorized = false,
+  }) async {
+    lastPath = path;
+    lastQueryParameters = queryParameters;
+    return {
+      'data': {
+        'content': <Map<String, dynamic>>[],
+        'page': queryParameters?['page'] ?? 0,
+        'size': queryParameters?['size'] ?? 20,
+        'totalElements': 0,
+        'totalPages': 0,
+        'first': true,
+        'last': true,
+        'hasPrevious': false,
+        'hasNext': false,
+      },
+    };
   }
 }
 

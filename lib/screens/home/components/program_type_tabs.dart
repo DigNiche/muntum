@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/components/app_color_transition.dart';
+import 'package:muntum/components/filter_chip.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/models/program_filter.dart';
@@ -67,6 +68,73 @@ class ProgramTypeTabs extends StatelessWidget {
             ),
           );
         }).toList(),
+      ),
+    );
+  }
+}
+
+class ProgramDetailFilterChips extends StatelessWidget {
+  const ProgramDetailFilterChips({
+    super.key,
+    required this.selectedFilter,
+    required this.onSelected,
+  });
+
+  final Filter? selectedFilter;
+  final ValueChanged<Filter?> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      spacing: 8.w,
+      children: [
+        _DetailFilterChip(
+          label: '무료',
+          filter: Filter.free,
+          selectedFilter: selectedFilter,
+          onSelected: onSelected,
+        ),
+        _DetailFilterChip(
+          label: '이번주',
+          filter: Filter.thisWeek,
+          selectedFilter: selectedFilter,
+          onSelected: onSelected,
+        ),
+        _DetailFilterChip(
+          label: '예약없이',
+          filter: Filter.noReservation,
+          selectedFilter: selectedFilter,
+          onSelected: onSelected,
+        ),
+      ],
+    );
+  }
+}
+
+class _DetailFilterChip extends StatelessWidget {
+  const _DetailFilterChip({
+    required this.label,
+    required this.filter,
+    required this.selectedFilter,
+    required this.onSelected,
+  });
+
+  final String label;
+  final Filter filter;
+  final Filter? selectedFilter;
+  final ValueChanged<Filter?> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final isSelected = selectedFilter == filter;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => onSelected(isSelected ? null : filter),
+      child: FilterChipWidget(
+        text: label,
+        textColor: isSelected ? AppColors.white : AppColors.gray800,
+        backgroundColor: isSelected ? AppColors.gray900 : AppColors.white,
+        outlineColor: isSelected ? AppColors.gray900 : AppColors.lineStrong,
       ),
     );
   }
