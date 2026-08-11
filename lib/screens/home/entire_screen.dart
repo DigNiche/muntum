@@ -67,6 +67,7 @@ class _EntireScreenState extends State<EntireScreen> {
     try {
       final page = await ProgramService().fetchHotKeywordPrograms(
         programType: ProgramType.fromFilter(filter),
+        includeEnded: false,
         size: 8,
       );
       if (!mounted || requestId != _collectionRequestId) return;
@@ -107,7 +108,7 @@ class _EntireScreenState extends State<EntireScreen> {
     final service = ProgramService();
     final results = await Future.wait([
       service.fetchBannerPrograms(),
-      service.fetchHotKeywordPrograms(size: 8),
+      service.fetchHotKeywordPrograms(includeEnded: false, size: 8),
       service.fetchHotPrograms(size: 8),
       service.fetchClosingSoon(size: 8),
     ]);

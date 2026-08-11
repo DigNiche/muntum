@@ -16,7 +16,7 @@ class RecommendedProgramsSection extends StatelessWidget {
       children: [
         SectionHeader1(
           verticalPadding: 0,
-          text: '지금 주목받는',
+          text: '🔥인기있는',
           buttonName: '',
           onButtonTap: () {},
           horizontalPadding: 0,

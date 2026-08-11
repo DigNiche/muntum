@@ -251,6 +251,26 @@ void main() {
         'size': 20,
       });
     });
+
+    test('can exclude ended programs from collection previews', () async {
+      final client = _HotKeywordFilterApiClient();
+
+      await ProgramService(client: client).fetchHotKeywordPrograms(
+        programType: ProgramType.festival,
+        includeEnded: false,
+        size: 8,
+      );
+
+      expect(client.lastPath, ApiEndpoints.programsHotKeywords);
+      expect(client.lastQueryParameters, {
+        'programType': 'FAIR',
+        'chip': null,
+        'includeEnded': false,
+        'topN': 5,
+        'page': 0,
+        'size': 8,
+      });
+    });
   });
 
   group('map API chip mapping', () {

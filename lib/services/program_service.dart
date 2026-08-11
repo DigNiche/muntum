@@ -115,6 +115,7 @@ class ProgramService {
   Future<PageResponse<ProgramModel>> fetchHotKeywordPrograms({
     ProgramType? programType,
     Filter? chip,
+    bool? includeEnded,
     int topN = 5,
     int page = 0,
     int size = 20,
@@ -124,6 +125,7 @@ class ProgramService {
       queryParameters: {
         'programType': programType?.apiValue,
         'chip': chip?.apiChip,
+        'includeEnded': ?includeEnded,
         'topN': topN,
         'page': page,
         'size': size,
