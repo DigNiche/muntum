@@ -330,13 +330,25 @@ void main() {
       String keyFor(ProgramModel program) => program.id;
 
       expect(
-        controller.clusterPrograms(programs, 15.5, keyFor: keyFor),
+        controller.clusterPrograms(programs, 12.5, keyFor: keyFor),
         hasLength(1),
       );
       expect(
-        controller.clusterPrograms(programs, 18.05, keyFor: keyFor),
+        controller.clusterPrograms(programs, 13.5, keyFor: keyFor),
         hasLength(2),
       );
+    });
+
+    test('reduces the cluster radius from the first zoom-in steps', () {
+      final controller = MapClusteringController();
+
+      expect(controller.thresholdMetersForZoom(11.4), 300);
+      expect(controller.thresholdMetersForZoom(12.4), 100);
+      expect(controller.thresholdMetersForZoom(12.5), 30);
+      expect(controller.thresholdMetersForZoom(13.5), 10);
+      expect(controller.thresholdMetersForZoom(14.5), 3);
+      expect(controller.shouldAutomaticallySpiderfy(14.5), isFalse);
+      expect(controller.shouldAutomaticallySpiderfy(16.5), isTrue);
     });
 
     test('spiderfies multiple same-place groups independently', () {

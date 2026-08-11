@@ -60,6 +60,7 @@ class _MapScreenState extends State<MapScreen> {
   final MapProgramRepository _programRepository = MapProgramRepository();
   Future<void> _markerRefreshQueue = Future<void>.value();
   double? _renderedClusterThresholdMeters;
+  bool? _renderedAutomaticSpiderfy;
 
   bool _locationInitializationStarted = false;
   bool _initialLocationResolved = false;
@@ -560,11 +561,13 @@ class _MapScreenState extends State<MapScreen> {
     }
 
     final currentCameraPosition = await controller.getCameraPosition();
+    final currentClusterThreshold = _clusteringController
+        .thresholdMetersForZoom(currentCameraPosition.zoom);
+    final currentAutomaticSpiderfy = _clusteringController
+        .shouldAutomaticallySpiderfy(currentCameraPosition.zoom);
     if (!force &&
-        _renderedClusterThresholdMeters ==
-            _clusteringController.thresholdMetersForZoom(
-              currentCameraPosition.zoom,
-            )) {
+        _renderedClusterThresholdMeters == currentClusterThreshold &&
+        _renderedAutomaticSpiderfy == currentAutomaticSpiderfy) {
       return;
     }
 
@@ -579,11 +582,18 @@ class _MapScreenState extends State<MapScreen> {
       final nextClusterThreshold = _clusteringController.thresholdMetersForZoom(
         cameraPosition.zoom,
       );
-      if (!force && _renderedClusterThresholdMeters == nextClusterThreshold) {
+      final nextAutomaticSpiderfy = _clusteringController
+          .shouldAutomaticallySpiderfy(cameraPosition.zoom);
+      if (!force &&
+          _renderedClusterThresholdMeters == nextClusterThreshold &&
+          _renderedAutomaticSpiderfy == nextAutomaticSpiderfy) {
         return;
       }
-      if (_renderedClusterThresholdMeters != null &&
-          nextClusterThreshold > _renderedClusterThresholdMeters!) {
+      final didZoomOutFromAutomaticSpiderfy =
+          _renderedAutomaticSpiderfy == true && !nextAutomaticSpiderfy;
+      if ((_renderedClusterThresholdMeters != null &&
+              nextClusterThreshold > _renderedClusterThresholdMeters!) ||
+          didZoomOutFromAutomaticSpiderfy) {
         _clusteringController.clearSpiderfiedPrograms();
       }
       await _renderProgramMarkers(
@@ -776,6 +786,8 @@ class _MapScreenState extends State<MapScreen> {
       ..addAll(programMarkerRefs);
     _renderedClusterThresholdMeters = _clusteringController
         .thresholdMetersForZoom(zoom);
+    _renderedAutomaticSpiderfy = _clusteringController
+        .shouldAutomaticallySpiderfy(zoom);
     for (final program in singleMarkerPrograms) {
       unawaited(_loadAndApplyProgramMarkerImage(program));
     }

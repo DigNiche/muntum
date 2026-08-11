@@ -9,16 +9,19 @@ import 'package:muntum/screens/map/map_radius.dart';
 
 typedef ProgramKeyResolver = String Function(ProgramModel program);
 
+/// 지도 줌과 프로그램 간 거리를 기준으로 마커 클러스터를 관리한다.
 class MapClusteringController {
   static const double _samePlaceThresholdMeters = 3;
   static const double _spiderfyMarkerSpacingPixels = 50;
 
   final List<Set<String>> _spiderfiedProgramKeyGroups = [];
 
+  /// 펼쳐진 마커 그룹을 모두 초기화해 다시 클러스터링할 수 있게 한다.
   void clearSpiderfiedPrograms() {
     _spiderfiedProgramKeyGroups.clear();
   }
 
+  /// 기존 펼침 상태를 지우고 전달받은 프로그램 그룹만 펼침 대상으로 등록한다.
   void spiderfyPrograms(
     Iterable<ProgramModel> programs, {
     required ProgramKeyResolver keyFor,
@@ -27,6 +30,7 @@ class MapClusteringController {
     addSpiderfiedPrograms(programs, keyFor: keyFor);
   }
 
+  /// 기존 펼침 상태를 유지하면서 새로운 프로그램 그룹을 추가한다.
   void addSpiderfiedPrograms(
     Iterable<ProgramModel> programs, {
     required ProgramKeyResolver keyFor,
@@ -39,6 +43,9 @@ class MapClusteringController {
     _spiderfiedProgramKeyGroups.add(keys);
   }
 
+  /// 현재 줌의 거리 기준으로 프로그램을 묶어 화면에 표시할 클러스터를 만든다.
+  ///
+  /// 펼침 대상으로 등록된 프로그램은 거리와 관계없이 개별 클러스터로 반환한다.
   List<ProgramCluster> clusterPrograms(
     List<ProgramModel> programs,
     double zoom, {
@@ -81,19 +88,21 @@ class MapClusteringController {
     return clusters;
   }
 
+  /// 줌이 커질수록 클러스터로 묶는 최대 거리를 줄여 개별 마커를 노출한다.
   double thresholdMetersForZoom(double zoom) {
-    if (zoom < 12) return 1000;
-    if (zoom < 13.5) return 800;
-    if (zoom < 15) return 120;
-    if (zoom < 16) return 40;
-    if (zoom < 17) return 12;
+    if (zoom < 11.5) return 350;
+    if (zoom < 12.5) return 100;
+    if (zoom < 13.5) return 30;
+    if (zoom < 14.5) return 10;
     return _samePlaceThresholdMeters;
   }
 
+  /// 충분히 확대되어 동일 장소의 프로그램까지 자동으로 펼쳐야 하는지 반환한다.
   bool shouldAutomaticallySpiderfy(double zoom) {
-    return thresholdMetersForZoom(zoom) <= _samePlaceThresholdMeters;
+    return zoom >= 16.5;
   }
 
+  /// 모든 프로그램이 같은 장소 범위 안에 있어 펼칠 수 있는 그룹인지 확인한다.
   bool shouldSpiderfy(List<ProgramModel> programs) {
     for (var firstIndex = 0; firstIndex < programs.length; firstIndex++) {
       for (
@@ -115,6 +124,7 @@ class MapClusteringController {
     return programs.length > 1;
   }
 
+  /// 펼침 대상으로 등록된 프로그램들의 실제 지도 표시 좌표를 계산한다.
   Map<String, NLatLng> spiderfiedMarkerPositions(
     List<ProgramCluster> clusters,
     double zoom, {
@@ -140,6 +150,7 @@ class MapClusteringController {
     return positions;
   }
 
+  /// 같은 장소의 마커가 겹치지 않도록 그룹 중심을 기준으로 원형 배치한다.
   Map<String, NLatLng> _spiderfiedPositionsForGroup(
     List<ProgramModel> programs,
     double zoom, {
@@ -176,12 +187,16 @@ class MapClusteringController {
     return positions;
   }
 
+  /// 프로그램 키가 현재 펼쳐진 그룹 중 하나에 포함되어 있는지 확인한다.
   bool _isSpiderfied(String programKey) {
     return _spiderfiedProgramKeyGroups.any(
       (group) => group.contains(programKey),
     );
   }
 
+  /// 클러스터 선택 시 모든 프로그램을 확인할 수 있는 카메라 이동을 생성한다.
+  ///
+  /// 같은 장소 그룹은 확대하고, 서로 다른 장소 그룹은 전체 좌표가 보이도록 맞춘다.
   NCameraUpdate cameraUpdateForCluster(
     List<ProgramModel> programs,
     double currentZoom, {
@@ -222,6 +237,7 @@ class MapClusteringController {
     );
   }
 
+  /// 두 위경도 사이의 직선거리를 미터 단위로 계산한다.
   double _distanceInMeters(
     double firstLatitude,
     double firstLongitude,
@@ -236,14 +252,17 @@ class MapClusteringController {
     );
   }
 
+  /// 삼각함수 계산에 사용할 수 있도록 각도를 라디안으로 변환한다.
   double _degreeToRadian(double degree) => degree * math.pi / 180;
 }
 
+/// 하나의 클러스터에 포함된 프로그램과 중심 좌표를 제공한다.
 class ProgramCluster {
   final List<ProgramModel> programs;
 
   ProgramCluster({required this.programs});
 
+  /// 포함된 프로그램들의 평균 위도다.
   double get latitude {
     final total = programs.fold<double>(
       0,
@@ -252,6 +271,7 @@ class ProgramCluster {
     return total / programs.length;
   }
 
+  /// 포함된 프로그램들의 평균 경도다.
   double get longitude {
     final total = programs.fold<double>(
       0,
