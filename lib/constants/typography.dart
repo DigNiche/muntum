@@ -126,7 +126,7 @@ class AppTypography {
     fontSize: 15.sp,
     lineHeight: 1.3,
     letterSpacingPercent: -2.5,
-    fontWeight: FontWeight.w600,
+    fontWeight: FontWeight.w700,
   );
   static final button3 = _style(
     fontSize: 14.sp,
