@@ -7,18 +7,30 @@ import 'package:muntum/constants/typography.dart';
 class ProfileMenuItem extends StatelessWidget {
   final VoidCallback onTap;
   final String text;
-  const ProfileMenuItem({super.key, required this.onTap, required this.text});
+  final bool showDivider;
+  final Widget? trailing;
+
+  const ProfileMenuItem({
+    super.key,
+    required this.onTap,
+    required this.text,
+    this.showDivider = true,
+    this.trailing,
+  });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.symmetric(vertical: 16.h),
+        padding: EdgeInsets.symmetric(vertical: 20.h),
         decoration: BoxDecoration(
-          border: BoxBorder.fromLTRB(
-            bottom: BorderSide(color: AppColors.lineNormal, width: 1.0.h),
-          ),
+          color: Colors.transparent,
+          border: showDivider
+              ? BoxBorder.fromLTRB(
+                  bottom: BorderSide(color: AppColors.lineNormal, width: 1.0.h),
+                )
+              : null,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -27,11 +39,15 @@ class ProfileMenuItem extends StatelessWidget {
               text,
               style: AppTypography.button2.copyWith(color: AppColors.gray900),
             ),
-            SvgPicture.asset(
-              'assets/icons/arrow_right-small.svg',
-              width: 24.w,
-              color: AppColors.gray400,
-            ),
+            trailing ??
+                SvgPicture.asset(
+                  'assets/icons/arrow_right-small.svg',
+                  width: 20.w,
+                  colorFilter: const ColorFilter.mode(
+                    AppColors.gray400,
+                    BlendMode.srcIn,
+                  ),
+                ),
           ],
         ),
       ),

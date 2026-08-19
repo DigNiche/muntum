@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:muntum/api/token_store.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/constants/colors.dart';
@@ -61,7 +62,7 @@ class _NickNameChangeScreenState extends State<NickNameChangeScreen> {
           SizedBox(height: 50.h),
           AppBarWidget(
             centerType: AppBarCenterType.text,
-            center: "닉네임 변경",
+            center: "프로필 수정",
             leadingIcon: 'close.svg',
             onLeadingTap: () {
               Navigator.pop(context);
@@ -69,7 +70,7 @@ class _NickNameChangeScreenState extends State<NickNameChangeScreen> {
             trailing: GestureDetector(
               onTap: _saveNickname,
               child: Text(
-                _isSaving ? "저장 중" : "저장",
+                _isSaving ? "저장 중" : "완료",
                 style: AppTypography.button2.copyWith(
                   color: _controller.text.isNotEmpty
                       ? AppColors.gray900
@@ -81,64 +82,84 @@ class _NickNameChangeScreenState extends State<NickNameChangeScreen> {
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 20.w),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                SizedBox(height: 24.h),
-                TextField(
-                  controller: _controller,
-                  focusNode: _focusNode,
-                  maxLength: _maxNicknameLength,
-                  cursorColor: AppColors.gray900,
-                  style: AppTypography.body1.copyWith(color: AppColors.gray900),
-                  decoration: InputDecoration(
-                    counterText: '',
-                    hintText: '닉네임을 입력해주세요.',
-                    hintStyle: AppTypography.body1.copyWith(
-                      color: AppColors.gray900,
-                    ),
-                    filled: true,
-                    fillColor: AppColors.white,
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 16.w,
-                      vertical: 13.h,
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10.r),
-                      borderSide: BorderSide(
-                        color: AppColors.lineNormal,
-                        width: 1.w,
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10.r),
-                      borderSide: BorderSide(
-                        color: AppColors.gray400,
-                        width: 1.w,
-                      ),
-                    ),
-                    errorBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10.r),
-                      borderSide: BorderSide(
-                        color: AppColors.error,
-                        width: 1.w,
-                      ),
-                    ),
-                    focusedErrorBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10.r),
-                      borderSide: BorderSide(
-                        color: AppColors.error,
-                        width: 1.w,
-                      ),
-                    ),
-                    errorText: _isError ? '중복된 닉네임' : null,
-                  ),
+                SizedBox(height: 32.h),
+                SvgPicture.asset(
+                  'assets/profile_image.svg',
+                  width: 88.r,
+                  height: 88.r,
                 ),
-                SizedBox(height: 8.h),
-                Text(
-                  '(${_controller.text.length}/$_maxNicknameLength)',
-                  style: AppTypography.caption2.copyWith(
-                    color: AppColors.gray500,
-                  ),
+                SizedBox(height: 32.h),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "닉네임",
+                      style: AppTypography.button3.copyWith(
+                        color: AppColors.gray700,
+                      ),
+                    ),
+                    SizedBox(height: 8.h),
+                    TextField(
+                      controller: _controller,
+                      focusNode: _focusNode,
+                      maxLength: _maxNicknameLength,
+                      cursorColor: AppColors.gray900,
+                      style: AppTypography.body1.copyWith(
+                        color: AppColors.gray900,
+                      ),
+                      decoration: InputDecoration(
+                        counterText: '',
+                        hintText: '닉네임을 입력해주세요.',
+                        hintStyle: AppTypography.body1.copyWith(
+                          color: AppColors.gray900,
+                        ),
+                        filled: true,
+                        fillColor: AppColors.white,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 16.w,
+                          vertical: 13.h,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.r),
+                          borderSide: BorderSide(
+                            color: AppColors.lineNormal,
+                            width: 1.w,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.r),
+                          borderSide: BorderSide(
+                            color: AppColors.gray400,
+                            width: 1.w,
+                          ),
+                        ),
+                        errorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.r),
+                          borderSide: BorderSide(
+                            color: AppColors.error,
+                            width: 1.w,
+                          ),
+                        ),
+                        focusedErrorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.r),
+                          borderSide: BorderSide(
+                            color: AppColors.error,
+                            width: 1.w,
+                          ),
+                        ),
+                        errorText: _isError ? '중복된 닉네임' : null,
+                      ),
+                    ),
+                    SizedBox(height: 8.h),
+                    Text(
+                      '(${_controller.text.length}/$_maxNicknameLength)',
+                      style: AppTypography.caption2.copyWith(
+                        color: AppColors.gray500,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
