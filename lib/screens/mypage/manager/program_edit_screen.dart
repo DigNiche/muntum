@@ -808,7 +808,7 @@ class _KeywordPickerSheetState extends State<_KeywordPickerSheet> {
   bool _limitToastVisible = false;
 
   Future<List<String>> _loadKeywords() async {
-    final keywords = await KeywordService().fetchTaggedKeywords();
+    final keywords = await KeywordService().fetchAvailableKeywords();
     final names = keywords
         .where((keyword) => keyword.active && keyword.name.trim().isNotEmpty)
         .map((keyword) => keyword.name.trim())

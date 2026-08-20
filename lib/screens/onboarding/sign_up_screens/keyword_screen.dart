@@ -1,12 +1,16 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
+import 'package:muntum/api/api_exception.dart';
+import 'package:muntum/api/token_store.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/button_solid.dart';
 import 'package:muntum/components/keyword_chip.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/screens/onboarding/sign_up_screens/loading_screen.dart';
+import 'package:muntum/services/auth_service.dart';
 import 'package:muntum/services/keyword_service.dart';
 import 'package:muntum/services/taste_service.dart';
 import 'package:muntum/stores/user_preference_store.dart';
@@ -24,6 +28,7 @@ class _KeywordScreenState extends State<KeywordScreen> {
   List<String> _availableKeywords = const [];
   bool _isLoading = false;
   bool _isKeywordLoading = true;
+  String? _keywordLoadError;
   static const int _minimumSelectionCount = 3;
   int get _maximumSelectionCount => _availableKeywords.isEmpty
       ? _minimumSelectionCount
@@ -49,9 +54,13 @@ class _KeywordScreenState extends State<KeywordScreen> {
   }
 
   Future<void> _loadAvailableKeywords() async {
-    setState(() => _isKeywordLoading = true);
+    setState(() {
+      _isKeywordLoading = true;
+      _keywordLoadError = null;
+    });
     try {
-      final keywords = await KeywordService().fetchTaggedKeywords();
+      await _ensureAuthenticated();
+      final keywords = await KeywordService().fetchAvailableKeywords();
       if (!mounted) return;
       setState(() {
         _availableKeywords = keywords
@@ -59,11 +68,34 @@ class _KeywordScreenState extends State<KeywordScreen> {
             .where((name) => name.isNotEmpty)
             .toList();
       });
-    } catch (_) {
+    } catch (error) {
+      if (kDebugMode) {
+        debugPrint('Keyword onboarding load failed: $error');
+      }
       if (!mounted) return;
-      setState(() => _availableKeywords = const []);
+      setState(() {
+        _availableKeywords = const [];
+        _keywordLoadError = switch (error) {
+          ApiException(statusCode: 401) ||
+          ApiException(code: 'A008') => '로그인 정보를 확인하지 못했어요.',
+          _ => '키워드를 불러오지 못했어요.',
+        };
+      });
     } finally {
       if (mounted) setState(() => _isKeywordLoading = false);
+    }
+  }
+
+  Future<void> _ensureAuthenticated() async {
+    if (TokenStore.instance.accessToken?.isNotEmpty == true) return;
+
+    final session = await AuthService().refresh();
+    if (session == null || session.accessToken.isEmpty) {
+      throw const ApiException(
+        statusCode: 401,
+        code: 'A008',
+        message: '인증이 필요합니다.',
+      );
     }
   }
 
@@ -161,6 +193,11 @@ class _KeywordScreenState extends State<KeywordScreen> {
                                 child: CircularProgressIndicator(
                                   color: AppColors.gray900,
                                 ),
+                              )
+                            : _keywordLoadError != null
+                            ? _KeywordLoadError(
+                                message: _keywordLoadError!,
+                                onRetry: _loadAvailableKeywords,
                               )
                             : SingleChildScrollView(
                                 padding: EdgeInsets.only(bottom: 20.h),
@@ -264,5 +301,41 @@ class _KeywordScreenState extends State<KeywordScreen> {
     if (Navigator.canPop(context)) {
       Navigator.pop(context);
     }
+  }
+}
+
+class _KeywordLoadError extends StatelessWidget {
+  const _KeywordLoadError({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            message,
+            style: AppTypography.body2.copyWith(color: AppColors.gray400),
+          ),
+          SizedBox(height: 12.h),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onRetry,
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+              child: Text(
+                '다시 시도',
+                style: AppTypography.button2.copyWith(
+                  color: AppColors.primary400,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

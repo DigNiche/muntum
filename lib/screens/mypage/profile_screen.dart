@@ -13,11 +13,11 @@ import 'package:muntum/screens/mypage/components/profile_menu_item.dart';
 import 'package:muntum/screens/mypage/curator_application_screen.dart';
 import 'package:muntum/screens/mypage/keyword_change_screen.dart';
 import 'package:muntum/screens/mypage/manager/announcement_manage_screen.dart';
+import 'package:muntum/screens/mypage/manager/curator_application_manage_screen.dart';
 import 'package:muntum/screens/mypage/manager/program_manage_screen.dart';
 import 'package:muntum/screens/mypage/manager/program_report_manage_screen.dart';
 import 'package:muntum/screens/mypage/manager/user_manage_screen.dart';
 import 'package:muntum/screens/mypage/my_info_edit_screen.dart';
-import 'package:muntum/screens/mypage/report_submit_screen.dart';
 import 'package:muntum/screens/mypage/reportlist_screen.dart';
 import 'package:muntum/screens/mypage/settings_screen.dart';
 import 'package:muntum/screens/mypage/terms_screen.dart';
@@ -102,7 +102,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         }
 
         return ColoredBox(
-          color: const Color(0xfff7f7f7),
+          color: AppColors.backgroundNormal,
           child: Column(
             children: [
               SizedBox(height: 50.h),
@@ -305,7 +305,10 @@ class _ProfileMenuCard extends StatelessWidget {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(AppBorderRadius.radius_10),
       ),
-      child: Column(children: children),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: children,
+      ),
     );
   }
 }
@@ -369,15 +372,17 @@ class _AdminMenuSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: EdgeInsets.only(left: 4.w, bottom: 8.h),
-          child: Text(
-            '관리자 메뉴',
-            style: AppTypography.headline2.copyWith(color: AppColors.gray500),
-          ),
-        ),
         _ProfileMenuCard(
           children: [
+            Padding(
+              padding: EdgeInsets.only(top: 20.h, bottom: 10.h),
+              child: Text(
+                '관리자 메뉴',
+                style: AppTypography.headline2.copyWith(
+                  color: AppColors.gray500,
+                ),
+              ),
+            ),
             ProfileMenuItem(
               text: '프로그램 관리',
               onTap: () => pushToScreen(context, ProgramManageScreen()),
@@ -394,6 +399,12 @@ class _AdminMenuSection extends StatelessWidget {
               text: '사용자 관리',
               showDivider: false,
               onTap: () => pushToScreen(context, UserManageScreen()),
+            ),
+            ProfileMenuItem(
+              text: '큐레이터 승인 관리',
+              showDivider: false,
+              onTap: () =>
+                  pushToScreen(context, CuratorApplicationManageScreen()),
             ),
           ],
         ),

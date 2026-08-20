@@ -46,7 +46,7 @@ class _KeywordChangeScreenState extends State<KeywordChangeScreen> {
   Future<void> _loadKeywords() async {
     setState(() => _isLoading = true);
     try {
-      final allResult = await KeywordService().fetchTaggedKeywords();
+      final allResult = await KeywordService().fetchAvailableKeywords();
       final selectedResult = await TasteService().fetchMyKeywords();
       final all = allResult.map((keyword) => keyword.name).toList();
       final selected = selectedResult.selectedKeywords
@@ -194,8 +194,8 @@ class _KeywordChangeScreenState extends State<KeywordChangeScreen> {
       _savedKeywords.remove(keyword);
       _isSaving = true;
     });
-
     try {
+      showAppToast(context, "'$keyword' 키워드가 삭제되었습니다.", showIcon: false);
       await TasteService().saveMyKeywords(_selectedKeywords.toList());
       UserPreferenceStore.instance.updateKeywords(_selectedKeywords);
     } catch (error) {

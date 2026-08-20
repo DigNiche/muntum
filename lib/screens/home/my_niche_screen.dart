@@ -184,7 +184,7 @@ class _MyNicheScreenState extends State<MyNicheScreen> {
 
   Future<void> _loadKeywordStatus() async {
     try {
-      final availableKeywordsFuture = KeywordService().fetchTaggedKeywords();
+      final availableKeywordsFuture = KeywordService().fetchAvailableKeywords();
       final selectedKeywordsFuture = TasteService().fetchMyKeywords();
       final availableResult = await availableKeywordsFuture;
       final selectedResult = await selectedKeywordsFuture;
