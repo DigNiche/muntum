@@ -6,9 +6,17 @@ import 'package:muntum/components/button_solid.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/screens/mypage/curator/components/curation_writing_guide_bottom_sheet.dart';
+import 'package:muntum/screens/mypage/curator/curator_application_form_screen.dart';
+import 'package:muntum/screens/mypage/curator/curator_application_history_screen.dart';
+import 'package:muntum/screens/mypage/curator/curator_application_status.dart';
 
 class CuratorApplicationScreen extends StatelessWidget {
-  const CuratorApplicationScreen({super.key});
+  const CuratorApplicationScreen({
+    super.key,
+    this.applicationStatus = CuratorApplicationStatus.pending,
+  });
+
+  final CuratorApplicationStatus applicationStatus;
 
   @override
   Widget build(BuildContext context) {
@@ -89,6 +97,21 @@ class CuratorApplicationScreen extends StatelessWidget {
                         centerType: AppBarCenterType.none,
                         leadingIcon: 'arrow_left.svg',
                         onLeadingTap: () => Navigator.pop(context),
+                        trailing:
+                            applicationStatus ==
+                                CuratorApplicationStatus.notApplied
+                            ? null
+                            : _ApplicationHistoryButton(
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute<void>(
+                                    builder: (_) =>
+                                        CuratorApplicationHistoryScreen(
+                                          status: applicationStatus,
+                                        ),
+                                  ),
+                                ),
+                              ),
                       ),
                     ],
                   ),
@@ -107,14 +130,53 @@ class CuratorApplicationScreen extends StatelessWidget {
             child: SizedBox(
               width: double.infinity,
               child: ButtonSolid(
-                text: '큐레이터 지원하기',
-                textColor: AppColors.white,
-                boxColor: AppColors.black,
-                onTap: () {},
+                text: applicationStatus == CuratorApplicationStatus.pending
+                    ? '지원 심사 진행 중'
+                    : '큐레이터 지원하기',
+                textColor: applicationStatus == CuratorApplicationStatus.pending
+                    ? AppColors.gray400
+                    : AppColors.white,
+                boxColor: applicationStatus == CuratorApplicationStatus.pending
+                    ? AppColors.gray200
+                    : AppColors.black,
+                onTap: applicationStatus == CuratorApplicationStatus.pending
+                    ? null
+                    : () => Navigator.push(
+                        context,
+                        MaterialPageRoute<void>(
+                          builder: (_) => const CuratorApplicationFormScreen(),
+                        ),
+                      ),
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ApplicationHistoryButton extends StatelessWidget {
+  const _ApplicationHistoryButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 7.h),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(8.r),
+          border: Border.all(color: AppColors.gray200),
+        ),
+        child: Text(
+          '지원 내역',
+          style: AppTypography.button3.copyWith(color: AppColors.gray900),
+        ),
       ),
     );
   }

@@ -20,6 +20,7 @@ class AuthState extends ChangeNotifier {
   bool get isLoggedIn => _accessToken?.isNotEmpty == true;
   bool get isAdmin => _role == 'MANAGER';
   bool get isCurator => _role == 'CURATOR';
+  bool get isAudience => _role == 'AUDIENCE';
 
   void update({
     String? accessToken,

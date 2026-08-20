@@ -210,7 +210,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ],
                         ),
 
-                        if (!AuthState.instance.isAdmin) ...[
+                        if (AuthState.instance.isAudience) ...[
                           SizedBox(height: 12.h),
                           _ProfileMenuCard(
                             children: [

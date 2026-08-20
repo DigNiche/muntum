@@ -16,6 +16,11 @@ import 'package:muntum/screens/map/map_clustering.dart';
 import 'package:muntum/screens/mypage/audience/components/report_form_field.dart';
 import 'package:muntum/screens/mypage/audience/report_submit_screen.dart';
 import 'package:muntum/screens/mypage/curator/curator_application_screen.dart';
+import 'package:muntum/screens/mypage/curator/curator_application_complete_screen.dart';
+import 'package:muntum/screens/mypage/curator/curator_application_detail_screen.dart';
+import 'package:muntum/screens/mypage/curator/curator_application_form_screen.dart';
+import 'package:muntum/screens/mypage/curator/curator_application_history_screen.dart';
+import 'package:muntum/screens/mypage/curator/curator_application_status.dart';
 import 'package:muntum/screens/onboarding/sign_up_screens/sign_up.dart';
 import 'package:muntum/services/auth_service.dart';
 import 'package:muntum/screens/program_detail/components/program_information_section.dart';
@@ -98,6 +103,109 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('💡 큐레이션글 작성 가이드'), findsNothing);
+  });
+
+  testWidgets('curator application button opens the writing form', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ScreenUtilPlusInit(
+        designSize: const Size(390, 844),
+        builder: (context, child) =>
+            const MaterialApp(home: CuratorApplicationScreen()),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('큐레이터 지원하기'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CuratorApplicationFormScreen), findsOneWidget);
+    expect(find.text('큐레이터 지원'), findsOneWidget);
+    expect(find.text('프로그램명'), findsOneWidget);
+    expect(find.text('한줄소개'), findsOneWidget);
+    expect(find.text('소개글'), findsOneWidget);
+    expect(find.text('작성 완료'), findsOneWidget);
+
+    await tester.tap(find.text('💡가이드'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('💡 큐레이션글 작성 가이드'), findsOneWidget);
+  });
+
+  testWidgets('completed curator application opens the completion screen', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ScreenUtilPlusInit(
+        designSize: const Size(390, 844),
+        builder: (context, child) =>
+            const MaterialApp(home: CuratorApplicationFormScreen()),
+      ),
+    );
+
+    await tester.tap(find.text('작성 완료'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CuratorApplicationCompleteScreen), findsOneWidget);
+    expect(find.text('지원해 주셔서 감사합니다.'), findsOneWidget);
+    expect(find.text('프로필로 이동'), findsOneWidget);
+  });
+
+  testWidgets('pending curator application opens history and detail', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ScreenUtilPlusInit(
+        designSize: const Size(390, 844),
+        builder: (context, child) => const MaterialApp(
+          home: CuratorApplicationScreen(
+            applicationStatus: CuratorApplicationStatus.pending,
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('지원 심사 진행 중'), findsOneWidget);
+    expect(find.text('지원 내역'), findsOneWidget);
+
+    await tester.tap(find.text('지원 내역'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CuratorApplicationHistoryScreen), findsOneWidget);
+    expect(find.text('심사중'), findsOneWidget);
+
+    await tester.tap(find.text('2026년 한국 근대 거장전'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CuratorApplicationDetailScreen), findsOneWidget);
+    expect(find.text('지원 내용'), findsOneWidget);
+    expect(find.text('한줄소개'), findsOneWidget);
+    expect(find.text('소개글'), findsOneWidget);
+  });
+
+  testWidgets('rejected curator history shows rejection reasons', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ScreenUtilPlusInit(
+        designSize: const Size(390, 844),
+        builder: (context, child) => const MaterialApp(
+          home: CuratorApplicationHistoryScreen(
+            status: CuratorApplicationStatus.rejected,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('미승인'), findsNWidgets(2));
+    expect(find.text('미승인 사유'), findsNWidgets(2));
+    expect(
+      find.text('작성 가이드라인과 맞지 않아 승인되지 않았습니다. 확인 후 재신청해 주세요.'),
+      findsNWidgets(2),
+    );
   });
 
   group('social login contract', () {
