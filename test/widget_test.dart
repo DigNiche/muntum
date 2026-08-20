@@ -13,8 +13,9 @@ import 'package:muntum/models/program_reaction.dart';
 import 'package:muntum/models/report_model.dart';
 import 'package:muntum/screens/home/components/two_row_horizontal_card_carousel.dart';
 import 'package:muntum/screens/map/map_clustering.dart';
-import 'package:muntum/screens/mypage/components/report_form_field.dart';
-import 'package:muntum/screens/mypage/report_submit_screen.dart';
+import 'package:muntum/screens/mypage/audience/components/report_form_field.dart';
+import 'package:muntum/screens/mypage/audience/report_submit_screen.dart';
+import 'package:muntum/screens/mypage/curator/curator_application_screen.dart';
 import 'package:muntum/screens/onboarding/sign_up_screens/sign_up.dart';
 import 'package:muntum/services/auth_service.dart';
 import 'package:muntum/screens/program_detail/components/program_information_section.dart';
@@ -66,6 +67,37 @@ void main() {
 
     expect(find.text('나중에'), findsNothing);
     expect(find.text('지금 업데이트'), findsOneWidget);
+  });
+
+  testWidgets('curator application guide button opens the bottom sheet', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ScreenUtilPlusInit(
+        designSize: const Size(390, 844),
+        builder: (context, child) =>
+            const MaterialApp(home: CuratorApplicationScreen()),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('작성가이드 보기'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('작성가이드 보기'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('💡 큐레이션글 작성 가이드'), findsOneWidget);
+    expect(find.text('프로그램명'), findsOneWidget);
+    expect(find.text('한줄소개'), findsOneWidget);
+    expect(find.text('소개글'), findsOneWidget);
+
+    await tester.tap(find.text('확인'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('💡 큐레이션글 작성 가이드'), findsNothing);
   });
 
   group('social login contract', () {

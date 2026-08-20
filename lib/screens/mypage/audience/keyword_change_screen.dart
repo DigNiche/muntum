@@ -46,12 +46,15 @@ class _KeywordChangeScreenState extends State<KeywordChangeScreen> {
   Future<void> _loadKeywords() async {
     setState(() => _isLoading = true);
     try {
-      final allResult = await KeywordService().fetchAvailableKeywords();
+      final allResult = await KeywordService().fetchTaggedKeywords();
       final selectedResult = await TasteService().fetchMyKeywords();
-      final all = allResult.map((keyword) => keyword.name).toList();
       final selected = selectedResult.selectedKeywords
           .map((keyword) => keyword.name)
           .toList();
+      final all = {
+        ...allResult.map((keyword) => keyword.name),
+        ...selected,
+      }.where((keyword) => keyword.isNotEmpty).toList();
       UserPreferenceStore.instance.updateKeywords(selected);
       if (!mounted) return;
       setState(() {

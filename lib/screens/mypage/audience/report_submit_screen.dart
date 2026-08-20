@@ -5,9 +5,9 @@ import 'package:muntum/components/button_solid.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/models/report_model.dart';
-import 'package:muntum/screens/mypage/components/report_form_field.dart';
-import 'package:muntum/screens/mypage/report_complete_screen.dart';
-import 'package:muntum/screens/mypage/report_place_search_screen.dart';
+import 'package:muntum/screens/mypage/audience/components/report_form_field.dart';
+import 'package:muntum/screens/mypage/audience/report_complete_screen.dart';
+import 'package:muntum/screens/mypage/common/report_place_search_screen.dart';
 import 'package:muntum/services/suggestion_service.dart';
 import 'package:muntum/utils/app_toast.dart';
 

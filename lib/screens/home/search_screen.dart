@@ -66,7 +66,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Future<List<String>> _loadAllKeywords() async {
     try {
-      final keywords = await KeywordService().fetchAvailableKeywords();
+      final keywords = await KeywordService().fetchTaggedKeywords();
       return keywords
           .map((keyword) => keyword.name)
           .where((name) => name.isNotEmpty)

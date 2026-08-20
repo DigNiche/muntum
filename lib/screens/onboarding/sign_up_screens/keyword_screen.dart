@@ -2,15 +2,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
-import 'package:muntum/api/api_exception.dart';
-import 'package:muntum/api/token_store.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/button_solid.dart';
 import 'package:muntum/components/keyword_chip.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/screens/onboarding/sign_up_screens/loading_screen.dart';
-import 'package:muntum/services/auth_service.dart';
 import 'package:muntum/services/keyword_service.dart';
 import 'package:muntum/services/taste_service.dart';
 import 'package:muntum/stores/user_preference_store.dart';
@@ -59,8 +56,7 @@ class _KeywordScreenState extends State<KeywordScreen> {
       _keywordLoadError = null;
     });
     try {
-      await _ensureAuthenticated();
-      final keywords = await KeywordService().fetchAvailableKeywords();
+      final keywords = await KeywordService().fetchTaggedKeywords();
       if (!mounted) return;
       setState(() {
         _availableKeywords = keywords
@@ -75,27 +71,10 @@ class _KeywordScreenState extends State<KeywordScreen> {
       if (!mounted) return;
       setState(() {
         _availableKeywords = const [];
-        _keywordLoadError = switch (error) {
-          ApiException(statusCode: 401) ||
-          ApiException(code: 'A008') => '로그인 정보를 확인하지 못했어요.',
-          _ => '키워드를 불러오지 못했어요.',
-        };
+        _keywordLoadError = '키워드를 불러오지 못했어요.';
       });
     } finally {
       if (mounted) setState(() => _isKeywordLoading = false);
-    }
-  }
-
-  Future<void> _ensureAuthenticated() async {
-    if (TokenStore.instance.accessToken?.isNotEmpty == true) return;
-
-    final session = await AuthService().refresh();
-    if (session == null || session.accessToken.isEmpty) {
-      throw const ApiException(
-        statusCode: 401,
-        code: 'A008',
-        message: '인증이 필요합니다.',
-      );
     }
   }
 
@@ -298,8 +277,10 @@ class _KeywordScreenState extends State<KeywordScreen> {
   }
 
   void _goBackSafely() {
-    if (Navigator.canPop(context)) {
-      Navigator.pop(context);
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.pop();
+      return;
     }
   }
 }

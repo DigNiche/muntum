@@ -8,7 +8,7 @@ class KeywordService {
 
   final ApiClient _client;
 
-  Future<PageResponse<KeywordModel>> fetchKeywords({
+  Future<PageResponse<KeywordModel>> fetchManagementKeywords({
     int page = 0,
     int size = 100,
   }) async {
@@ -23,15 +23,8 @@ class KeywordService {
     ).data;
   }
 
-  Future<List<KeywordModel>> fetchAvailableKeywords({
-    int page = 0,
-    int size = 100,
-  }) async {
-    final response = await _client.get(
-      ApiEndpoints.keywords,
-      authorized: true,
-      queryParameters: {'page': page, 'size': size},
-    );
+  Future<List<KeywordModel>> fetchTaggedKeywords() async {
+    final response = await _client.get(ApiEndpoints.taggedKeywords);
     final data = response['data'];
     if (data is List) {
       return data

@@ -17,7 +17,7 @@ import 'package:muntum/models/program_model.dart';
 import 'package:muntum/screens/home/components/filter_list.dart';
 import 'package:muntum/screens/home/components/my_niche_keyword_cta.dart';
 import 'package:muntum/screens/home/search_screen.dart';
-import 'package:muntum/screens/mypage/keyword_change_screen.dart';
+import 'package:muntum/screens/mypage/audience/keyword_change_screen.dart';
 import 'package:muntum/screens/onboarding/initial_screen.dart';
 import 'package:muntum/services/analytics_service.dart';
 import 'package:muntum/services/auth_service.dart';
@@ -184,7 +184,7 @@ class _MyNicheScreenState extends State<MyNicheScreen> {
 
   Future<void> _loadKeywordStatus() async {
     try {
-      final availableKeywordsFuture = KeywordService().fetchAvailableKeywords();
+      final availableKeywordsFuture = KeywordService().fetchTaggedKeywords();
       final selectedKeywordsFuture = TasteService().fetchMyKeywords();
       final availableResult = await availableKeywordsFuture;
       final selectedResult = await selectedKeywordsFuture;

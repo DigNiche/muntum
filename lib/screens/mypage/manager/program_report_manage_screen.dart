@@ -6,7 +6,7 @@ import 'package:muntum/components/appbar.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/models/report_model.dart';
-import 'package:muntum/screens/mypage/report_detail_screen.dart';
+import 'package:muntum/screens/mypage/common/report_detail_screen.dart';
 import 'package:muntum/services/suggestion_service.dart';
 
 enum _ReportTab {
