@@ -124,7 +124,9 @@ class _GuideSection extends StatelessWidget {
                 ),
                 child: Text(
                   '$number',
-                  style: AppTypography.button3.copyWith(color: AppColors.white),
+                  style: AppTypography.caption1.copyWith(
+                    color: AppColors.white,
+                  ),
                 ),
               ),
               SizedBox(width: 10.w),

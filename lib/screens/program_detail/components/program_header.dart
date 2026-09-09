@@ -14,8 +14,6 @@ class ProgramHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(program.title, style: AppTypography.title1),
-        SizedBox(height: 20.h),
         Wrap(
           spacing: 6.w,
           runSpacing: 8.h,
@@ -26,6 +24,8 @@ class ProgramHeader extends StatelessWidget {
               )
               .toList(),
         ),
+        SizedBox(height: 14.h),
+        Text(program.title, style: AppTypography.title1),
       ],
     );
   }

@@ -336,7 +336,7 @@ class _ApplicationGuideCard extends StatelessWidget {
               ),
               child: Text(
                 '작성가이드 보기',
-                style: AppTypography.button3.copyWith(color: AppColors.gray900),
+                style: AppTypography.button2.copyWith(color: AppColors.gray900),
               ),
             ),
           ),

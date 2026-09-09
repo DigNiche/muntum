@@ -3,7 +3,6 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/api/token_store.dart';
 import 'package:muntum/components/button_solid.dart';
-import 'package:muntum/components/label.dart';
 import 'package:muntum/components/page_header.dart';
 import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
@@ -12,6 +11,8 @@ import 'package:muntum/screens/mypage/audience/keyword_change_screen.dart';
 import 'package:muntum/screens/mypage/audience/report_list_screen.dart';
 import 'package:muntum/screens/mypage/common/announcement_screen.dart';
 import 'package:muntum/screens/mypage/common/components/profile_menu_item.dart';
+import 'package:muntum/screens/mypage/curator/components/curator_welcome_card.dart';
+import 'package:muntum/screens/mypage/curator/written_program_list_page.dart';
 import 'package:muntum/screens/mypage/manager/announcement_manage_screen.dart';
 import 'package:muntum/screens/mypage/manager/curator_application_manage_screen.dart';
 import 'package:muntum/screens/mypage/manager/program_manage_screen.dart';
@@ -26,6 +27,7 @@ import 'package:muntum/screens/onboarding/initial_screen.dart';
 import 'package:muntum/services/taste_service.dart';
 import 'package:muntum/stores/auth_state.dart';
 import 'package:muntum/stores/user_preference_store.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -38,6 +40,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late Future<String?> _nicknameFuture;
   late Future<int> _keywordCountFuture;
   late Future<bool> _isLoggedInFuture;
+  late Future<bool> _showCuratorWelcomeFuture;
   bool _profileDataLoaded = false;
 
   @override
@@ -47,6 +50,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _isLoggedInFuture = _loadIsLoggedIn();
     _nicknameFuture = Future<String?>.value();
     _keywordCountFuture = Future<int>.value(0);
+    _showCuratorWelcomeFuture = Future<bool>.value(false);
   }
 
   @override
@@ -77,6 +81,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _profileDataLoaded = true;
     _nicknameFuture = _loadNickname();
     _keywordCountFuture = _loadKeywordCount();
+    _showCuratorWelcomeFuture = _loadShouldShowCuratorWelcome();
+  }
+
+  String get _curatorWelcomePreferenceKey =>
+      'curator_welcome_dismissed_${AuthState.instance.userId ?? 'current'}';
+
+  Future<bool> _loadShouldShowCuratorWelcome() async {
+    if (!AuthState.instance.isCurator) return false;
+    final preferences = await SharedPreferences.getInstance();
+    return !(preferences.getBool(_curatorWelcomePreferenceKey) ?? false);
+  }
+
+  Future<void> _dismissCuratorWelcome() async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setBool(_curatorWelcomePreferenceKey, true);
+    if (!mounted) return;
+    setState(() => _showCuratorWelcomeFuture = Future<bool>.value(false));
   }
 
   Future<void> _openKeywordScreen() async {
@@ -139,6 +160,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: Column(
                       children: [
                         _ProfileIdentity(nicknameFuture: _nicknameFuture),
+                        if (AuthState.instance.isCurator)
+                          FutureBuilder<bool>(
+                            future: _showCuratorWelcomeFuture,
+                            builder: (context, visibilitySnapshot) {
+                              if (visibilitySnapshot.data != true) {
+                                return const SizedBox.shrink();
+                              }
+                              return FutureBuilder<String?>(
+                                future: _nicknameFuture,
+                                builder: (context, nicknameSnapshot) =>
+                                    CuratorWelcomeCard(
+                                      nickname:
+                                          nicknameSnapshot.data ?? '문화발굴단',
+                                      onClose: _dismissCuratorWelcome,
+                                      onTapAction: () => pushToScreen(
+                                        context,
+                                        const WrittenProgramList(),
+                                      ),
+                                    ),
+                              );
+                            },
+                          ),
                         SizedBox(height: 12.h),
                         _ProfileMenuCard(
                           children: [
@@ -229,6 +272,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           SizedBox(height: 12.h),
                           const _AdminMenuSection(),
                         ],
+                        if (AuthState.instance.isCurator) ...[
+                          SizedBox(height: 12.h),
+                          _CuratorMenuSection(),
+                        ],
                       ],
                     ),
                   ),
@@ -252,36 +299,45 @@ class _ProfileIdentity extends StatelessWidget {
       padding: EdgeInsets.symmetric(vertical: 16.h),
       child: Row(
         children: [
-          SvgPicture.asset(
-            'assets/profile_image.svg',
-            width: 56.r,
-            height: 56.r,
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              SvgPicture.asset(
+                'assets/profile_image.svg',
+                width: 56.r,
+                height: 56.r,
+              ),
+              if (AuthState.instance.isCurator)
+                Positioned(
+                  right: -2.r,
+                  bottom: -2.r,
+                  child: SvgPicture.asset(
+                    'assets/icons/curator_badge.svg',
+                    width: 20.r,
+                    height: 20.r,
+                  ),
+                ),
+              if (AuthState.instance.isAdmin)
+                Positioned(
+                  right: -2.r,
+                  bottom: -2.r,
+                  child: SvgPicture.asset(
+                    'assets/icons/manager_badge.svg',
+                    width: 20.r,
+                    height: 20.r,
+                  ),
+                ),
+            ],
           ),
           SizedBox(width: 16.w),
           Expanded(
             child: FutureBuilder<String?>(
               future: nicknameFuture,
-              builder: (context, snapshot) => Row(
-                children: [
-                  Flexible(
-                    child: Text(
-                      snapshot.data ?? '문화발굴단',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.title4.copyWith(
-                        color: AppColors.gray900,
-                      ),
-                    ),
-                  ),
-                  if (AuthState.instance.isAdmin)
-                    Padding(
-                      padding: EdgeInsets.only(left: 6.w),
-                      child: const Label(
-                        labelType: LabelType.admin,
-                        text: '관리자',
-                      ),
-                    ),
-                ],
+              builder: (context, snapshot) => Text(
+                snapshot.data ?? '문화발굴단',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.title4.copyWith(color: AppColors.gray900),
               ),
             ),
           ),
@@ -377,7 +433,7 @@ class _AdminMenuSection extends StatelessWidget {
             Padding(
               padding: EdgeInsets.only(top: 20.h, bottom: 10.h),
               child: Text(
-                '관리자 메뉴',
+                '운영 센터',
                 style: AppTypography.headline2.copyWith(
                   color: AppColors.gray500,
                 ),
@@ -405,6 +461,40 @@ class _AdminMenuSection extends StatelessWidget {
               showDivider: false,
               onTap: () =>
                   pushToScreen(context, CuratorApplicationManageScreen()),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _CuratorMenuSection extends StatelessWidget {
+  const _CuratorMenuSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _ProfileMenuCard(
+          children: [
+            Padding(
+              padding: EdgeInsets.only(top: 20.h, bottom: 10.h),
+              child: Text(
+                '큐레이터 라운지',
+                style: AppTypography.headline2.copyWith(
+                  color: AppColors.gray500,
+                ),
+              ),
+            ),
+            ProfileMenuItem(
+              text: '프로그램 작성하기',
+              onTap: () => pushToScreen(context, WrittenProgramList()),
+            ),
+            ProfileMenuItem(
+              text: '프로그램 작성내용',
+              onTap: () => pushToScreen(context, WrittenProgramList()),
             ),
           ],
         ),
