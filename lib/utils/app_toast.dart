@@ -51,7 +51,9 @@ void showAppToast(
                   message,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTypography.button3.copyWith(color: AppColors.white),
+                  style: AppTypography.headline3.copyWith(
+                    color: AppColors.white,
+                  ),
                 ),
               ),
             ],

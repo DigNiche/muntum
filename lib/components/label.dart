@@ -7,10 +7,10 @@ enum LabelType { admin, keyword, etc }
 
 class Label extends StatelessWidget {
   final LabelType labelType;
-  final Color textKeywordColor = AppColors.white;
+  final Color textKeywordColor = AppColors.gray800;
   final Color textAdminColor = AppColors.gray600;
   final Color textETCColor = AppColors.white;
-  final Color backKeywordColor = AppColors.black;
+  final Color backKeywordColor = AppColors.gray200;
   final Color backAdminColor = AppColors.gray200;
   final Color backETCColor = AppColors.gray900;
   final String text;

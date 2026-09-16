@@ -25,33 +25,42 @@ class ProgramInformationSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      spacing: 6.h,
+      spacing: 4.h,
       children: [
         _LocationDescription(
           program: program,
           onTap: onTapLocation,
           onLongPress: onLongPressAddress,
         ),
+        Divider(color: AppColors.lineNormal, thickness: 1.sp),
         _ProgramDescription(
           title: '기간',
           body: program.detailDateText,
           bodyTrailing: program.isEnded ? const ProgramEndedBadge() : null,
         ),
+        Divider(color: AppColors.lineNormal, thickness: 1.sp),
         _ProgramDescription(title: '시간', body: program.availableTime),
+        Divider(color: AppColors.lineNormal, thickness: 1.sp),
         _ProgramDescription(title: '가격', body: program.cost),
+        Divider(color: AppColors.lineNormal, thickness: 1.sp),
         _ProgramDescription(
           title: '사전예약',
           body: program.isReservationNeeded ? '필요' : '불필요',
         ),
+        Divider(color: AppColors.lineNormal, thickness: 1.sp),
         _ProgramRelatedInfoDescription(
           title: '관련정보',
           body: program.phoneNumber,
           onTapContact: onTapContact,
         ),
-        _ProgramDescription(
-          title: '링크',
-          body: program.link.isEmpty ? '' : '바로가기',
-          onTap: program.link.isEmpty ? null : onTapWebsite,
+        Divider(color: AppColors.lineNormal, thickness: 1.sp),
+        _ProgramLinkDescription(
+          link: program.link,
+          onTap: onTapWebsite,
+          linkWidget: SvgPicture.asset(
+            'assets/icons/captive_portal.svg',
+            color: AppColors.black,
+          ),
         ),
       ],
     );
@@ -133,26 +142,62 @@ class _LocationDescription extends StatelessWidget {
   }
 }
 
+class _ProgramLinkDescription extends StatelessWidget {
+  final Widget linkWidget;
+  final String link;
+  final VoidCallback? onTap;
+  const _ProgramLinkDescription({
+    required this.linkWidget,
+    required this.link,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 70.w,
+          child: Text(
+            '링크',
+            style: AppTypography.button2.copyWith(color: AppColors.gray900),
+          ),
+        ),
+        SizedBox(width: 20.w),
+        GestureDetector(
+          onTap: onTap,
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            padding: EdgeInsets.all(8.r),
+            width: 32.r,
+            height: 32.r,
+            decoration: BoxDecoration(
+              color: AppColors.gray200,
+              borderRadius: BorderRadius.circular(99),
+            ),
+            child: linkWidget,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _ProgramDescription extends StatelessWidget {
   final String title;
   final String body;
-  final VoidCallback? onTap;
   final Widget? bodyTrailing;
 
   const _ProgramDescription({
     required this.title,
     required this.body,
-    this.onTap,
     this.bodyTrailing,
   });
 
   @override
   Widget build(BuildContext context) {
     final displayBody = body.trim().isEmpty ? '정보 없음' : body.trim();
-    final bodyStyle = AppTypography.body1.copyWith(
-      color: AppColors.gray900,
-      decoration: onTap == null ? null : TextDecoration.underline,
-    );
+    final bodyStyle = AppTypography.body1.copyWith(color: AppColors.gray900);
 
     return Row(
       crossAxisAlignment: displayBody.contains('\n')
@@ -171,21 +216,17 @@ class _ProgramDescription extends StatelessWidget {
         ),
         SizedBox(width: 20.w),
         Expanded(
-          child: GestureDetector(
-            onTap: onTap,
-            behavior: HitTestBehavior.opaque,
-            child: bodyTrailing == null
-                ? Text(displayBody, style: bodyStyle, softWrap: true)
-                : Wrap(
-                    spacing: 6.w,
-                    runSpacing: 2.h,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      Text(displayBody, style: bodyStyle, softWrap: true),
-                      bodyTrailing!,
-                    ],
-                  ),
-          ),
+          child: bodyTrailing == null
+              ? Text(displayBody, style: bodyStyle, softWrap: true)
+              : Wrap(
+                  spacing: 6.w,
+                  runSpacing: 2.h,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(displayBody, style: bodyStyle, softWrap: true),
+                    bodyTrailing!,
+                  ],
+                ),
         ),
       ],
     );

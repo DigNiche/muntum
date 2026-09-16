@@ -9,7 +9,7 @@ import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/models/program_model.dart';
 import 'package:muntum/screens/map/map_program_coordinates.dart';
-import 'package:muntum/screens/mypage/report_submit_screen.dart';
+import 'package:muntum/screens/mypage/audience/report_submit_screen.dart';
 import 'package:muntum/screens/navigation/main_navigation_screen.dart';
 import 'package:muntum/screens/program_detail/components/program_attendance_prompt.dart';
 import 'package:muntum/screens/program_detail/components/program_detail_app_bar.dart';
@@ -196,18 +196,17 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            SizedBox(height: 10.h),
-                            ProgramHeader(
-                              key: _programHeaderKey,
-                              program: program,
-                            ),
-                            SizedBox(height: 16.h),
                             Center(
                               child: ProgramPosterCarousel(
                                 images: program.images,
                               ),
                             ),
-                            SizedBox(height: 56.h),
+                            SizedBox(height: 28.h),
+                            ProgramHeader(
+                              key: _programHeaderKey,
+                              program: program,
+                            ),
+                            SizedBox(height: 28.h),
                             ProgramInformationSection(
                               program: program,
                               onTapLocation: program.hasMapCoordinates
@@ -231,7 +230,7 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                                       linkType: 'website',
                                     ),
                             ),
-                            SizedBox(height: 56.h),
+                            SizedBox(height: 40.h),
                             Text(
                               program.oneLineDescription,
                               style: AppTypography.title3.copyWith(
@@ -253,7 +252,6 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                               },
                             ),
                             SizedBox(height: 40.h),
-
                             FutureBuilder<bool>(
                               future: _isLoggedInFuture,
                               builder: (context, snapshot) {

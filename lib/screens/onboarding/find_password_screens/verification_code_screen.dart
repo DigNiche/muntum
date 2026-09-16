@@ -9,7 +9,7 @@ import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/button_solid.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
-import 'package:muntum/screens/mypage/profile_screen.dart';
+import 'package:muntum/screens/mypage/common/profile_screen.dart';
 import 'package:muntum/screens/onboarding/find_password_screens/reset_password_screen.dart';
 import 'package:muntum/screens/onboarding/components/text_field_widget.dart';
 import 'package:muntum/services/auth_service.dart';

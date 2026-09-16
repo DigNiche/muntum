@@ -12,7 +12,7 @@ import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/models/program_model.dart';
 import 'package:muntum/models/report_model.dart';
-import 'package:muntum/screens/mypage/report_place_search_screen.dart';
+import 'package:muntum/screens/mypage/common/report_place_search_screen.dart';
 import 'package:muntum/services/keyword_service.dart';
 import 'package:muntum/services/program_service.dart';
 import 'package:muntum/utils/app_toast.dart';
@@ -808,7 +808,7 @@ class _KeywordPickerSheetState extends State<_KeywordPickerSheet> {
   bool _limitToastVisible = false;
 
   Future<List<String>> _loadKeywords() async {
-    final keywords = await KeywordService().fetchTaggedKeywords();
+    final keywords = (await KeywordService().fetchManagementKeywords()).content;
     final names = keywords
         .where((keyword) => keyword.active && keyword.name.trim().isNotEmpty)
         .map((keyword) => keyword.name.trim())

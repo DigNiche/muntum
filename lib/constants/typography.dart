@@ -65,6 +65,13 @@ class AppTypography {
   );
 
   static final headline2 = _style(
+    fontSize: 15.sp,
+    lineHeight: 1.4,
+    letterSpacingPercent: -1.5,
+    fontWeight: FontWeight.w600,
+  );
+
+  static final headline3 = _style(
     fontSize: 14.sp,
     lineHeight: 1.4,
     letterSpacingPercent: -1.5,

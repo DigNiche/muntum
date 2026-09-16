@@ -10,7 +10,7 @@ class PageHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 20.h, horizontal: 20.h),
+      padding: EdgeInsets.symmetric(vertical: 16.5.h, horizontal: 20.h),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [title, icon],
