@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
@@ -24,6 +25,7 @@ class _KeywordScreenState extends State<KeywordScreen> {
   List<String> _availableKeywords = const [];
   bool _isLoading = false;
   bool _isKeywordLoading = true;
+  String? _keywordLoadError;
   static const int _minimumSelectionCount = 3;
   int get _maximumSelectionCount => _availableKeywords.isEmpty
       ? _minimumSelectionCount
@@ -49,7 +51,10 @@ class _KeywordScreenState extends State<KeywordScreen> {
   }
 
   Future<void> _loadAvailableKeywords() async {
-    setState(() => _isKeywordLoading = true);
+    setState(() {
+      _isKeywordLoading = true;
+      _keywordLoadError = null;
+    });
     try {
       final keywords = await KeywordService().fetchTaggedKeywords();
       if (!mounted) return;
@@ -59,9 +64,15 @@ class _KeywordScreenState extends State<KeywordScreen> {
             .where((name) => name.isNotEmpty)
             .toList();
       });
-    } catch (_) {
+    } catch (error) {
+      if (kDebugMode) {
+        debugPrint('Keyword onboarding load failed: $error');
+      }
       if (!mounted) return;
-      setState(() => _availableKeywords = const []);
+      setState(() {
+        _availableKeywords = const [];
+        _keywordLoadError = '키워드를 불러오지 못했어요.';
+      });
     } finally {
       if (mounted) setState(() => _isKeywordLoading = false);
     }
@@ -162,6 +173,11 @@ class _KeywordScreenState extends State<KeywordScreen> {
                                   color: AppColors.gray900,
                                 ),
                               )
+                            : _keywordLoadError != null
+                            ? _KeywordLoadError(
+                                message: _keywordLoadError!,
+                                onRetry: _loadAvailableKeywords,
+                              )
                             : SingleChildScrollView(
                                 padding: EdgeInsets.only(bottom: 20.h),
                                 child: Center(
@@ -261,8 +277,46 @@ class _KeywordScreenState extends State<KeywordScreen> {
   }
 
   void _goBackSafely() {
-    if (Navigator.canPop(context)) {
-      Navigator.pop(context);
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.pop();
+      return;
     }
+  }
+}
+
+class _KeywordLoadError extends StatelessWidget {
+  const _KeywordLoadError({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            message,
+            style: AppTypography.body2.copyWith(color: AppColors.gray400),
+          ),
+          SizedBox(height: 12.h),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onRetry,
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+              child: Text(
+                '다시 시도',
+                style: AppTypography.button2.copyWith(
+                  color: AppColors.primary400,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

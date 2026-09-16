@@ -8,7 +8,7 @@ class KeywordService {
 
   final ApiClient _client;
 
-  Future<PageResponse<KeywordModel>> fetchKeywords({
+  Future<PageResponse<KeywordModel>> fetchManagementKeywords({
     int page = 0,
     int size = 100,
   }) async {

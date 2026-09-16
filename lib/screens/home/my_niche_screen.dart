@@ -17,7 +17,7 @@ import 'package:muntum/models/program_model.dart';
 import 'package:muntum/screens/home/components/filter_list.dart';
 import 'package:muntum/screens/home/components/my_niche_keyword_cta.dart';
 import 'package:muntum/screens/home/search_screen.dart';
-import 'package:muntum/screens/mypage/keyword_change_screen.dart';
+import 'package:muntum/screens/mypage/audience/keyword_change_screen.dart';
 import 'package:muntum/screens/onboarding/initial_screen.dart';
 import 'package:muntum/services/analytics_service.dart';
 import 'package:muntum/services/auth_service.dart';
@@ -549,14 +549,27 @@ class _MyNicheScreenState extends State<MyNicheScreen> {
     }
     if (_programs.isEmpty) return _buildEmptyPrograms();
 
-    return Column(
-      children: [
-        SizedBox(height: 12.h),
-        SizedBox(height: _carouselHeight.h, child: _buildCarousel()),
-        SizedBox(height: 6.h),
-        _buildProgramProgress(),
-        SizedBox(height: 30.h),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.topCenter,
+          clipBehavior: Clip.hardEdge,
+          child: SizedBox(
+            width: constraints.maxWidth,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(height: 12.h),
+                SizedBox(height: _carouselHeight.h, child: _buildCarousel()),
+                SizedBox(height: 6.h),
+                _buildProgramProgress(),
+                SizedBox(height: 30.h),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

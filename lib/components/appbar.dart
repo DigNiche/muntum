@@ -8,7 +8,7 @@ import 'package:muntum/screens/home/components/searchbar.dart';
 enum AppBarCenterType { text, searchbar, none }
 
 class AppBarWidget extends StatelessWidget {
-  final String leadingIcon;
+  final String? leadingIcon;
   final Widget? trailing;
   final AppBarCenterType centerType;
   final String center;
@@ -26,7 +26,7 @@ class AppBarWidget extends StatelessWidget {
     super.key,
     this.trailing,
     required this.centerType,
-    required this.leadingIcon,
+    this.leadingIcon,
     this.center = '',
     this.onLeadingTap,
     this.searchController,
@@ -51,7 +51,7 @@ class AppBarWidget extends StatelessWidget {
           Positioned.fill(
             child: isSearchBar ? _buildSearchLayout() : _buildStandardLayout(),
           ),
-          if (onLeadingTap != null)
+          if (leadingIcon != null && onLeadingTap != null)
             Positioned(
               left: -20.w,
               top: -6.h,
@@ -104,6 +104,10 @@ class AppBarWidget extends StatelessWidget {
   }
 
   Widget _buildLeading() {
+    if (leadingIcon == null) {
+      return SizedBox(width: 24.w, height: 24.h);
+    }
+
     return SizedBox(
       width: 24.w,
       height: 24.h,

@@ -8,7 +8,7 @@ import 'package:muntum/api/token_store.dart';
 import 'package:muntum/components/button_solid.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
-import 'package:muntum/screens/mypage/terms_detail_screen.dart';
+import 'package:muntum/screens/mypage/common/terms_detail_screen.dart';
 import 'package:muntum/screens/navigation/main_navigation_screen.dart';
 import 'package:muntum/screens/onboarding/login_screen.dart';
 import 'package:muntum/screens/onboarding/sign_up_screens/keyword_screen.dart';

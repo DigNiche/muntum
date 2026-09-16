@@ -4,7 +4,7 @@ import 'package:muntum/components/appbar.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/models/announcement_model.dart';
-import 'package:muntum/screens/mypage/announcement_detail_screen.dart';
+import 'package:muntum/screens/mypage/common/announcement_detail_screen.dart';
 import 'package:muntum/services/announcement_service.dart';
 
 class AnnouncementScreen extends StatefulWidget {

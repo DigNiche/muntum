@@ -12,9 +12,9 @@ import 'package:muntum/screens/bookmark/bookmark_screen.dart';
 import 'package:muntum/screens/home/entire_screen.dart';
 import 'package:muntum/screens/home/my_niche_screen.dart';
 import 'package:muntum/screens/map/map_screen.dart';
-import 'package:muntum/screens/mypage/profile_screen.dart';
-import 'package:muntum/screens/mypage/report_detail_screen.dart';
-import 'package:muntum/screens/mypage/reportlist_screen.dart';
+import 'package:muntum/screens/mypage/audience/report_list_screen.dart';
+import 'package:muntum/screens/mypage/common/profile_screen.dart';
+import 'package:muntum/screens/mypage/common/report_detail_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   final int initialIndex;
@@ -140,7 +140,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                   ),
                   NavTab(
                     icon: 'scrap-filled.svg',
-                    text: '스크랩',
+                    text: '보관함',
                     isActive: _selectedIndex == 3,
                     useDarkTheme: useDarkTheme,
                     onTap: () => _onTabTap(3),

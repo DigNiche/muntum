@@ -4,7 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
-import 'package:muntum/screens/mypage/terms_detail_screen.dart';
+import 'package:muntum/screens/mypage/common/terms_detail_screen.dart';
 
 class TermsScreen extends StatelessWidget {
   const TermsScreen({super.key});

@@ -3,7 +3,7 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/constants/colors.dart';
-import 'package:muntum/screens/mypage/components/profile_menu_item.dart';
+import 'package:muntum/screens/mypage/common/components/profile_menu_item.dart';
 import 'package:muntum/services/user_service.dart';
 import 'package:muntum/utils/app_toast.dart';
 
