@@ -549,14 +549,27 @@ class _MyNicheScreenState extends State<MyNicheScreen> {
     }
     if (_programs.isEmpty) return _buildEmptyPrograms();
 
-    return Column(
-      children: [
-        SizedBox(height: 12.h),
-        SizedBox(height: _carouselHeight.h, child: _buildCarousel()),
-        SizedBox(height: 6.h),
-        _buildProgramProgress(),
-        SizedBox(height: 30.h),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.topCenter,
+          clipBehavior: Clip.hardEdge,
+          child: SizedBox(
+            width: constraints.maxWidth,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(height: 12.h),
+                SizedBox(height: _carouselHeight.h, child: _buildCarousel()),
+                SizedBox(height: 6.h),
+                _buildProgramProgress(),
+                SizedBox(height: 30.h),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

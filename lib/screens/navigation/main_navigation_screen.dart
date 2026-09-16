@@ -140,7 +140,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                   ),
                   NavTab(
                     icon: 'scrap-filled.svg',
-                    text: '스크랩',
+                    text: '보관함',
                     isActive: _selectedIndex == 3,
                     useDarkTheme: useDarkTheme,
                     onTap: () => _onTabTap(3),

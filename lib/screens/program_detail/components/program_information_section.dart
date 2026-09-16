@@ -27,6 +27,7 @@ class ProgramInformationSection extends StatelessWidget {
     return Column(
       spacing: 4.h,
       children: [
+        SizedBox(height: 12.h),
         _LocationDescription(
           program: program,
           onTap: onTapLocation,

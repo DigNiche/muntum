@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:lottie/lottie.dart';
 import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
@@ -53,13 +54,14 @@ class CuratorWelcomeCard extends StatelessWidget {
               ),
             ),
           ),
-          SizedBox(height: 4.h),
-          SvgPicture.asset(
-            'assets/icons/curator_badge.svg',
-            width: 56.r,
-            height: 56.r,
+          Lottie.asset(
+            'assets/lottie/curator_celebration.lottie',
+            repeat: false,
+            width: 240.w,
+            height: 110.h,
+            fit: BoxFit.contain,
           ),
-          SizedBox(height: 24.h),
+          SizedBox(height: 8.h),
           Text(
             '$nickname님,\n큐레이터가 되신 것을 축하합니다!',
             textAlign: TextAlign.center,

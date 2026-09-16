@@ -26,6 +26,10 @@ void main() {
     );
 
     expect(find.text('문화발굴단님,\n큐레이터가 되신 것을 축하합니다!'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('curator-welcome-celebration')),
+      findsOneWidget,
+    );
 
     await tester.tap(find.byKey(const ValueKey('curator-welcome-close')));
     expect(didClose, isTrue);

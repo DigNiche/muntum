@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/api/token_store.dart';
+import 'package:muntum/components/app_color_transition.dart';
 import 'package:muntum/components/button_solid.dart';
 import 'package:muntum/components/cards/vertical_card.dart';
 import 'package:muntum/components/page_header.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/models/program_model.dart';
+import 'package:muntum/screens/bookmark/components/went_to_records_view.dart';
 import 'package:muntum/screens/home/components/section_header.dart';
 import 'package:muntum/screens/onboarding/initial_screen.dart';
 import 'package:muntum/services/scrap_service.dart';
@@ -24,6 +26,8 @@ class BookmarkScreen extends StatefulWidget {
 }
 
 class _BookmarkScreenState extends State<BookmarkScreen> {
+  _BookmarkSection _selectedSection = _BookmarkSection.scraps;
+  bool _hasOpenedWentToRecords = false;
   late Future<bool> _isLoggedInFuture;
   final ScrollController _scrollController = ScrollController();
   final List<ProgramModel> _programs = [];
@@ -142,11 +146,24 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
           SizedBox(height: 50.h),
           PageHeader(
             title: Text(
-              '스크랩',
+              '보관함',
               style: AppTypography.title2.copyWith(color: AppColors.black),
             ),
             icon: const SizedBox.shrink(),
           ),
+          _BookmarkTabs(
+            selectedSection: _selectedSection,
+            onChanged: (section) {
+              if (_selectedSection == section) return;
+              setState(() {
+                _selectedSection = section;
+                if (section == _BookmarkSection.wentToRecords) {
+                  _hasOpenedWentToRecords = true;
+                }
+              });
+            },
+          ),
+          SizedBox(height: 14.h),
           Expanded(
             child: FutureBuilder<bool>(
               future: _isLoggedInFuture,
@@ -165,18 +182,114 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
                     child: CircularProgressIndicator(color: AppColors.gray900),
                   );
                 }
-                return _programs.isEmpty
-                    ? const _EmptyBookmarkView()
-                    : _BookmarkGrid(
-                        programs: _programs,
-                        totalElements: _totalElements,
-                        controller: _scrollController,
-                        isLoading: _isLoading,
-                      );
+                return IndexedStack(
+                  index: _selectedSection.index,
+                  children: [
+                    _programs.isEmpty
+                        ? const _EmptyBookmarkView()
+                        : _BookmarkGrid(
+                            programs: _programs,
+                            totalElements: _totalElements,
+                            controller: _scrollController,
+                            isLoading: _isLoading,
+                          ),
+                    _hasOpenedWentToRecords
+                        ? WentToRecordsView(
+                            isActive:
+                                widget.isActive &&
+                                _selectedSection ==
+                                    _BookmarkSection.wentToRecords,
+                          )
+                        : const SizedBox.shrink(),
+                  ],
+                );
               },
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+enum _BookmarkSection { scraps, wentToRecords }
+
+class _BookmarkTabs extends StatelessWidget {
+  final _BookmarkSection selectedSection;
+  final ValueChanged<_BookmarkSection> onChanged;
+
+  const _BookmarkTabs({required this.selectedSection, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: AppColors.lineNormal)),
+      ),
+      child: Row(
+        children: [
+          SizedBox(width: 20.w),
+          _BookmarkTab(
+            text: '스크랩',
+            isSelected: selectedSection == _BookmarkSection.scraps,
+            onTap: () => onChanged(_BookmarkSection.scraps),
+          ),
+          SizedBox(width: 12.w),
+          _BookmarkTab(
+            text: '다녀온 기록',
+            isSelected: selectedSection == _BookmarkSection.wentToRecords,
+            onTap: () => onChanged(_BookmarkSection.wentToRecords),
+          ),
+          SizedBox(width: 20.w),
+        ],
+      ),
+    );
+  }
+}
+
+class _BookmarkTab extends StatelessWidget {
+  final String text;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _BookmarkTab({
+    required this.text,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: AppColorTransition(
+          color: isSelected ? AppColors.gray900 : AppColors.gray500,
+          builder: (context, textColor, _) {
+            return AppColorTransition(
+              color: isSelected ? AppColors.gray900 : AppColors.lineNormal,
+              builder: (context, lineColor, _) {
+                return Container(
+                  height: 48.h,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(
+                        color: lineColor,
+                        width: isSelected ? 2.h : 1.h,
+                      ),
+                    ),
+                  ),
+                  child: Text(
+                    text,
+                    style: AppTypography.button2.copyWith(color: textColor),
+                  ),
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }
