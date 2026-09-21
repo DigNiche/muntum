@@ -6,6 +6,7 @@ class AdminUserModel {
   final int keywordCount;
   final int suggestionCount;
   final int scrapCount;
+  final String? profileImageUrl;
   final DateTime? joinedAt;
 
   const AdminUserModel({
@@ -16,6 +17,7 @@ class AdminUserModel {
     required this.keywordCount,
     required this.suggestionCount,
     required this.scrapCount,
+    required this.profileImageUrl,
     required this.joinedAt,
   });
 
@@ -28,8 +30,14 @@ class AdminUserModel {
       keywordCount: (json['keywordCount'] as num? ?? 0).toInt(),
       suggestionCount: (json['suggestionCount'] as num? ?? 0).toInt(),
       scrapCount: (json['scrapCount'] as num? ?? 0).toInt(),
+      profileImageUrl: _nullableUrl(json['profileImageUrl']),
       joinedAt: DateTime.tryParse(json['joinedAt']?.toString() ?? ''),
     );
+  }
+
+  static String? _nullableUrl(Object? value) {
+    final url = value?.toString().trim();
+    return url == null || url.isEmpty ? null : url;
   }
 
   String get displayName {

@@ -269,10 +269,26 @@ class _UserListItem extends StatelessWidget {
         children: [
           Row(
             children: [
-              SizedBox(
-                width: 39.r,
-                height: 39.r,
-                child: SvgPicture.asset('assets/profile_image.svg'),
+              ClipOval(
+                child: user.profileImageUrl == null
+                    ? Image.asset(
+                        'assets/default_profile_img.jpg',
+                        width: 39.r,
+                        height: 39.r,
+                        fit: BoxFit.cover,
+                      )
+                    : Image.network(
+                        user.profileImageUrl!,
+                        width: 39.r,
+                        height: 39.r,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => Image.asset(
+                          'assets/default_profile_img.jpg',
+                          width: 39.r,
+                          height: 39.r,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
               ),
               SizedBox(width: 11.w),
               Expanded(

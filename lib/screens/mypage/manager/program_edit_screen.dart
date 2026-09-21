@@ -16,6 +16,7 @@ import 'package:muntum/screens/mypage/common/report_place_search_screen.dart';
 import 'package:muntum/services/keyword_service.dart';
 import 'package:muntum/services/program_service.dart';
 import 'package:muntum/utils/app_toast.dart';
+import 'package:muntum/utils/image_upload_format.dart';
 
 class ProgramEditScreen extends StatefulWidget {
   const ProgramEditScreen({super.key, this.program, this.initialReport});
@@ -51,6 +52,7 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
   late final List<_ProgramImageItem> _images;
   bool _imagesChanged = false;
   bool _isSaving = false;
+  final Set<String> _temporaryImagePaths = {};
 
   bool get _isCreating => widget.program == null;
 
@@ -133,6 +135,9 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
 
   @override
   void dispose() {
+    for (final path in _temporaryImagePaths) {
+      File(path).delete().ignore();
+    }
     _titleController.dispose();
     _taglineController.dispose();
     _curationController.dispose();
@@ -158,10 +163,27 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
     }
     final selected = await _imagePicker.pickMultiImage(imageQuality: 88);
     if (!mounted || selected.isEmpty) return;
+    final imagesToAdd = <_ProgramImageItem>[];
+    var unsupportedCount = 0;
+    for (final image in selected.take(remaining)) {
+      try {
+        final prepared = await prepareImageForUpload(image.path);
+        if (prepared.isTemporary) {
+          _temporaryImagePaths.add(prepared.path);
+        }
+        imagesToAdd.add(_ProgramImageItem.local(XFile(prepared.path)));
+      } catch (_) {
+        unsupportedCount++;
+      }
+    }
+    if (!mounted) return;
     setState(() {
-      _images.addAll(selected.take(remaining).map(_ProgramImageItem.local));
-      _imagesChanged = true;
+      _images.addAll(imagesToAdd);
+      _imagesChanged = imagesToAdd.isNotEmpty || _imagesChanged;
     });
+    if (unsupportedCount > 0 && mounted) {
+      showAppToast(context, supportedUploadImageMessage, isError: true);
+    }
   }
 
   void _removeImage(int index) {
@@ -170,7 +192,11 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
       return;
     }
     setState(() {
-      _images.removeAt(index);
+      final removed = _images.removeAt(index);
+      final path = removed.localFile?.path;
+      if (path != null && _temporaryImagePaths.remove(path)) {
+        File(path).delete().ignore();
+      }
       _imagesChanged = true;
     });
   }
@@ -335,7 +361,7 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
     final path = Uri.tryParse(url)?.path.toLowerCase() ?? '';
     if (path.endsWith('.png')) return 'png';
     if (path.endsWith('.webp')) return 'webp';
-    if (path.endsWith('.heic')) return 'heic';
+    if (path.endsWith('.heic') || path.endsWith('.heif')) return 'heic';
     return 'jpg';
   }
 

@@ -9,14 +9,80 @@ import 'package:muntum/screens/mypage/curator/components/curation_writing_guide_
 import 'package:muntum/screens/mypage/curator/curator_application_form_screen.dart';
 import 'package:muntum/screens/mypage/curator/curator_application_history_screen.dart';
 import 'package:muntum/screens/mypage/curator/curator_application_status.dart';
+import 'package:muntum/api/api_exception.dart';
+import 'package:muntum/models/curator_application_model.dart';
+import 'package:muntum/services/curator_application_service.dart';
 
-class CuratorApplicationScreen extends StatelessWidget {
-  const CuratorApplicationScreen({
-    super.key,
-    this.applicationStatus = CuratorApplicationStatus.pending,
-  });
+class CuratorApplicationScreen extends StatefulWidget {
+  const CuratorApplicationScreen({super.key, this.service});
 
-  final CuratorApplicationStatus applicationStatus;
+  final CuratorApplicationService? service;
+
+  @override
+  State<CuratorApplicationScreen> createState() =>
+      _CuratorApplicationScreenState();
+}
+
+class _CuratorApplicationScreenState extends State<CuratorApplicationScreen> {
+  late final CuratorApplicationService _service;
+  CuratorApplicationModel? _latestApplication;
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  CuratorApplicationStatus get _applicationStatus =>
+      _latestApplication?.status ?? CuratorApplicationStatus.notApplied;
+
+  @override
+  void initState() {
+    super.initState();
+    _service = widget.service ?? CuratorApplicationService();
+    _loadLatest();
+  }
+
+  Future<void> _loadLatest() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    try {
+      final application = await _service.fetchLatest();
+      if (!mounted) return;
+      setState(() => _latestApplication = application);
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      if (error.statusCode == 404 ||
+          error.statusCode == 409 ||
+          error.code == 'CA001') {
+        setState(() => _latestApplication = null);
+      } else {
+        setState(() => _errorMessage = error.message);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _errorMessage = '지원 상태를 불러오지 못했어요.');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _openApplicationForm() async {
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CuratorApplicationFormScreen(service: _service),
+      ),
+    );
+    if (mounted) await _loadLatest();
+  }
+
+  Future<void> _openHistory() async {
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CuratorApplicationHistoryScreen(service: _service),
+      ),
+    );
+    if (mounted) await _loadLatest();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -98,20 +164,10 @@ class CuratorApplicationScreen extends StatelessWidget {
                         leadingIcon: 'arrow_left.svg',
                         onLeadingTap: () => Navigator.pop(context),
                         trailing:
-                            applicationStatus ==
+                            _applicationStatus ==
                                 CuratorApplicationStatus.notApplied
                             ? null
-                            : _ApplicationHistoryButton(
-                                onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute<void>(
-                                    builder: (_) =>
-                                        CuratorApplicationHistoryScreen(
-                                          status: applicationStatus,
-                                        ),
-                                  ),
-                                ),
-                              ),
+                            : _ApplicationHistoryButton(onTap: _openHistory),
                       ),
                     ],
                   ),
@@ -130,29 +186,43 @@ class CuratorApplicationScreen extends StatelessWidget {
             child: SizedBox(
               width: double.infinity,
               child: ButtonSolid(
-                text: applicationStatus == CuratorApplicationStatus.pending
-                    ? '지원 심사 진행 중'
-                    : '큐레이터 지원하기',
-                textColor: applicationStatus == CuratorApplicationStatus.pending
-                    ? AppColors.gray400
-                    : AppColors.white,
-                boxColor: applicationStatus == CuratorApplicationStatus.pending
-                    ? AppColors.gray200
-                    : AppColors.black,
-                onTap: applicationStatus == CuratorApplicationStatus.pending
-                    ? null
-                    : () => Navigator.push(
-                        context,
-                        MaterialPageRoute<void>(
-                          builder: (_) => const CuratorApplicationFormScreen(),
-                        ),
-                      ),
+                text: _bottomButtonText,
+                textColor: _isBottomButtonEnabled
+                    ? AppColors.white
+                    : AppColors.gray400,
+                boxColor: _isBottomButtonEnabled
+                    ? AppColors.black
+                    : AppColors.gray200,
+                onTap: _errorMessage != null
+                    ? _loadLatest
+                    : _canApply
+                    ? _openApplicationForm
+                    : null,
               ),
             ),
           ),
         ],
       ),
     );
+  }
+
+  bool get _canApply =>
+      !_isLoading &&
+      _errorMessage == null &&
+      (_applicationStatus == CuratorApplicationStatus.notApplied ||
+          _applicationStatus == CuratorApplicationStatus.rejected);
+
+  bool get _isBottomButtonEnabled => _canApply || _errorMessage != null;
+
+  String get _bottomButtonText {
+    if (_isLoading) return '지원 상태 확인 중';
+    if (_errorMessage != null) return '다시 시도';
+    return switch (_applicationStatus) {
+      CuratorApplicationStatus.pending => '지원 심사 진행 중',
+      CuratorApplicationStatus.approved => '큐레이터 승인 완료',
+      CuratorApplicationStatus.notApplied ||
+      CuratorApplicationStatus.rejected => '큐레이터 지원하기',
+    };
   }
 }
 

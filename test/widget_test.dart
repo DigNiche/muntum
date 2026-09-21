@@ -11,6 +11,9 @@ import 'package:muntum/models/auth_models.dart';
 import 'package:muntum/models/program_model.dart';
 import 'package:muntum/models/program_reaction.dart';
 import 'package:muntum/models/report_model.dart';
+import 'package:muntum/models/curator_application_model.dart';
+import 'package:muntum/api/api_exception.dart';
+import 'package:muntum/api/api_response.dart';
 import 'package:muntum/screens/home/components/two_row_horizontal_card_carousel.dart';
 import 'package:muntum/screens/map/map_clustering.dart';
 import 'package:muntum/screens/mypage/audience/components/report_form_field.dart';
@@ -23,6 +26,7 @@ import 'package:muntum/screens/mypage/curator/curator_application_history_screen
 import 'package:muntum/screens/mypage/curator/curator_application_status.dart';
 import 'package:muntum/screens/onboarding/sign_up_screens/sign_up.dart';
 import 'package:muntum/services/auth_service.dart';
+import 'package:muntum/services/curator_application_service.dart';
 import 'package:muntum/screens/program_detail/components/program_information_section.dart';
 import 'package:muntum/services/program_service.dart';
 import 'package:muntum/services/program_reaction_service.dart';
@@ -80,8 +84,11 @@ void main() {
     await tester.pumpWidget(
       ScreenUtilPlusInit(
         designSize: const Size(390, 844),
-        builder: (context, child) =>
-            const MaterialApp(home: CuratorApplicationScreen()),
+        builder: (context, child) => MaterialApp(
+          home: CuratorApplicationScreen(
+            service: _FakeCuratorApplicationService(),
+          ),
+        ),
       ),
     );
 
@@ -111,8 +118,11 @@ void main() {
     await tester.pumpWidget(
       ScreenUtilPlusInit(
         designSize: const Size(390, 844),
-        builder: (context, child) =>
-            const MaterialApp(home: CuratorApplicationScreen()),
+        builder: (context, child) => MaterialApp(
+          home: CuratorApplicationScreen(
+            service: _FakeCuratorApplicationService(),
+          ),
+        ),
       ),
     );
 
@@ -139,11 +149,17 @@ void main() {
     await tester.pumpWidget(
       ScreenUtilPlusInit(
         designSize: const Size(390, 844),
-        builder: (context, child) =>
-            const MaterialApp(home: CuratorApplicationFormScreen()),
+        builder: (context, child) => MaterialApp(
+          home: CuratorApplicationFormScreen(
+            service: _FakeCuratorApplicationService(),
+          ),
+        ),
       ),
     );
 
+    await tester.enterText(find.byType(TextField).at(0), '테스트 프로그램');
+    await tester.enterText(find.byType(TextField).at(1), '테스트 한줄소개');
+    await tester.enterText(find.byType(TextField).at(2), '테스트 소개글');
     await tester.tap(find.text('작성 완료'));
     await tester.pumpAndSettle();
 
@@ -158,9 +174,12 @@ void main() {
     await tester.pumpWidget(
       ScreenUtilPlusInit(
         designSize: const Size(390, 844),
-        builder: (context, child) => const MaterialApp(
+        builder: (context, child) => MaterialApp(
           home: CuratorApplicationScreen(
-            applicationStatus: CuratorApplicationStatus.pending,
+            service: _FakeCuratorApplicationService(
+              latest: _pendingApplication,
+              applications: const [_pendingApplication],
+            ),
           ),
         ),
       ),
@@ -192,13 +211,18 @@ void main() {
     await tester.pumpWidget(
       ScreenUtilPlusInit(
         designSize: const Size(390, 844),
-        builder: (context, child) => const MaterialApp(
+        builder: (context, child) => MaterialApp(
           home: CuratorApplicationHistoryScreen(
-            status: CuratorApplicationStatus.rejected,
+            service: _FakeCuratorApplicationService(
+              latest: _rejectedApplication,
+              applications: const [_rejectedApplication, _rejectedApplication],
+            ),
           ),
         ),
       ),
     );
+
+    await tester.pumpAndSettle();
 
     expect(find.text('미승인'), findsNWidgets(2));
     expect(find.text('미승인 사유'), findsNWidgets(2));
@@ -206,6 +230,30 @@ void main() {
       find.text('작성 가이드라인과 맞지 않아 승인되지 않았습니다. 확인 후 재신청해 주세요.'),
       findsNWidgets(2),
     );
+  });
+
+  testWidgets('curator history pull-to-refresh completes after reloading', (
+    tester,
+  ) async {
+    final service = _FakeCuratorApplicationService(
+      applications: const [_rejectedApplication],
+    );
+    await tester.pumpWidget(
+      ScreenUtilPlusInit(
+        designSize: const Size(390, 844),
+        builder: (context, child) => MaterialApp(
+          home: CuratorApplicationHistoryScreen(service: service),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(service.fetchMineCalls, 1);
+    await tester.drag(find.byType(ListView), const Offset(0, 300));
+    await tester.pumpAndSettle();
+
+    expect(service.fetchMineCalls, 2);
+    expect(find.byType(RefreshProgressIndicator), findsNothing);
   });
 
   group('social login contract', () {
@@ -905,6 +953,79 @@ void main() {
 
     await tester.pumpWidget(const SizedBox.shrink());
   });
+}
+
+const _pendingApplication = CuratorApplicationModel(
+  id: 'pending-id',
+  status: CuratorApplicationStatus.pending,
+  programName: '2026년 한국 근대 거장전',
+  tagline: '산을 품은 화가, 유영국의 가장 큰 회고전',
+  curation: '큐레이션 소개글',
+  createdAt: null,
+);
+
+const _rejectedApplication = CuratorApplicationModel(
+  id: 'rejected-id',
+  status: CuratorApplicationStatus.rejected,
+  programName: '2026년 한국 근대 거장전',
+  tagline: '산을 품은 화가, 유영국의 가장 큰 회고전',
+  curation: '큐레이션 소개글',
+  createdAt: null,
+  rejectionReason: '작성 가이드라인과 맞지 않아 승인되지 않았습니다. 확인 후 재신청해 주세요.',
+);
+
+class _FakeCuratorApplicationService extends CuratorApplicationService {
+  _FakeCuratorApplicationService({this.latest, this.applications = const []});
+
+  final CuratorApplicationModel? latest;
+  final List<CuratorApplicationModel> applications;
+  int fetchMineCalls = 0;
+
+  @override
+  Future<CuratorApplicationModel> fetchLatest() async {
+    final value = latest;
+    if (value == null) {
+      throw const ApiException(
+        statusCode: 404,
+        code: 'CA001',
+        message: '지원 내역이 없습니다.',
+      );
+    }
+    return value;
+  }
+
+  @override
+  Future<PageResponse<CuratorApplicationModel>> fetchMine({
+    int page = 0,
+    int size = 20,
+  }) async {
+    fetchMineCalls += 1;
+    return PageResponse.fromList(applications);
+  }
+
+  @override
+  Future<CuratorApplicationModel> fetchDetail(String id) async {
+    return applications.firstWhere(
+      (application) => application.id == id,
+      orElse: () => latest ?? _pendingApplication,
+    );
+  }
+
+  @override
+  Future<CuratorApplicationModel> submit({
+    required String programName,
+    required String tagline,
+    required String curation,
+  }) async {
+    return CuratorApplicationModel(
+      id: 'submitted-id',
+      status: CuratorApplicationStatus.pending,
+      programName: programName,
+      tagline: tagline,
+      curation: curation,
+      createdAt: null,
+    );
+  }
 }
 
 class _FakeSignupAuthService extends AuthService {

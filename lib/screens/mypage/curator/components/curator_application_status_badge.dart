@@ -11,18 +11,20 @@ class CuratorApplicationStatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isPending = status == CuratorApplicationStatus.pending;
+    final isHighlighted =
+        status == CuratorApplicationStatus.pending ||
+        status == CuratorApplicationStatus.approved;
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 5.h),
       decoration: BoxDecoration(
-        color: isPending ? AppColors.primary200 : AppColors.gray200,
+        color: isHighlighted ? AppColors.primary200 : AppColors.gray200,
         borderRadius: BorderRadius.circular(6.r),
       ),
       child: Text(
         status.label,
         style: AppTypography.badge.copyWith(
-          color: isPending ? AppColors.gray800 : AppColors.gray600,
+          color: isHighlighted ? AppColors.gray800 : AppColors.gray600,
         ),
       ),
     );

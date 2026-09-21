@@ -16,7 +16,17 @@ class ApiEndpoints {
   static const password = '/api/v1/users/me/password';
   static const termsConsent = '/api/v1/users/me/terms';
   static const me = '/api/v1/users/me';
+  static const profileImage = '/api/v1/users/me/profile-image';
   static const adminUsers = '/api/v1/admin/users';
+
+  static const curatorApplications = '/api/v1/curator-applications';
+  static const myCuratorApplications = '/api/v1/curator-applications/me';
+  static const latestCuratorApplication =
+      '/api/v1/curator-applications/me/latest';
+  static const managerCuratorApplications =
+      '/api/v1/curator-applications/manager';
+  static String curatorApplication(String id) =>
+      '/api/v1/curator-applications/$id';
 
   static const keywords = '/api/v1/keywords';
   static const taggedKeywords = '/api/v1/keywords/tagged';

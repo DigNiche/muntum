@@ -6,9 +6,19 @@ import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/screens/mypage/curator/components/curation_writing_guide_bottom_sheet.dart';
 import 'package:muntum/screens/mypage/curator/curator_application_complete_screen.dart';
+import 'package:muntum/models/curator_application_model.dart';
+import 'package:muntum/services/curator_application_service.dart';
+import 'package:muntum/utils/app_toast.dart';
 
 class CuratorApplicationFormScreen extends StatefulWidget {
-  const CuratorApplicationFormScreen({super.key});
+  const CuratorApplicationFormScreen({
+    super.key,
+    this.application,
+    this.service,
+  });
+
+  final CuratorApplicationModel? application;
+  final CuratorApplicationService? service;
 
   @override
   State<CuratorApplicationFormScreen> createState() =>
@@ -20,6 +30,22 @@ class _CuratorApplicationFormScreenState
   final _programNameController = TextEditingController();
   final _summaryController = TextEditingController();
   final _introductionController = TextEditingController();
+  late final CuratorApplicationService _service;
+  bool _isSubmitting = false;
+
+  bool get _isEditing => widget.application != null;
+
+  @override
+  void initState() {
+    super.initState();
+    _service = widget.service ?? CuratorApplicationService();
+    final application = widget.application;
+    if (application != null) {
+      _programNameController.text = application.programName;
+      _summaryController.text = application.tagline;
+      _introductionController.text = application.curation;
+    }
+  }
 
   @override
   void dispose() {
@@ -41,7 +67,7 @@ class _CuratorApplicationFormScreenState
           SizedBox(height: 50.h),
           AppBarWidget(
             centerType: AppBarCenterType.text,
-            center: '큐레이터 지원',
+            center: _isEditing ? '지원 내용 수정' : '큐레이터 지원',
             leadingIcon: 'close.svg',
             onLeadingTap: () => Navigator.pop(context),
             trailing: GestureDetector(
@@ -91,10 +117,58 @@ class _CuratorApplicationFormScreenState
               ),
             ),
           ),
-          if (keyboardHeight == 0) const _ApplicationFooter(),
+          if (keyboardHeight == 0)
+            _ApplicationFooter(
+              isEditing: _isEditing,
+              isSubmitting: _isSubmitting,
+              onSubmit: _submit,
+            ),
         ],
       ),
     );
+  }
+
+  Future<void> _submit() async {
+    if (_isSubmitting) return;
+    final programName = _programNameController.text.trim();
+    final tagline = _summaryController.text.trim();
+    final curation = _introductionController.text.trim();
+    if (programName.isEmpty || tagline.isEmpty || curation.isEmpty) {
+      showAppToast(context, '모든 내용을 입력해주세요.', isError: true);
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+    try {
+      if (_isEditing) {
+        await _service.update(
+          id: widget.application!.id,
+          programName: programName,
+          tagline: tagline,
+          curation: curation,
+        );
+        if (!mounted) return;
+        showAppToast(context, '지원서가 수정되었습니다.');
+        Navigator.pop(context, true);
+      } else {
+        await _service.submit(
+          programName: programName,
+          tagline: tagline,
+          curation: curation,
+        );
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute<void>(
+            builder: (_) => const CuratorApplicationCompleteScreen(),
+          ),
+        );
+      }
+    } catch (error) {
+      if (mounted) showAppToast(context, '$error', isError: true);
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
   }
 }
 
@@ -209,7 +283,15 @@ class _ApplicationTextField extends StatelessWidget {
 }
 
 class _ApplicationFooter extends StatelessWidget {
-  const _ApplicationFooter();
+  const _ApplicationFooter({
+    required this.isEditing,
+    required this.isSubmitting,
+    required this.onSubmit,
+  });
+
+  final bool isEditing;
+  final bool isSubmitting;
+  final VoidCallback onSubmit;
 
   @override
   Widget build(BuildContext context) {
@@ -224,22 +306,21 @@ class _ApplicationFooter extends StatelessWidget {
       child: Column(
         children: [
           Text(
-            '제출 후 수정이 어려우니, 신중하게 제출해주세요.',
+            isEditing ? '심사가 완료되기 전까지만 수정할 수 있어요.' : '제출 후에도 심사 전까지 수정할 수 있어요.',
             style: AppTypography.caption1.copyWith(color: AppColors.gray800),
           ),
           SizedBox(height: 16.h),
           SizedBox(
             width: double.infinity,
             child: ButtonSolid(
-              text: '작성 완료',
+              text: isSubmitting
+                  ? '저장 중'
+                  : isEditing
+                  ? '수정 완료'
+                  : '작성 완료',
               textColor: AppColors.white,
               boxColor: AppColors.black,
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute<void>(
-                  builder: (_) => const CuratorApplicationCompleteScreen(),
-                ),
-              ),
+              onTap: isSubmitting ? null : onSubmit,
             ),
           ),
         ],

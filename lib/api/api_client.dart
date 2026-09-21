@@ -130,11 +130,26 @@ class ApiClient {
     );
   }
 
+  Future<Map<String, dynamic>> putFile(
+    String path, {
+    required String filePath,
+    String fileFieldName = 'image',
+    bool authorized = false,
+  }) {
+    return _sendMultipart(
+      'PUT',
+      path,
+      filePaths: [filePath],
+      fileFieldName: fileFieldName,
+      authorized: authorized,
+    );
+  }
+
   Future<Map<String, dynamic>> _sendMultipart(
     String method,
     String path, {
-    required Map<String, dynamic> jsonPart,
-    required String jsonFieldName,
+    Map<String, dynamic>? jsonPart,
+    String jsonFieldName = 'program',
     required List<String> filePaths,
     required String fileFieldName,
     required bool authorized,
@@ -157,11 +172,13 @@ class ApiClient {
 
     void addText(String value) => request.add(utf8.encode(value));
 
-    addText('--$boundary\r\n');
-    addText('Content-Disposition: form-data; name="$jsonFieldName"\r\n');
-    addText('Content-Type: application/json; charset=utf-8\r\n\r\n');
-    addText(jsonEncode(jsonPart));
-    addText('\r\n');
+    if (jsonPart != null) {
+      addText('--$boundary\r\n');
+      addText('Content-Disposition: form-data; name="$jsonFieldName"\r\n');
+      addText('Content-Type: application/json; charset=utf-8\r\n\r\n');
+      addText(jsonEncode(jsonPart));
+      addText('\r\n');
+    }
 
     for (final path in filePaths) {
       final file = File(path);
@@ -214,10 +231,11 @@ class ApiClient {
     final extension = filename.toLowerCase().split('.').last;
     return switch (extension) {
       'png' => 'image/png',
-      'gif' => 'image/gif',
       'webp' => 'image/webp',
-      'heic' || 'heif' => 'image/heic',
-      _ => 'image/jpeg',
+      'jpg' || 'jpeg' => 'image/jpeg',
+      _ => throw const FormatException(
+        '지원하지 않는 이미지 형식입니다. JPG, PNG, WEBP 파일을 사용해주세요.',
+      ),
     };
   }
 

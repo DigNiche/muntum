@@ -15,6 +15,7 @@ import 'package:muntum/screens/mypage/curator/components/curator_welcome_card.da
 import 'package:muntum/screens/mypage/curator/written_program_list_page.dart';
 import 'package:muntum/screens/mypage/manager/announcement_manage_screen.dart';
 import 'package:muntum/screens/mypage/manager/curator_application_manage_screen.dart';
+import 'package:muntum/screens/mypage/manager/curation_manage_screen.dart';
 import 'package:muntum/screens/mypage/manager/program_manage_screen.dart';
 import 'package:muntum/screens/mypage/manager/program_report_manage_screen.dart';
 import 'package:muntum/screens/mypage/manager/user_manage_screen.dart';
@@ -25,6 +26,7 @@ import 'package:muntum/screens/mypage/common/version_info_screen.dart';
 import 'package:muntum/screens/mypage/curator/curator_application_screen.dart';
 import 'package:muntum/screens/onboarding/initial_screen.dart';
 import 'package:muntum/services/taste_service.dart';
+import 'package:muntum/services/user_service.dart';
 import 'package:muntum/stores/auth_state.dart';
 import 'package:muntum/stores/user_preference_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -41,6 +43,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late Future<int> _keywordCountFuture;
   late Future<bool> _isLoggedInFuture;
   late Future<bool> _showCuratorWelcomeFuture;
+  late Future<String?> _profileImageUrlFuture;
   bool _profileDataLoaded = false;
 
   @override
@@ -51,6 +54,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _nicknameFuture = Future<String?>.value();
     _keywordCountFuture = Future<int>.value(0);
     _showCuratorWelcomeFuture = Future<bool>.value(false);
+    _profileImageUrlFuture = Future<String?>.value();
   }
 
   @override
@@ -82,6 +86,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _nicknameFuture = _loadNickname();
     _keywordCountFuture = _loadKeywordCount();
     _showCuratorWelcomeFuture = _loadShouldShowCuratorWelcome();
+    _profileImageUrlFuture = _loadProfileImageUrl();
+  }
+
+  Future<String?> _loadProfileImageUrl() async {
+    final profile = await UserService().fetchProfile();
+    await TokenStore.instance.saveProfile(
+      userId: profile.userId,
+      email: profile.email,
+      nickname: profile.nickname,
+      role: profile.role,
+    );
+    return profile.profileImageUrl;
   }
 
   String get _curatorWelcomePreferenceKey =>
@@ -159,7 +175,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     padding: EdgeInsets.fromLTRB(20.w, 0.h, 20.w, 28.h),
                     child: Column(
                       children: [
-                        _ProfileIdentity(nicknameFuture: _nicknameFuture),
+                        _ProfileIdentity(
+                          nicknameFuture: _nicknameFuture,
+                          profileImageUrlFuture: _profileImageUrlFuture,
+                        ),
                         if (AuthState.instance.isCurator)
                           FutureBuilder<bool>(
                             future: _showCuratorWelcomeFuture,
@@ -271,6 +290,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         if (AuthState.instance.isAdmin) ...[
                           SizedBox(height: 12.h),
                           const _AdminMenuSection(),
+                          SizedBox(height: 12.h),
+                          const _AdminCuratorCenterSection(),
                         ],
                         if (AuthState.instance.isCurator) ...[
                           SizedBox(height: 12.h),
@@ -289,9 +310,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 }
 
 class _ProfileIdentity extends StatelessWidget {
-  const _ProfileIdentity({required this.nicknameFuture});
+  const _ProfileIdentity({
+    required this.nicknameFuture,
+    required this.profileImageUrlFuture,
+  });
 
   final Future<String?> nicknameFuture;
+  final Future<String?> profileImageUrlFuture;
 
   @override
   Widget build(BuildContext context) {
@@ -302,10 +327,10 @@ class _ProfileIdentity extends StatelessWidget {
           Stack(
             clipBehavior: Clip.none,
             children: [
-              SvgPicture.asset(
-                'assets/profile_image.svg',
-                width: 56.r,
-                height: 56.r,
+              FutureBuilder<String?>(
+                future: profileImageUrlFuture,
+                builder: (context, snapshot) =>
+                    _ProfileAvatar(imageUrl: snapshot.data, size: 56.r),
               ),
               if (AuthState.instance.isCurator)
                 Positioned(
@@ -343,6 +368,35 @@ class _ProfileIdentity extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ProfileAvatar extends StatelessWidget {
+  const _ProfileAvatar({required this.imageUrl, required this.size});
+
+  final String? imageUrl;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final url = imageUrl?.trim();
+    final fallback = Image.asset(
+      'assets/default_profile_img.jpg',
+      width: size,
+      height: size,
+      fit: BoxFit.cover,
+    );
+    return ClipOval(
+      child: url == null || url.isEmpty
+          ? fallback
+          : Image.network(
+              url,
+              width: size,
+              height: size,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => fallback,
+            ),
     );
   }
 }
@@ -444,7 +498,7 @@ class _AdminMenuSection extends StatelessWidget {
               onTap: () => pushToScreen(context, ProgramManageScreen()),
             ),
             ProfileMenuItem(
-              text: '프로그램 제보 관리',
+              text: '사용자 제보 관리',
               onTap: () => pushToScreen(context, ProgramReportManageScreen()),
             ),
             ProfileMenuItem(
@@ -456,13 +510,36 @@ class _AdminMenuSection extends StatelessWidget {
               showDivider: false,
               onTap: () => pushToScreen(context, UserManageScreen()),
             ),
-            ProfileMenuItem(
-              text: '큐레이터 승인 관리',
-              showDivider: false,
-              onTap: () =>
-                  pushToScreen(context, CuratorApplicationManageScreen()),
-            ),
           ],
+        ),
+      ],
+    );
+  }
+}
+
+class _AdminCuratorCenterSection extends StatelessWidget {
+  const _AdminCuratorCenterSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return _ProfileMenuCard(
+      children: [
+        Padding(
+          padding: EdgeInsets.only(top: 20.h, bottom: 10.h),
+          child: Text(
+            '큐레이터 센터',
+            style: AppTypography.headline2.copyWith(color: AppColors.gray500),
+          ),
+        ),
+        ProfileMenuItem(
+          text: '큐레이션 글 관리',
+          onTap: () => pushToScreen(context, const CurationManageScreen()),
+        ),
+        ProfileMenuItem(
+          text: '큐레이터 관리',
+          showDivider: false,
+          onTap: () =>
+              pushToScreen(context, const CuratorApplicationManageScreen()),
         ),
       ],
     );
