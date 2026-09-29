@@ -108,6 +108,7 @@ flutter:
     - assets/profile_image.svg
     - assets/appicon/
     - assets/default_profile_img.jpg
+    - assets/curator_note_font.svg
     - .env
 
   # An image asset can refer to one or more resolution-specific "variants", see

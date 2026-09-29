@@ -12,6 +12,7 @@ import 'package:muntum/screens/map/map_program_coordinates.dart';
 import 'package:muntum/screens/mypage/audience/report_submit_screen.dart';
 import 'package:muntum/screens/navigation/main_navigation_screen.dart';
 import 'package:muntum/screens/program_detail/components/program_attendance_prompt.dart';
+import 'package:muntum/screens/program_detail/components/program_curations_section.dart';
 import 'package:muntum/screens/program_detail/components/program_detail_app_bar.dart';
 import 'package:muntum/screens/program_detail/components/program_detail_markdown_body.dart';
 import 'package:muntum/screens/program_detail/components/program_header.dart';
@@ -113,19 +114,8 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
 
   Future<List<ProgramModel>> _loadRecommendedPrograms() async {
     try {
-      final currentId = widget.program.id.trim();
-      final currentTitle = widget.program.title.trim();
-      final programs = (await ProgramService().fetchHotPrograms(size: 10))
-          .content
-          .where((program) {
-            final sameId =
-                currentId.isNotEmpty && program.id.trim() == currentId;
-            final sameTitle =
-                currentTitle.isNotEmpty && program.title.trim() == currentTitle;
-            return !sameId && !sameTitle;
-          })
-          .toList();
-      return programs.take(3).toList();
+      final program = await _programFuture;
+      return await ProgramService().fetchSameKeywordPrograms(program);
     } catch (_) {
       return const <ProgramModel>[];
     }
@@ -252,36 +242,43 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                               },
                             ),
                             SizedBox(height: 40.h),
-                            FutureBuilder<bool>(
-                              future: _isLoggedInFuture,
-                              builder: (context, snapshot) {
-                                if (snapshot.data != true) {
-                                  return const SizedBox.shrink();
-                                }
-                                return Padding(
-                                  padding: EdgeInsets.only(bottom: 40.h),
-                                  child: ProgramAttendancePrompt(
-                                    programId: program.id,
-                                    initialReaction:
-                                        program.reaction.myReaction,
-                                  ),
-                                );
-                              },
-                            ),
                           ],
                         ),
+                      ),
+                      ProgramCurationsSection(
+                        programId: program.id,
+                        programTitle: program.title,
+                      ),
+                      FutureBuilder<bool>(
+                        future: _isLoggedInFuture,
+                        builder: (context, snapshot) {
+                          if (snapshot.data != true) {
+                            return const SizedBox.shrink();
+                          }
+                          return Padding(
+                            padding: EdgeInsets.fromLTRB(
+                              20.w,
+                              40.h,
+                              20.w,
+                              40.h,
+                            ),
+                            child: ProgramAttendancePrompt(
+                              programId: program.id,
+                              initialReaction: program.reaction.myReaction,
+                            ),
+                          );
+                        },
                       ),
                       Divider(
                         height: 8.h,
                         thickness: 8.h,
-                        color: AppColors.lineAlternative,
+                        color: AppColors.backgroundNormal,
                       ),
                       Padding(
                         padding: EdgeInsets.symmetric(horizontal: 20.w),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            SizedBox(height: 40.h),
                             RecommendedProgramsSection(
                               programsFuture: _recommendedFuture,
                             ),

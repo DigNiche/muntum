@@ -46,14 +46,17 @@ class AdminUserModel {
     return '사용자';
   }
 
-  String get accountLabel =>
-      role.toUpperCase() == 'MANAGER' ? '관리자 계정' : '가입 계정';
+  bool get isCurator => role.toUpperCase() == 'CURATOR';
+
+  bool get isManager => role.toUpperCase() == 'MANAGER';
+
+  String get accountLabel => '가입한 계정';
 
   String get formattedJoinedAt {
     final date = joinedAt;
     if (date == null) return '-';
     final month = date.month.toString().padLeft(2, '0');
     final day = date.day.toString().padLeft(2, '0');
-    return '${date.year}-$month-$day';
+    return '${date.year}.$month.$day';
   }
 }

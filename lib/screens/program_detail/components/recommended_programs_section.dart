@@ -11,35 +11,39 @@ class RecommendedProgramsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SectionHeader1(
-          verticalPadding: 0,
-          text: '🔥인기있는',
-          buttonName: '',
-          onButtonTap: () {},
-          horizontalPadding: 0,
-        ),
-        SizedBox(height: 16.h),
-        FutureBuilder<List<ProgramModel>>(
-          future: programsFuture,
-          builder: (context, snapshot) {
-            final programs = snapshot.data ?? const <ProgramModel>[];
-            return ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              padding: EdgeInsets.zero,
-              itemBuilder: (context, index) => HorizontalCard(
-                program: programs[index],
-                entrySource: 'detail_recommendation',
+    return FutureBuilder<List<ProgramModel>>(
+      future: programsFuture,
+      builder: (context, snapshot) {
+        final programs = snapshot.data ?? const <ProgramModel>[];
+        if (programs.isEmpty) return const SizedBox.shrink();
+        return Padding(
+          padding: EdgeInsets.only(top: 40.h),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SectionHeader1(
+                verticalPadding: 0,
+                text: '같은 키워드의 프로그램',
+                buttonName: '',
+                onButtonTap: () {},
+                horizontalPadding: 0,
               ),
-              separatorBuilder: (context, index) => SizedBox(height: 16.h),
-              itemCount: programs.length,
-            );
-          },
-        ),
-      ],
+              SizedBox(height: 16.h),
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                padding: EdgeInsets.zero,
+                itemBuilder: (context, index) => HorizontalCard(
+                  program: programs[index],
+                  entrySource: 'detail_recommendation',
+                ),
+                separatorBuilder: (context, index) => SizedBox(height: 16.h),
+                itemCount: programs.length,
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

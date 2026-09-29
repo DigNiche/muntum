@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/components/animated_scrap_icon.dart';
+import 'package:muntum/components/program_curator_badge.dart';
 import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
@@ -67,6 +68,12 @@ class VerticalCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                  if (program.hasCurator)
+                    Positioned(
+                      left: 8.w,
+                      bottom: 8.h,
+                      child: const ProgramCuratorBadge(),
+                    ),
                   // 스크랩 아이콘
                   Positioned(
                     right: 8.w,

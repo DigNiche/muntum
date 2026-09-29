@@ -62,7 +62,10 @@ class _MyNicheScreenState extends State<MyNicheScreen> {
   bool _hasNextPage = true;
   bool _isLoadingPrograms = false;
   bool _isReturningToFirst = false;
+  bool _isApplyingProgressDrag = false;
   double? _dragStartPage;
+  int? _progressDragTargetIndex;
+  int? _lastHapticProgressIndex;
 
   @override
   void initState() {
@@ -372,6 +375,60 @@ class _MyNicheScreenState extends State<MyNicheScreen> {
     );
   }
 
+  void _startProgramProgressDrag(DragStartDetails details) {
+    _lastHapticProgressIndex = null;
+    _updateProgramProgressDrag(details.localPosition.dx);
+  }
+
+  void _updateProgramProgressDrag(double localDx) {
+    final total = _totalPrograms > 0 ? _totalPrograms : _programs.length;
+    if (total <= 1) return;
+
+    final progress = (localDx / 152.w).clamp(0.0, 1.0);
+    final targetIndex = (progress * (total - 1)).round();
+    _progressDragTargetIndex = targetIndex;
+
+    if (_lastHapticProgressIndex != targetIndex) {
+      _lastHapticProgressIndex = targetIndex;
+      unawaited(HapticFeedback.selectionClick());
+    }
+    unawaited(_applyProgramProgressDrag());
+  }
+
+  Future<void> _applyProgramProgressDrag() async {
+    if (_isApplyingProgressDrag) return;
+    _isApplyingProgressDrag = true;
+    try {
+      while (mounted) {
+        final initialRequestedIndex = _progressDragTargetIndex;
+        if (initialRequestedIndex == null) return;
+        var requestedIndex = initialRequestedIndex;
+
+        while (requestedIndex >= _programs.length && _hasNextPage) {
+          await _loadPrograms(reset: false);
+          if (!mounted) return;
+          requestedIndex = _progressDragTargetIndex ?? requestedIndex;
+        }
+
+        if (_programs.isEmpty) return;
+        final availableIndex = requestedIndex.clamp(0, _programs.length - 1);
+        if (_pageController.hasClients &&
+            availableIndex != _currentProgramIndex) {
+          _pageController.jumpToPage(availableIndex);
+        }
+
+        await Future<void>.delayed(Duration.zero);
+        if (requestedIndex == _progressDragTargetIndex) return;
+      }
+    } finally {
+      _isApplyingProgressDrag = false;
+    }
+  }
+
+  void _endProgramProgressDrag(DragEndDetails details) {
+    _lastHapticProgressIndex = null;
+  }
+
   Widget _buildProgramProgress() {
     final total = _totalPrograms > 0 ? _totalPrograms : _programs.length;
     final current = total == 0 ? 0 : (_currentProgramIndex + 1).clamp(1, total);
@@ -381,23 +438,36 @@ class _MyNicheScreenState extends State<MyNicheScreen> {
       children: [
         SizedBox(
           width: 152.w,
-          height: 2.h,
-          child: ColoredBox(
-            color: AppColors.gray800,
-            child: AnimatedBuilder(
-              animation: _pageController,
-              builder: (context, _) {
-                final progress = total == 0
-                    ? 0.0
-                    : ((_visiblePage + 1) / total).clamp(0.0, 1.0);
-                return Align(
-                  alignment: Alignment.centerLeft,
-                  child: ColoredBox(
-                    color: AppColors.white,
-                    child: SizedBox(width: 152.w * progress, height: 2.h),
+          height: 32.h,
+          child: GestureDetector(
+            key: const ValueKey('my_niche_program_progress_drag'),
+            behavior: HitTestBehavior.opaque,
+            onHorizontalDragStart: _startProgramProgressDrag,
+            onHorizontalDragUpdate: (details) =>
+                _updateProgramProgressDrag(details.localPosition.dx),
+            onHorizontalDragEnd: _endProgramProgressDrag,
+            child: Center(
+              child: SizedBox(
+                height: 2.h,
+                child: ColoredBox(
+                  color: AppColors.gray800,
+                  child: AnimatedBuilder(
+                    animation: _pageController,
+                    builder: (context, _) {
+                      final progress = total == 0
+                          ? 0.0
+                          : ((_visiblePage + 1) / total).clamp(0.0, 1.0);
+                      return Align(
+                        alignment: Alignment.centerLeft,
+                        child: ColoredBox(
+                          color: AppColors.white,
+                          child: SizedBox(width: 152.w * progress, height: 2.h),
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
+                ),
+              ),
             ),
           ),
         ),

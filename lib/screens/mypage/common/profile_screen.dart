@@ -12,6 +12,7 @@ import 'package:muntum/screens/mypage/audience/report_list_screen.dart';
 import 'package:muntum/screens/mypage/common/announcement_screen.dart';
 import 'package:muntum/screens/mypage/common/components/profile_menu_item.dart';
 import 'package:muntum/screens/mypage/curator/components/curator_welcome_card.dart';
+import 'package:muntum/screens/mypage/curator/curation_write_screen.dart';
 import 'package:muntum/screens/mypage/curator/written_program_list_page.dart';
 import 'package:muntum/screens/mypage/manager/announcement_manage_screen.dart';
 import 'package:muntum/screens/mypage/manager/curator_application_manage_screen.dart';
@@ -566,12 +567,12 @@ class _CuratorMenuSection extends StatelessWidget {
               ),
             ),
             ProfileMenuItem(
-              text: '프로그램 작성하기',
-              onTap: () => pushToScreen(context, WrittenProgramList()),
+              text: '내 큐레이션',
+              onTap: () => pushToScreen(context, const WrittenProgramList()),
             ),
             ProfileMenuItem(
-              text: '프로그램 작성내용',
-              onTap: () => pushToScreen(context, WrittenProgramList()),
+              text: '새 글 작성하기',
+              onTap: () => pushToScreen(context, const CurationWriteScreen()),
             ),
           ],
         ),

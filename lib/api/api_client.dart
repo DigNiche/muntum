@@ -232,9 +232,10 @@ class ApiClient {
     return switch (extension) {
       'png' => 'image/png',
       'webp' => 'image/webp',
+      'gif' => 'image/gif',
       'jpg' || 'jpeg' => 'image/jpeg',
       _ => throw const FormatException(
-        '지원하지 않는 이미지 형식입니다. JPG, PNG, WEBP 파일을 사용해주세요.',
+        '지원하지 않는 이미지 형식입니다. JPG, PNG, WEBP, GIF 파일을 사용해주세요.',
       ),
     };
   }

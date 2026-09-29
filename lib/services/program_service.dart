@@ -3,7 +3,7 @@ import 'package:muntum/api/api_endpoints.dart';
 import 'package:muntum/api/api_response.dart';
 import 'package:muntum/models/program_model.dart';
 
-enum ProgramSort { latest, startDate, endDate }
+enum ProgramSort { latest, startDate, endDate, view }
 
 enum SortOrder { asc, desc }
 
@@ -12,6 +12,7 @@ extension ProgramSortApi on ProgramSort {
     ProgramSort.latest => 'LATEST',
     ProgramSort.startDate => 'START_DATE',
     ProgramSort.endDate => 'END_DATE',
+    ProgramSort.view => 'VIEW',
   };
 }
 
@@ -41,6 +42,53 @@ class ProgramService {
   ProgramService({ApiClient? client}) : _client = client ?? ApiClient();
 
   final ApiClient _client;
+
+  Future<PageResponse<ProgramModel>> fetchRelatedPrograms(
+    String programId, {
+    int page = 0,
+    int size = 3,
+  }) async {
+    final response = await _client.get(
+      ApiEndpoints.relatedPrograms(programId),
+      queryParameters: {'page': page, 'size': size},
+    );
+    return ApiResponse.fromJson(
+      response,
+      (data) => PageResponse.fromJson(data, ProgramModel.fromJson),
+    ).data;
+  }
+
+  /// The related endpoint pads short keyword matches with newest programs.
+  /// The detail section only displays genuinely shared-keyword programs.
+  Future<List<ProgramModel>> fetchSameKeywordPrograms(
+    ProgramModel source, {
+    int size = 3,
+  }) async {
+    if (source.id.isEmpty ||
+        (source.keywordModels.isEmpty && source.keywords.isEmpty)) {
+      return const [];
+    }
+    final related = await fetchRelatedPrograms(source.id, size: size);
+    final sourceIds = source.keywordModels
+        .map((keyword) => keyword.id)
+        .where((id) => id.isNotEmpty)
+        .toSet();
+    final sourceNames = source.keywords.map((name) => name.trim()).toSet();
+
+    return related.content.where((candidate) {
+      if (candidate.id == source.id) return false;
+      final candidateIds = candidate.keywordModels
+          .map((keyword) => keyword.id)
+          .where((id) => id.isNotEmpty)
+          .toSet();
+      if (sourceIds.isNotEmpty && candidateIds.isNotEmpty) {
+        return sourceIds.intersection(candidateIds).isNotEmpty;
+      }
+      return candidate.keywords
+          .map((name) => name.trim())
+          .any((name) => name.isNotEmpty && sourceNames.contains(name));
+    }).toList();
+  }
 
   Future<PageResponse<ProgramModel>> fetchPrograms({
     String? search,

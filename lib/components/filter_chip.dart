@@ -10,6 +10,9 @@ class FilterChipWidget extends StatelessWidget {
   final Color backgroundColor;
   final Color? outlineColor;
   final bool? hasShadow;
+  final EdgeInsetsGeometry? padding;
+  final TextStyle? textStyle;
+  final Widget? trailing;
   const FilterChipWidget({
     super.key,
     required this.text,
@@ -17,6 +20,9 @@ class FilterChipWidget extends StatelessWidget {
     required this.backgroundColor,
     this.outlineColor,
     this.hasShadow,
+    this.padding,
+    this.textStyle,
+    this.trailing,
   });
 
   @override
@@ -32,10 +38,9 @@ class FilterChipWidget extends StatelessWidget {
               color: outlineColor ?? backgroundColor,
               builder: (context, animatedOutlineColor, _) {
                 return Container(
-                  padding: EdgeInsets.symmetric(
-                    vertical: 10.h,
-                    horizontal: 14.w,
-                  ),
+                  padding:
+                      padding ??
+                      EdgeInsets.symmetric(vertical: 10.h, horizontal: 14.w),
                   decoration: BoxDecoration(
                     color: animatedBackgroundColor,
                     borderRadius: BorderRadius.circular(
@@ -56,11 +61,20 @@ class FilterChipWidget extends StatelessWidget {
                           ]
                         : null,
                   ),
-                  child: Text(
-                    text,
-                    style: AppTypography.button3.copyWith(
-                      color: animatedTextColor,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        text,
+                        style: (textStyle ?? AppTypography.button3).copyWith(
+                          color: animatedTextColor,
+                        ),
+                      ),
+                      if (trailing != null) ...[
+                        SizedBox(width: 4.w),
+                        trailing!,
+                      ],
+                    ],
                   ),
                 );
               },

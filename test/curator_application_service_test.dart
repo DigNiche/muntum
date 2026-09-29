@@ -152,6 +152,7 @@ void main() {
     expect(isSupportedUploadImagePath('/tmp/photo.HEIF'), isFalse);
     expect(isConvertibleUploadImagePath('/tmp/photo.heic'), isTrue);
     expect(isConvertibleUploadImagePath('/tmp/photo.HEIF'), isTrue);
+    expect(isSupportedUploadImagePath('/tmp/photo.gif'), isTrue);
     expect(isConvertibleUploadImagePath('/tmp/photo.gif'), isFalse);
     expect(isSupportedUploadImagePath('/tmp/photo.jpg'), isTrue);
     expect(isSupportedUploadImagePath('/tmp/photo.jpeg'), isTrue);

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/components/animated_scrap_icon.dart';
+import 'package:muntum/components/program_curator_badge.dart';
 import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
@@ -46,9 +47,20 @@ class MapHorizontalCard extends StatelessWidget {
             child: SizedBox(
               height: 107.h,
               width: 80.w,
-              child: program.images.isEmpty
-                  ? const ColoredBox(color: Color(0xffD2F2FD))
-                  : program.images.first,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  program.images.isEmpty
+                      ? const ColoredBox(color: Color(0xffD2F2FD))
+                      : program.images.first,
+                  if (program.hasCurator)
+                    Positioned(
+                      left: 5.w,
+                      bottom: 5.h,
+                      child: ProgramCuratorBadge(size: 16.w),
+                    ),
+                ],
+              ),
             ),
           ),
           Expanded(

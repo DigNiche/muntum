@@ -10,28 +10,42 @@ import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/button_solid.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
+import 'package:muntum/models/admin_curation_model.dart';
 import 'package:muntum/models/program_model.dart';
 import 'package:muntum/models/report_model.dart';
 import 'package:muntum/screens/mypage/common/report_place_search_screen.dart';
 import 'package:muntum/services/keyword_service.dart';
+import 'package:muntum/services/admin_curation_service.dart';
 import 'package:muntum/services/program_service.dart';
 import 'package:muntum/utils/app_toast.dart';
 import 'package:muntum/utils/image_upload_format.dart';
 
 class ProgramEditScreen extends StatefulWidget {
-  const ProgramEditScreen({super.key, this.program, this.initialReport});
+  const ProgramEditScreen({
+    super.key,
+    this.program,
+    this.initialReport,
+    this.approvalCuration,
+    this.adminCurationService,
+    this.programService,
+  });
 
   final ProgramModel? program;
   final ReportModel? initialReport;
+  final AdminCurationModel? approvalCuration;
+  final AdminCurationService? adminCurationService;
+  final ProgramService? programService;
 
   @override
   State<ProgramEditScreen> createState() => _ProgramEditScreenState();
 }
 
+enum _ProgramEditorStage { summary, basic, operating, legacy }
+
 class _ProgramEditScreenState extends State<ProgramEditScreen> {
   static const _maxImages = 5;
 
-  final _service = ProgramService();
+  late final ProgramService _service;
   final _imagePicker = ImagePicker();
 
   late final TextEditingController _titleController;
@@ -41,6 +55,7 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
   late final TextEditingController _addressController;
   late final TextEditingController _startDateController;
   late final TextEditingController _endDateController;
+  late final TextEditingController _periodController;
   late final TextEditingController _hoursController;
   late final TextEditingController _priceController;
   late final TextEditingController _contactController;
@@ -52,26 +67,45 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
   late final List<_ProgramImageItem> _images;
   bool _imagesChanged = false;
   bool _isSaving = false;
+  _ProgramEditorStage _stage = _ProgramEditorStage.summary;
+  late bool _basicCompleted;
+  late bool _operatingCompleted;
   final Set<String> _temporaryImagePaths = {};
 
   bool get _isCreating => widget.program == null;
+  bool get _isCurationApproval => widget.approvalCuration != null;
 
   @override
   void initState() {
     super.initState();
+    _service = widget.programService ?? ProgramService();
     final program = widget.program;
+    _basicCompleted = program != null;
+    _operatingCompleted = program != null;
     final initialReport = widget.initialReport;
     _titleController = TextEditingController(
-      text: program?.title ?? initialReport?.programName ?? '',
+      text:
+          program?.title ??
+          initialReport?.programName ??
+          widget.approvalCuration?.curation.programTitle ??
+          '',
     );
     _taglineController = TextEditingController(
       text: program?.oneLineDescription ?? initialReport?.reason ?? '',
     );
     _curationController = TextEditingController(
-      text: program?.detail ?? initialReport?.reason ?? '',
+      text:
+          program?.detail ??
+          initialReport?.reason ??
+          widget.approvalCuration?.curation.content ??
+          '',
     );
     _venueController = TextEditingController(
-      text: program?.locationName ?? initialReport?.place.name ?? '',
+      text:
+          program?.locationName ??
+          initialReport?.place.name ??
+          widget.approvalCuration?.curation.place ??
+          '',
     );
     _addressController = TextEditingController(
       text: program?.location['address'] ?? initialReport?.place.address ?? '',
@@ -85,12 +119,19 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
     _endDateController = TextEditingController(
       text: _displayDate(program?.endDate ?? ''),
     );
+    _periodController = TextEditingController(
+      text: _startDateController.text.isEmpty
+          ? ''
+          : _endDateController.text.isEmpty
+          ? _startDateController.text
+          : '${_startDateController.text} - ${_endDateController.text}',
+    );
     _hoursController = TextEditingController(
       text: program?.availableTime ?? '',
     );
     _priceController = TextEditingController(
       text: program == null
-          ? ''
+          ? (_isCurationApproval ? '무료' : '')
           : program.isFree
           ? '무료'
           : program.cost,
@@ -122,6 +163,7 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
     _addressController,
     _startDateController,
     _endDateController,
+    _periodController,
     _hoursController,
     _priceController,
     _contactController,
@@ -145,6 +187,7 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
     _addressController.dispose();
     _startDateController.dispose();
     _endDateController.dispose();
+    _periodController.dispose();
     _hoursController.dispose();
     _priceController.dispose();
     _contactController.dispose();
@@ -239,7 +282,14 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
         }
       }
 
-      if (_isCreating) {
+      if (_isCurationApproval) {
+        await (widget.adminCurationService ?? AdminCurationService())
+            .approveNew(
+              curationId: widget.approvalCuration!.curation.id,
+              program: _buildApprovalRequest(),
+              imagePaths: imagePaths,
+            );
+      } else if (_isCreating) {
         await _service.createProgram(
           program: _buildRequest(),
           imagePaths: imagePaths,
@@ -252,7 +302,9 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
         );
       }
       if (!mounted) return;
-      showAppToast(context, _isCreating ? '프로그램이 등록되었습니다.' : '저장되었습니다.');
+      if (!_isCurationApproval) {
+        showAppToast(context, _isCreating ? '프로그램이 등록되었습니다.' : '저장되었습니다.');
+      }
       Navigator.pop(context, true);
     } catch (error) {
       if (mounted) showAppToast(context, '$error');
@@ -267,9 +319,36 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
   }
 
   String? _validationMessage() {
-    if (_imageCount < 1) return '사진을 1장 이상 등록해주세요.';
+    if (_isCurationApproval) {
+      if (_titleController.text.trim().isEmpty) return '프로그램명을 입력해주세요.';
+      if (_titleController.text.trim().length > 100) {
+        return '프로그램명은 100자 이내로 입력해주세요.';
+      }
+      if (_curationController.text.trim().isEmpty) return '소개글을 입력해주세요.';
+      if (_curationController.text.trim().length > 5000) {
+        return '소개글은 5000자 이내로 입력해주세요.';
+      }
+      if (_venueController.text.trim().isEmpty) return '장소명을 입력해주세요.';
+      if (_venueController.text.trim().length > 100) {
+        return '장소명은 100자 이내로 입력해주세요.';
+      }
+      if (_addressController.text.trim().isEmpty) return '주소를 입력해주세요.';
+      if (_addressController.text.trim().length > 255) {
+        return '주소는 255자 이내로 입력해주세요.';
+      }
+      final startText = _startDateController.text.trim();
+      final endText = _endDateController.text.trim();
+      if (startText.isNotEmpty || endText.isNotEmpty) {
+        final start = _apiDate(startText);
+        final end = _apiDate(endText);
+        if (start == null || end == null) return '운영기간은 시작일과 종료일을 함께 입력해주세요.';
+        if (_isAfter(start, end)) return '종료일은 시작일보다 빠를 수 없어요.';
+      }
+      if (_keywordNames.length > 3) return '키워드는 최대 3개까지 입력해주세요.';
+      return null;
+    }
     if (_titleController.text.trim().isEmpty) return '프로그램명을 입력해주세요.';
-    if (_taglineController.text.trim().isEmpty) return '한줄소개를 입력해주세요.';
+    if (_effectiveTagline.isEmpty) return '소개글을 입력해주세요.';
     if (_curationController.text.trim().isEmpty) return '소개글을 입력해주세요.';
     if (_venueController.text.trim().isEmpty) return '장소명을 입력해주세요.';
     if (_addressController.text.trim().isEmpty) return '주소를 입력해주세요.';
@@ -293,7 +372,23 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
     return null;
   }
 
-  bool get _canSubmit => !_isSaving;
+  bool get _canSubmit =>
+      !_isSaving &&
+      _basicCompleted &&
+      _operatingCompleted &&
+      _validationMessage() == null;
+
+  String get _effectiveTagline {
+    final entered = _taglineController.text.trim();
+    if (_stage == _ProgramEditorStage.legacy && entered.isNotEmpty) {
+      return entered;
+    }
+    final description = _curationController.text.trim();
+    if (description.isEmpty) return entered;
+    final firstLine = description.split(RegExp(r'[\n.!?]')).first.trim();
+    final fallback = firstLine.isEmpty ? description : firstLine;
+    return fallback.length > 255 ? fallback.substring(0, 255) : fallback;
+  }
 
   List<String> get _keywordNames => _keywordsController.text
       .split(',')
@@ -310,7 +405,7 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
     final request = <String, dynamic>{
       'title': _titleController.text.trim(),
       'programType': _programType.apiValue,
-      'tagline': _taglineController.text.trim(),
+      'tagline': _effectiveTagline,
       'curation': _curationController.text.trim(),
       'reserved': _isReservationNeeded,
       'free': _priceController.text.trim() == '무료',
@@ -329,6 +424,37 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
       'keywordNames': _keywordNames,
     };
     return request;
+  }
+
+  Map<String, dynamic> _buildApprovalRequest() {
+    final start = _apiDate(_startDateController.text);
+    final end = _apiDate(_endDateController.text);
+    return {
+      'title': _titleController.text.trim(),
+      'programType': _programType.apiValue,
+      'description': _curationController.text.trim(),
+      'reserved': _isReservationNeeded,
+      'free': _priceController.text.trim() == '무료',
+      'price': _priceController.text.trim() == '무료'
+          ? null
+          : _priceController.text.trim(),
+      'venueName': _venueController.text.trim(),
+      'venueMeta': null,
+      'address': _addressController.text.trim(),
+      'officialUrl': _urlController.text.trim().isEmpty
+          ? null
+          : _urlController.text.trim(),
+      'operatingPeriod': start != null && end != null ? '$start - $end' : null,
+      'operatingPeriodMeta': null,
+      'operatingHours': _hoursController.text.trim().isEmpty
+          ? null
+          : _hoursController.text.trim(),
+      'operatingHoursMeta': null,
+      'inquiryContact': _contactController.text.trim().isEmpty
+          ? null
+          : _contactController.text.trim(),
+      'keywordNames': _keywordNames,
+    };
   }
 
   bool _isAfter(String start, String end) {
@@ -443,204 +569,221 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_stage != _ProgramEditorStage.legacy) return _buildStagedEditor();
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
       child: Scaffold(
-        backgroundColor: AppColors.white,
+        backgroundColor: _isCurationApproval
+            ? AppColors.backgroundNormal
+            : AppColors.white,
         body: Column(
           children: [
             SizedBox(height: 50.h),
             AppBarWidget(
               centerType: AppBarCenterType.text,
               leadingIcon: 'close.svg',
-              center: _isCreating ? '새 프로그램 등록하기' : '수정',
+              center: _isCurationApproval
+                  ? '새 프로그램 등록'
+                  : (_isCreating ? '새 프로그램 등록하기' : '수정'),
               onLeadingTap: () => Navigator.pop(context),
             ),
             Expanded(
               child: SingleChildScrollView(
                 padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 80.h),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _sectionLabel('사진'),
-                    SizedBox(height: 10.h),
-                    SizedBox(
-                      height: 107.h,
-                      child: Row(
+                child: _isCurationApproval
+                    ? _buildApprovalContent()
+                    : Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _ImageAddButton(
-                            count: _imageCount,
-                            maxCount: _maxImages,
-                            onTap: _pickImages,
-                          ),
-                          if (_images.isNotEmpty) SizedBox(width: 8.w),
-                          Expanded(
-                            child: ReorderableListView.builder(
-                              clipBehavior: Clip.none,
-                              padding: EdgeInsets.only(top: 5.h),
-                              scrollDirection: Axis.horizontal,
-                              buildDefaultDragHandles: false,
-                              itemCount: _images.length,
-                              onReorderItem: _reorderImage,
-                              proxyDecorator: (child, index, animation) =>
-                                  Material(
-                                    color: Colors.transparent,
-                                    elevation: 0,
-                                    child: ScaleTransition(
-                                      scale: Tween<double>(
-                                        begin: 1,
-                                        end: 1.06,
-                                      ).animate(animation),
-                                      child: child,
-                                    ),
+                          _sectionLabel('사진'),
+                          SizedBox(height: 10.h),
+                          SizedBox(
+                            height: 107.h,
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _ImageAddButton(
+                                  count: _imageCount,
+                                  maxCount: _maxImages,
+                                  onTap: _pickImages,
+                                ),
+                                if (_images.isNotEmpty) SizedBox(width: 8.w),
+                                Expanded(
+                                  child: ReorderableListView.builder(
+                                    clipBehavior: Clip.none,
+                                    padding: EdgeInsets.only(top: 5.h),
+                                    scrollDirection: Axis.horizontal,
+                                    buildDefaultDragHandles: false,
+                                    itemCount: _images.length,
+                                    onReorderItem: _reorderImage,
+                                    proxyDecorator: (child, index, animation) =>
+                                        Material(
+                                          color: Colors.transparent,
+                                          elevation: 0,
+                                          child: ScaleTransition(
+                                            scale: Tween<double>(
+                                              begin: 1,
+                                              end: 1.06,
+                                            ).animate(animation),
+                                            child: child,
+                                          ),
+                                        ),
+                                    itemBuilder: (context, index) {
+                                      final item = _images[index];
+                                      return Padding(
+                                        key: ObjectKey(item),
+                                        padding: EdgeInsets.only(right: 8.w),
+                                        child:
+                                            ReorderableDelayedDragStartListener(
+                                              index: index,
+                                              child: _EditableImage(
+                                                image: item.buildImage(),
+                                                onRemove: () =>
+                                                    _removeImage(index),
+                                              ),
+                                            ),
+                                      );
+                                    },
                                   ),
-                              itemBuilder: (context, index) {
-                                final item = _images[index];
-                                return Padding(
-                                  key: ObjectKey(item),
-                                  padding: EdgeInsets.only(right: 8.w),
-                                  child: ReorderableDelayedDragStartListener(
-                                    index: index,
-                                    child: _EditableImage(
-                                      image: item.buildImage(),
-                                      onRemove: () => _removeImage(index),
-                                    ),
-                                  ),
-                                );
-                              },
+                                ),
+                              ],
                             ),
+                          ),
+                          SizedBox(height: 28.h),
+                          _ProgramTextField(
+                            label: '프로그램명',
+                            controller: _titleController,
+                            hintText: "프로그램명을 입력해주세요.",
+                          ),
+                          _ProgramTextField(
+                            label: '한줄소개',
+                            controller: _taglineController,
+                            maxLines: 4,
+                            hintText: "임팩트 있는 한 줄로 소개해주세요.",
+                          ),
+                          _sectionLabel('프로그램 유형'),
+                          SizedBox(height: 8.h),
+                          Wrap(
+                            spacing: 6.w,
+                            runSpacing: 6.h,
+                            children: ProgramType.values
+                                .map(
+                                  (type) => _SelectionChip(
+                                    text: type.label,
+                                    selected: _programType == type,
+                                    onTap: () =>
+                                        setState(() => _programType = type),
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                          SizedBox(height: 28.h),
+                          _ProgramTextField(
+                            label: '소개글',
+                            controller: _curationController,
+                            maxLines: 8,
+                            hintText: "프로그램을 소개해주세요.",
+                          ),
+                          _ProgramTextField(
+                            label: '장소',
+                            hintText: '장소를 검색해주세요.',
+                            controller: _venueController,
+                            prefixIcon: SvgPicture.asset(
+                              'assets/icons/search.svg',
+                              colorFilter: const ColorFilter.mode(
+                                AppColors.gray800,
+                                BlendMode.srcIn,
+                              ),
+                            ),
+                            onPrefixIconTap: _selectPlace,
+                          ),
+                          _ProgramTextField(
+                            label: '주소',
+                            controller: _addressController,
+                            hintText: '장소를 검색하면 주소가 입력돼요.',
+                            readOnly: true,
+                            canRequestFocus: false,
+                            enableInteractiveSelection: false,
+                          ),
+                          _ProgramTextField(
+                            label: '시작일',
+                            hintText: '예: 2026.07.14',
+                            controller: _startDateController,
+                          ),
+                          _ProgramTextField(
+                            label: '마감일 (선택)',
+                            hintText: '예: 2026.07.14 / 미입력 시 상시로 표시돼요.',
+                            controller: _endDateController,
+                          ),
+                          _ProgramTextField(
+                            label: '운영 시간',
+                            controller: _hoursController,
+                            hintText: "예: 월-금 10:00~17:00",
+                            maxLines: 4,
+                            labelTrailing: GestureDetector(
+                              onTap: _showOperatingHoursGuide,
+                              child: Text(
+                                '작성방법',
+                                style: AppTypography.caption1.copyWith(
+                                  color: AppColors.gray700,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ),
+                          ),
+                          _ProgramTextField(
+                            label: '가격',
+                            hintText: '예: 무료 / 15,000원 / 프로그램별 상이',
+                            controller: _priceController,
+                          ),
+                          _sectionLabel('사전 예약'),
+                          SizedBox(height: 10.h),
+                          Row(
+                            children: [
+                              _SelectionChip(
+                                text: '필요',
+                                selected: _isReservationNeeded,
+                                onTap: () =>
+                                    setState(() => _isReservationNeeded = true),
+                              ),
+                              SizedBox(width: 8.w),
+                              _SelectionChip(
+                                text: '불필요',
+                                selected: !_isReservationNeeded,
+                                onTap: () => setState(
+                                  () => _isReservationNeeded = false,
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 26.h),
+                          _ProgramTextField(
+                            label: '키워드',
+                            hintText: '키워드를 선택해주세요.',
+                            controller: _keywordsController,
+                            readOnly: true,
+                            onTap: _selectKeywords,
+                            suffixIcon: SvgPicture.asset(
+                              'assets/icons/arrow_down.svg',
+                              colorFilter: const ColorFilter.mode(
+                                AppColors.gray800,
+                                BlendMode.srcIn,
+                              ),
+                            ),
+                          ),
+                          _ProgramTextField(
+                            label: '연락처 기재 (선택)',
+                            hintText: "예: 02-123-4567",
+                            controller: _contactController,
+                          ),
+                          _ProgramTextField(
+                            label: '링크 (선택)',
+                            hintText: "링크를 첨부해주세요.",
+                            controller: _urlController,
                           ),
                         ],
                       ),
-                    ),
-                    SizedBox(height: 28.h),
-                    _ProgramTextField(
-                      label: '프로그램명',
-                      controller: _titleController,
-                      hintText: "프로그램명을 입력해주세요.",
-                    ),
-                    _ProgramTextField(
-                      label: '한줄소개',
-                      controller: _taglineController,
-                      maxLines: 4,
-                      hintText: "임팩트 있는 한 줄로 소개해주세요.",
-                    ),
-                    _sectionLabel('프로그램 유형'),
-                    SizedBox(height: 8.h),
-                    Wrap(
-                      spacing: 6.w,
-                      runSpacing: 6.h,
-                      children: ProgramType.values
-                          .map(
-                            (type) => _SelectionChip(
-                              text: type.label,
-                              selected: _programType == type,
-                              onTap: () => setState(() => _programType = type),
-                            ),
-                          )
-                          .toList(),
-                    ),
-                    SizedBox(height: 28.h),
-                    _ProgramTextField(
-                      label: '소개글',
-                      controller: _curationController,
-                      maxLines: 8,
-                      hintText: "프로그램을 소개해주세요.",
-                    ),
-                    _ProgramTextField(
-                      label: '장소',
-                      hintText: '장소를 검색해주세요.',
-                      controller: _venueController,
-                      prefixIcon: SvgPicture.asset(
-                        'assets/icons/search.svg',
-                        color: AppColors.gray800,
-                      ),
-                      onPrefixIconTap: _selectPlace,
-                    ),
-                    _ProgramTextField(
-                      label: '주소',
-                      controller: _addressController,
-                      hintText: '장소를 검색하면 주소가 입력돼요.',
-                      readOnly: true,
-                      canRequestFocus: false,
-                      enableInteractiveSelection: false,
-                    ),
-                    _ProgramTextField(
-                      label: '시작일',
-                      hintText: '예: 2026.07.14',
-                      controller: _startDateController,
-                    ),
-                    _ProgramTextField(
-                      label: '마감일 (선택)',
-                      hintText: '예: 2026.07.14 / 미입력 시 상시로 표시돼요.',
-                      controller: _endDateController,
-                    ),
-                    _ProgramTextField(
-                      label: '운영 시간',
-                      controller: _hoursController,
-                      hintText: "예: 월-금 10:00~17:00",
-                      maxLines: 4,
-                      labelTrailing: GestureDetector(
-                        onTap: _showOperatingHoursGuide,
-                        child: Text(
-                          '작성방법',
-                          style: AppTypography.caption1.copyWith(
-                            color: AppColors.gray700,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                      ),
-                    ),
-                    _ProgramTextField(
-                      label: '가격',
-                      hintText: '예: 무료 / 15,000원 / 프로그램별 상이',
-                      controller: _priceController,
-                    ),
-                    _sectionLabel('사전 예약'),
-                    SizedBox(height: 10.h),
-                    Row(
-                      children: [
-                        _SelectionChip(
-                          text: '필요',
-                          selected: _isReservationNeeded,
-                          onTap: () =>
-                              setState(() => _isReservationNeeded = true),
-                        ),
-                        SizedBox(width: 8.w),
-                        _SelectionChip(
-                          text: '불필요',
-                          selected: !_isReservationNeeded,
-                          onTap: () =>
-                              setState(() => _isReservationNeeded = false),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 26.h),
-                    _ProgramTextField(
-                      label: '키워드',
-                      hintText: '키워드를 선택해주세요.',
-                      controller: _keywordsController,
-                      readOnly: true,
-                      onTap: _selectKeywords,
-                      suffixIcon: SvgPicture.asset(
-                        'assets/icons/arrow_down.svg',
-                        color: AppColors.gray800,
-                      ),
-                    ),
-                    _ProgramTextField(
-                      label: '연락처 기재 (선택)',
-                      hintText: "예: 02-123-4567",
-                      controller: _contactController,
-                    ),
-                    _ProgramTextField(
-                      label: '링크 (선택)',
-                      hintText: "링크를 첨부해주세요.",
-                      controller: _urlController,
-                    ),
-                  ],
-                ),
               ),
             ),
           ],
@@ -664,6 +807,672 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
       ),
     );
   }
+
+  Widget _buildStagedEditor() {
+    final summary = _stage == _ProgramEditorStage.summary;
+    final basic = _stage == _ProgramEditorStage.basic;
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+      child: Scaffold(
+        backgroundColor: summary ? AppColors.backgroundNormal : AppColors.white,
+        body: Column(
+          children: [
+            Container(height: 50.h, color: AppColors.white),
+            ColoredBox(
+              color: AppColors.white,
+              child: AppBarWidget(
+                centerType: AppBarCenterType.text,
+                leadingIcon: summary ? 'arrow_left.svg' : 'close.svg',
+                center: summary
+                    ? (_isCreating ? '새 프로그램 등록' : '수정')
+                    : (basic ? '기본정보' : '운영정보'),
+                onLeadingTap: () {
+                  if (summary) {
+                    Navigator.pop(context);
+                  } else {
+                    setState(() => _stage = _ProgramEditorStage.summary);
+                  }
+                },
+              ),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 24.h),
+                child: summary
+                    ? _buildProgramSummary()
+                    : basic
+                    ? _buildBasicSection()
+                    : _buildOperatingSection(),
+              ),
+            ),
+            SizedBox(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 48.h),
+                child: SizedBox(
+                  height: 48.h,
+                  child: ButtonSolid(
+                    text: summary
+                        ? (_isSaving ? '처리 중' : (_isCreating ? '등록하기' : '저장하기'))
+                        : '작성완료',
+                    textColor: summary && !_canSubmit
+                        ? AppColors.gray400
+                        : AppColors.white,
+                    boxColor: summary && !_canSubmit
+                        ? AppColors.gray100
+                        : AppColors.black,
+                    padding: EdgeInsets.zero,
+                    onTap: summary
+                        ? (_canSubmit ? _save : null)
+                        : _completeEditorSection,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _completeEditorSection() {
+    if (_stage == _ProgramEditorStage.basic) {
+      if (_titleController.text.trim().isEmpty ||
+          _curationController.text.trim().isEmpty) {
+        showAppToast(context, '프로그램명과 소개글을 입력해주세요.', isError: true);
+        return;
+      }
+      if (!_isCurationApproval && _keywordNames.isEmpty) {
+        showAppToast(context, '키워드를 선택해주세요.', isError: true);
+        return;
+      }
+      setState(() {
+        _basicCompleted = true;
+        _stage = _ProgramEditorStage.summary;
+      });
+      return;
+    }
+    if (_venueController.text.trim().isEmpty ||
+        _addressController.text.trim().isEmpty) {
+      showAppToast(context, '장소를 검색해 선택해주세요.', isError: true);
+      return;
+    }
+    final periodParts = _periodController.text.trim().split(
+      RegExp(r'\s*[-–~]\s*'),
+    );
+    if (periodParts.length > 2 ||
+        (periodParts.first.isNotEmpty && _apiDate(periodParts.first) == null) ||
+        (periodParts.length == 2 && _apiDate(periodParts.last) == null)) {
+      showAppToast(
+        context,
+        '운영기간을 YYYY.MM.DD - YYYY.MM.DD 형식으로 입력해주세요.',
+        isError: true,
+      );
+      return;
+    }
+    _startDateController.text = periodParts.first;
+    _endDateController.text = periodParts.length == 2 ? periodParts.last : '';
+    if (!_isCurationApproval &&
+        (_apiDate(_startDateController.text) == null ||
+            _hoursController.text.trim().isEmpty ||
+            _priceController.text.trim().isEmpty)) {
+      showAppToast(context, '운영기간, 운영시간, 가격을 입력해주세요.', isError: true);
+      return;
+    }
+    setState(() {
+      _operatingCompleted = true;
+      _stage = _ProgramEditorStage.summary;
+    });
+  }
+
+  Widget _buildProgramSummary() => Column(
+    children: [
+      _editorCard(
+        title: '사진',
+        child: SizedBox(
+          height: 107.h,
+          child: Row(
+            children: [
+              _ImageAddButton(
+                count: _imageCount,
+                maxCount: _maxImages,
+                onTap: _pickImages,
+              ),
+              if (_images.isNotEmpty) SizedBox(width: 8.w),
+              Expanded(
+                child: ReorderableListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  buildDefaultDragHandles: false,
+                  itemCount: _images.length,
+                  onReorderItem: _reorderImage,
+                  itemBuilder: (context, index) => Padding(
+                    key: ObjectKey(_images[index]),
+                    padding: EdgeInsets.only(right: 8.w),
+                    child: ReorderableDelayedDragStartListener(
+                      index: index,
+                      child: _EditableImage(
+                        image: _images[index].buildImage(),
+                        onRemove: () => _removeImage(index),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      _editorCard(
+        title: '기본정보',
+        onEdit: () => setState(() => _stage = _ProgramEditorStage.basic),
+        complete: _basicCompleted,
+        child: _basicCompleted
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _summaryField('프로그램명', _titleController.text),
+                  _summaryField('소개글', _curationController.text, maxLines: 6),
+                  _summaryField('유형', _programType.label),
+                  _summaryField('키워드', _keywordsController.text),
+                ],
+              )
+            : null,
+      ),
+      _editorCard(
+        title: '운영정보',
+        onEdit: () => setState(() => _stage = _ProgramEditorStage.operating),
+        complete: _operatingCompleted,
+        child: _operatingCompleted
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _summaryField('장소', _venueController.text),
+                  _summaryField('주소', _addressController.text),
+                  _summaryField('운영날짜/기간', _periodController.text),
+                  _summaryField('운영시간', _hoursController.text),
+                  _summaryField('가격', _priceController.text),
+                  _summaryField('예약', _isReservationNeeded ? '사전예약' : '자유관람'),
+                  _summaryField('연락처', _contactController.text),
+                  _summaryField('링크', _urlController.text),
+                ],
+              )
+            : null,
+      ),
+      if (_isCurationApproval)
+        _editorCard(
+          title: '큐레이션',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _summaryField('한줄소개', widget.approvalCuration!.curation.tagline),
+              _summaryField('소개글', widget.approvalCuration!.curation.content),
+            ],
+          ),
+        ),
+    ],
+  );
+
+  Widget _editorCard({
+    required String title,
+    Widget? child,
+    VoidCallback? onEdit,
+    bool complete = true,
+  }) => Padding(
+    padding: EdgeInsets.only(bottom: 8.h),
+    child: Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(14.r),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(9.r),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(child: Text(title, style: AppTypography.headline1)),
+              if (onEdit != null && complete)
+                TextButton(
+                  onPressed: onEdit,
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.gray700,
+                    backgroundColor: AppColors.gray100,
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 10.w,
+                      vertical: 5.h,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20.r),
+                    ),
+                  ),
+                  child: Text(
+                    '수정',
+                    style: AppTypography.caption2.copyWith(
+                      color: AppColors.gray700,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          if (!complete && onEdit != null) ...[
+            SizedBox(height: 12.h),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onEdit,
+              child: Container(
+                width: double.infinity,
+                height: 42.h,
+                alignment: Alignment.center,
+                decoration: DottedDecoration(
+                  shape: Shape.box,
+                  color: AppColors.lineStrong,
+                  strokeWidth: 1,
+                  dash: const [3, 3],
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.add, size: 20.r, color: AppColors.gray900),
+                    SizedBox(width: 5.w),
+                    Text(
+                      '작성하기',
+                      style: AppTypography.button3.copyWith(
+                        color: AppColors.gray900,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ] else if (child != null) ...[
+            SizedBox(height: 12.h),
+            child,
+          ],
+        ],
+      ),
+    ),
+  );
+
+  Widget _summaryField(String label, String value, {int maxLines = 3}) {
+    if (value.trim().isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: EdgeInsets.only(bottom: 14.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: AppTypography.caption2.copyWith(color: AppColors.gray500),
+          ),
+          SizedBox(height: 5.h),
+          Text(
+            value,
+            maxLines: maxLines,
+            overflow: TextOverflow.ellipsis,
+            style: AppTypography.body3,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBasicSection() => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      _ProgramTextField(
+        label: '프로그램명',
+        controller: _titleController,
+        hintText: '프로그램명을 입력해주세요.',
+      ),
+      _ProgramTextField(
+        label: '소개글',
+        controller: _curationController,
+        hintText: '프로그램을 소개해주세요.',
+        maxLines: 9,
+      ),
+      _sectionLabel('프로그램 유형'),
+      SizedBox(height: 10.h),
+      Wrap(
+        spacing: 7.w,
+        runSpacing: 7.h,
+        children: ProgramType.values
+            .map(
+              (type) => _SelectionChip(
+                text: type.label,
+                selected: _programType == type,
+                onTap: () => setState(() => _programType = type),
+              ),
+            )
+            .toList(),
+      ),
+      SizedBox(height: 24.h),
+      _ProgramTextField(
+        label: '키워드',
+        controller: _keywordsController,
+        hintText: '키워드를 선택해주세요.',
+        readOnly: true,
+        onTap: _selectKeywords,
+        suffixIcon: const Icon(Icons.arrow_drop_down),
+      ),
+    ],
+  );
+
+  Widget _buildOperatingSection() => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      _ProgramTextField(
+        label: '장소',
+        controller: _venueController,
+        hintText: '장소를 검색해주세요.',
+        readOnly: true,
+        onTap: _selectPlace,
+        suffixIcon: const Icon(Icons.chevron_right),
+      ),
+      _ProgramTextField(
+        label: '주소',
+        controller: _addressController,
+        hintText: '장소를 선택하면 입력돼요.',
+        readOnly: true,
+      ),
+      _ProgramTextField(
+        label: '운영날짜/기간',
+        controller: _periodController,
+        hintText: 'YYYY.MM.DD - YYYY.MM.DD',
+      ),
+      _ProgramTextField(
+        label: '운영시간',
+        controller: _hoursController,
+        hintText: '예: 월-목 11:00~20:00',
+        maxLines: 4,
+        labelTrailing: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: _showOperatingHoursGuide,
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: 6.h),
+            child: Text(
+              '작성방법',
+              style: AppTypography.caption1.copyWith(
+                color: AppColors.gray600,
+                decoration: TextDecoration.underline,
+                decorationColor: AppColors.gray600,
+              ),
+            ),
+          ),
+        ),
+      ),
+      _ProgramTextField(
+        label: '가격',
+        controller: _priceController,
+        hintText: '예: 무료 / 10,000원',
+      ),
+      _sectionLabel('예약'),
+      SizedBox(height: 10.h),
+      Row(
+        children: [
+          _SelectionChip(
+            text: '사전예약',
+            selected: _isReservationNeeded,
+            onTap: () => setState(() => _isReservationNeeded = true),
+          ),
+          SizedBox(width: 8.w),
+          _SelectionChip(
+            text: '자유관람',
+            selected: !_isReservationNeeded,
+            onTap: () => setState(() => _isReservationNeeded = false),
+          ),
+        ],
+      ),
+      SizedBox(height: 24.h),
+      _ProgramTextField(label: '연락처 (선택)', controller: _contactController),
+      _ProgramTextField(label: '일반링크 (선택)', controller: _urlController),
+    ],
+  );
+
+  Widget _buildApprovalContent() => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      _approvalCard(
+        title: '사진',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '프로그램 대표 사진은 큐레이션 사진과 별도로 등록됩니다.',
+              style: AppTypography.caption2.copyWith(color: AppColors.gray500),
+            ),
+            SizedBox(height: 12.h),
+            SizedBox(
+              height: 107.h,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _ImageAddButton(
+                    count: _imageCount,
+                    maxCount: _maxImages,
+                    onTap: _pickImages,
+                  ),
+                  if (_images.isNotEmpty) SizedBox(width: 8.w),
+                  Expanded(
+                    child: ReorderableListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      buildDefaultDragHandles: false,
+                      itemCount: _images.length,
+                      onReorderItem: _reorderImage,
+                      itemBuilder: (context, index) => Padding(
+                        key: ObjectKey(_images[index]),
+                        padding: EdgeInsets.only(right: 8.w),
+                        child: ReorderableDelayedDragStartListener(
+                          index: index,
+                          child: _EditableImage(
+                            image: _images[index].buildImage(),
+                            onRemove: () => _removeImage(index),
+                            isPrimary: index == 0,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      _approvalCard(
+        title: '기본정보',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _ProgramTextField(
+              label: '프로그램명',
+              controller: _titleController,
+              hintText: '프로그램명을 입력해주세요.',
+            ),
+            _ProgramTextField(
+              label: '소개글',
+              controller: _curationController,
+              maxLines: 6,
+              hintText: '프로그램을 소개해주세요.',
+            ),
+            _sectionLabel('유형'),
+            SizedBox(height: 8.h),
+            Wrap(
+              spacing: 6.w,
+              runSpacing: 6.h,
+              children: ProgramType.values
+                  .map(
+                    (type) => _SelectionChip(
+                      text: type.label,
+                      selected: _programType == type,
+                      onTap: () => setState(() => _programType = type),
+                    ),
+                  )
+                  .toList(),
+            ),
+            SizedBox(height: 24.h),
+            _ProgramTextField(
+              label: '키워드',
+              controller: _keywordsController,
+              hintText: '키워드를 선택해주세요.',
+              readOnly: true,
+              onTap: _selectKeywords,
+            ),
+          ],
+        ),
+      ),
+      _approvalCard(
+        title: '운영정보',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _ProgramTextField(
+              label: '장소',
+              controller: _venueController,
+              hintText: '장소를 검색해주세요.',
+              readOnly: true,
+              onTap: _selectPlace,
+              suffixIcon: const Icon(Icons.chevron_right),
+            ),
+            _ProgramTextField(
+              label: '주소',
+              controller: _addressController,
+              hintText: '장소를 검색하면 주소가 입력돼요.',
+              readOnly: true,
+            ),
+            _ProgramTextField(
+              label: '시작일',
+              controller: _startDateController,
+              hintText: '예: 2026.07.14',
+            ),
+            _ProgramTextField(
+              label: '마감일 (선택)',
+              controller: _endDateController,
+              hintText: '예: 2026.07.14',
+            ),
+            _ProgramTextField(
+              label: '운영 시간',
+              controller: _hoursController,
+              maxLines: 3,
+              hintText: '예: 월-금 10:00~17:00',
+            ),
+            _ProgramTextField(
+              label: '가격',
+              controller: _priceController,
+              hintText: '예: 무료 / 15,000원',
+            ),
+            _sectionLabel('사전 예약'),
+            SizedBox(height: 10.h),
+            Row(
+              children: [
+                _SelectionChip(
+                  text: '필요',
+                  selected: _isReservationNeeded,
+                  onTap: () => setState(() => _isReservationNeeded = true),
+                ),
+                SizedBox(width: 8.w),
+                _SelectionChip(
+                  text: '불필요',
+                  selected: !_isReservationNeeded,
+                  onTap: () => setState(() => _isReservationNeeded = false),
+                ),
+              ],
+            ),
+            SizedBox(height: 24.h),
+            _ProgramTextField(
+              label: '연락처 기재 (선택)',
+              controller: _contactController,
+            ),
+            _ProgramTextField(label: '링크 (선택)', controller: _urlController),
+          ],
+        ),
+      ),
+      _approvalCard(
+        title: '큐레이션',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '한줄소개',
+              style: AppTypography.caption1.copyWith(color: AppColors.gray500),
+            ),
+            SizedBox(height: 6.h),
+            Text(
+              widget.approvalCuration!.curation.tagline,
+              style: AppTypography.body3,
+            ),
+            SizedBox(height: 18.h),
+            Text(
+              '소개글',
+              style: AppTypography.caption1.copyWith(color: AppColors.gray500),
+            ),
+            SizedBox(height: 6.h),
+            Text(
+              widget.approvalCuration!.curation.content,
+              style: AppTypography.body3,
+            ),
+            if (widget.approvalCuration!.curation.images.isNotEmpty) ...[
+              SizedBox(height: 18.h),
+              Text(
+                '사진',
+                style: AppTypography.caption1.copyWith(
+                  color: AppColors.gray500,
+                ),
+              ),
+              SizedBox(height: 8.h),
+              SizedBox(
+                height: 72.r,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: widget.approvalCuration!.curation.images.length,
+                  separatorBuilder: (_, _) => SizedBox(width: 6.w),
+                  itemBuilder: (_, index) => ClipRRect(
+                    borderRadius: BorderRadius.circular(6.r),
+                    child: Image.network(
+                      widget.approvalCuration!.curation.images[index].imageUrl,
+                      width: 72.r,
+                      height: 72.r,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => Container(
+                        width: 72.r,
+                        height: 72.r,
+                        color: AppColors.gray100,
+                        child: const Icon(Icons.image_not_supported_outlined),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    ],
+  );
+
+  Widget _approvalCard({required String title, required Widget child}) =>
+      Padding(
+        padding: EdgeInsets.only(bottom: 8.h),
+        child: Container(
+          width: double.infinity,
+          padding: EdgeInsets.all(16.r),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(8.r),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: AppTypography.headline1),
+              SizedBox(height: 20.h),
+              child,
+            ],
+          ),
+        ),
+      );
 
   Widget _sectionLabel(String text) {
     return Text(
@@ -910,7 +1719,10 @@ class _KeywordPickerSheetState extends State<_KeywordPickerSheet> {
                           child: SvgPicture.asset(
                             'assets/icons/close.svg',
                             width: 21.r,
-                            color: AppColors.gray900,
+                            colorFilter: const ColorFilter.mode(
+                              AppColors.gray900,
+                              BlendMode.srcIn,
+                            ),
                           ),
                         ),
                       ),
@@ -968,9 +1780,12 @@ class _KeywordPickerSheetState extends State<_KeywordPickerSheet> {
                                       selected
                                           ? 'assets/icons/check.svg'
                                           : 'assets/icons/plus.svg',
-                                      color: selected
-                                          ? AppColors.white
-                                          : AppColors.gray500,
+                                      colorFilter: ColorFilter.mode(
+                                        selected
+                                            ? AppColors.white
+                                            : AppColors.gray500,
+                                        BlendMode.srcIn,
+                                      ),
                                     ),
                                   ),
                                   SizedBox(width: 12.w),
@@ -1202,7 +2017,10 @@ class _ImageAddButton extends StatelessWidget {
             SvgPicture.asset(
               'assets/icons/plus.svg',
               width: 24.r,
-              color: AppColors.gray800,
+              colorFilter: const ColorFilter.mode(
+                AppColors.gray800,
+                BlendMode.srcIn,
+              ),
             ),
             SizedBox(height: 8.h),
             Text.rich(
@@ -1231,10 +2049,15 @@ class _ImageAddButton extends StatelessWidget {
 }
 
 class _EditableImage extends StatelessWidget {
-  const _EditableImage({required this.image, required this.onRemove});
+  const _EditableImage({
+    required this.image,
+    required this.onRemove,
+    this.isPrimary = false,
+  });
 
   final Widget image;
   final VoidCallback onRemove;
+  final bool isPrimary;
 
   @override
   Widget build(BuildContext context) {
@@ -1250,6 +2073,26 @@ class _EditableImage extends StatelessWidget {
               child: image,
             ),
           ),
+          if (isPrimary)
+            Positioned(
+              bottom: 4.h,
+              left: 14.w,
+              right: 14.w,
+              child: Container(
+                alignment: Alignment.center,
+                padding: EdgeInsets.symmetric(vertical: 3.h),
+                decoration: BoxDecoration(
+                  color: AppColors.gray900,
+                  borderRadius: BorderRadius.circular(4.r),
+                ),
+                child: Text(
+                  '대표',
+                  style: AppTypography.caption2.copyWith(
+                    color: AppColors.white,
+                  ),
+                ),
+              ),
+            ),
           Positioned(
             top: -5.h,
             right: -5.w,

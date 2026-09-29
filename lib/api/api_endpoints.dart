@@ -28,6 +28,21 @@ class ApiEndpoints {
   static String curatorApplication(String id) =>
       '/api/v1/curator-applications/$id';
 
+  static const myCuratorProfile = '/api/v1/curators/me';
+  static const curations = '/api/v1/curations';
+  static const myCurations = '/api/v1/curations/me';
+  static String myCuration(String id) => '/api/v1/curations/me/$id';
+  static String curation(String id) => '/api/v1/curations/$id';
+  static String resubmitCuration(String id) => '/api/v1/curations/$id/resubmit';
+  static const managerCurations = '/api/v1/manager/curations';
+  static String managerCuration(String id) => '$managerCurations/$id';
+  static String approveExistingCuration(String id) =>
+      '${managerCuration(id)}/approve-existing';
+  static String approveNewCuration(String id) =>
+      '${managerCuration(id)}/approve-new';
+  static String requestCurationChanges(String id) =>
+      '${managerCuration(id)}/request-changes';
+
   static const keywords = '/api/v1/keywords';
   static const taggedKeywords = '/api/v1/keywords/tagged';
   static const topKeywords = '/api/v1/keywords/top';
@@ -45,6 +60,10 @@ class ApiEndpoints {
   static const programsNearby = '/api/v1/programs/nearby';
   static const programThumbnails = '/api/v1/programs/thumbnails';
   static String program(String id) => '/api/v1/programs/$id';
+  static String programCurations(String id) => '/api/v1/programs/$id/curations';
+  static String relatedPrograms(String id) => '/api/v1/programs/$id/related';
+  static String programCuration(String programId, String curationId) =>
+      '${programCurations(programId)}/$curationId';
   static String programReaction(String programId) =>
       '/api/v1/program-reactions/$programId';
   static const myProgramReactions = '/api/v1/program-reactions/me';

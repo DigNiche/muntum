@@ -23,7 +23,7 @@ class MapMarkerIconCache {
     final imageUrl = program.imageUrls.isEmpty ? '' : program.imageUrls.first;
     final decodedImage = _decodedImages[imageUrl];
     final cacheKey =
-        '${programKey}_${imageUrl}_${decodedImage != null}_$isSelected';
+        '${programKey}_${imageUrl}_${decodedImage != null}_${program.hasCurator}_$isSelected';
     return _programIcons.putIfAbsent(
       cacheKey,
       () => NOverlayImage.fromWidget(

@@ -5,19 +5,29 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/api/api_exception.dart';
 import 'package:muntum/components/appbar.dart';
+import 'package:muntum/components/filter_chip.dart';
 import 'package:muntum/components/popup_widget.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/models/program_model.dart';
 import 'package:muntum/screens/mypage/manager/program_edit_screen.dart';
 import 'package:muntum/screens/program_detail/program_detail_screen.dart';
+import 'package:muntum/screens/home/components/filter_list.dart';
 import 'package:muntum/services/program_service.dart';
 import 'package:muntum/utils/app_toast.dart';
 
 enum _ProgramMenuAction { edit, delete }
 
+enum _PeriodFilter { all, ongoing, upcoming, ended }
+
+enum _OriginFilter { all, general, curation }
+
+enum _ManageSort { latest, endingSoon, popular }
+
 class ProgramManageScreen extends StatefulWidget {
-  const ProgramManageScreen({super.key});
+  const ProgramManageScreen({super.key, this.service});
+
+  final ProgramService? service;
 
   @override
   State<ProgramManageScreen> createState() => _ProgramManageScreenState();
@@ -27,8 +37,9 @@ class _ProgramManageScreenState extends State<ProgramManageScreen> {
   static const _pageSize = 20;
 
   final _searchController = TextEditingController();
+  final _searchFocus = FocusNode();
   final _scrollController = ScrollController();
-  final _service = ProgramService();
+  late final ProgramService _service;
   final List<ProgramModel> _programs = [];
 
   Timer? _searchDebounce;
@@ -39,13 +50,41 @@ class _ProgramManageScreenState extends State<ProgramManageScreen> {
   bool _isLoading = false;
   bool _isLoadingMore = false;
   String? _errorMessage;
+  bool _searchMode = false;
+  _PeriodFilter _periodFilter = _PeriodFilter.all;
+  _OriginFilter _originFilter = _OriginFilter.all;
+  _ManageSort _sort = _ManageSort.latest;
+
+  List<ProgramModel> get _visiblePrograms => _programs.where((program) {
+    final current = DateTime.now();
+    final now = DateTime(current.year, current.month, current.day);
+    final start = DateTime.tryParse(program.startDate);
+    final end = DateTime.tryParse(program.endDate);
+    final matchesPeriod = switch (_periodFilter) {
+      _PeriodFilter.all => true,
+      _PeriodFilter.ongoing =>
+        !program.ended &&
+            (start == null || !start.isAfter(now)) &&
+            (end == null || !end.isBefore(now)),
+      _PeriodFilter.upcoming => start != null && start.isAfter(now),
+      _PeriodFilter.ended =>
+        program.ended || (end != null && end.isBefore(now)),
+    };
+    final matchesOrigin = switch (_originFilter) {
+      _OriginFilter.all => true,
+      _OriginFilter.general => !program.hasCurator,
+      _OriginFilter.curation => program.hasCurator,
+    };
+    return matchesPeriod && matchesOrigin;
+  }).toList();
 
   @override
   void initState() {
     super.initState();
+    _service = widget.service ?? ProgramService();
     _searchController.addListener(_onSearchChanged);
     _scrollController.addListener(_onScroll);
-    _loadPrograms(reset: true);
+    _reloadPrograms();
   }
 
   @override
@@ -54,6 +93,7 @@ class _ProgramManageScreenState extends State<ProgramManageScreen> {
     _searchController.removeListener(_onSearchChanged);
     _scrollController.removeListener(_onScroll);
     _searchController.dispose();
+    _searchFocus.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -61,7 +101,7 @@ class _ProgramManageScreenState extends State<ProgramManageScreen> {
   void _onSearchChanged() {
     _searchDebounce?.cancel();
     _searchDebounce = Timer(const Duration(milliseconds: 350), () {
-      if (mounted) _loadPrograms(reset: true);
+      if (mounted) _reloadPrograms();
     });
     setState(() {});
   }
@@ -98,6 +138,12 @@ class _ProgramManageScreenState extends State<ProgramManageScreen> {
         page: reset ? 0 : _nextPage,
         size: _pageSize,
         authorized: true,
+        sort: switch (_sort) {
+          _ManageSort.latest => ProgramSort.latest,
+          _ManageSort.endingSoon => ProgramSort.endDate,
+          _ManageSort.popular => ProgramSort.view,
+        },
+        order: _sort == _ManageSort.endingSoon ? SortOrder.asc : SortOrder.desc,
       );
       if (!mounted || requestId != _requestId) return;
 
@@ -125,6 +171,11 @@ class _ProgramManageScreenState extends State<ProgramManageScreen> {
     }
   }
 
+  Future<void> _reloadPrograms() async {
+    await _loadPrograms(reset: true);
+    if (mounted) await _loadRemainingPagesForLocalFilters();
+  }
+
   void _openProgram(ProgramModel program) {
     Navigator.push(
       context,
@@ -143,7 +194,7 @@ class _ProgramManageScreenState extends State<ProgramManageScreen> {
       MaterialPageRoute(builder: (_) => const ProgramEditScreen()),
     );
     if (mounted && created == true) {
-      await _loadPrograms(reset: true);
+      await _reloadPrograms();
     }
   }
 
@@ -173,7 +224,7 @@ class _ProgramManageScreenState extends State<ProgramManageScreen> {
         MaterialPageRoute(builder: (_) => ProgramEditScreen(program: detail)),
       );
       if (mounted && saved == true) {
-        await _loadPrograms(reset: true);
+        await _reloadPrograms();
       }
       return;
     }
@@ -207,48 +258,226 @@ class _ProgramManageScreenState extends State<ProgramManageScreen> {
     }
   }
 
+  Future<int?> _showFilterSheet({
+    required String title,
+    required List<String> labels,
+    required int selected,
+  }) => showModalBottomSheet<int>(
+    context: context,
+    backgroundColor: Colors.transparent,
+    barrierColor: AppColors.dimMedium,
+    builder: (sheetContext) => Container(
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(16.w, 20.h, 16.w, 40.h),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(10.r)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: AppTypography.headline1),
+          SizedBox(height: 18.h),
+          Wrap(
+            spacing: 7.w,
+            runSpacing: 8.h,
+            children: [
+              for (var i = 0; i < labels.length; i++)
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => Navigator.pop(sheetContext, i),
+                  child: FilterChipWidget(
+                    text: labels[i],
+                    textColor: AppColors.gray900,
+                    backgroundColor: AppColors.white,
+                    outlineColor: selected == i
+                        ? AppColors.gray900
+                        : AppColors.lineStrong,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 12.w,
+                      vertical: 9.h,
+                    ),
+                    textStyle: AppTypography.button4,
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    ),
+  );
+
+  Future<void> _selectPeriod() async {
+    final selected = await _showFilterSheet(
+      title: '운영기간',
+      labels: const ['전체', '진행중', '진행예정', '종료'],
+      selected: _periodFilter.index,
+    );
+    if (mounted && selected != null) {
+      setState(() => _periodFilter = _PeriodFilter.values[selected]);
+      await _loadRemainingPagesForLocalFilters();
+    }
+  }
+
+  Future<void> _selectOrigin() async {
+    final selected = await _showFilterSheet(
+      title: '프로그램 유형',
+      labels: const ['일반·큐레이션', '일반', '큐레이션'],
+      selected: _originFilter.index,
+    );
+    if (mounted && selected != null) {
+      setState(() => _originFilter = _OriginFilter.values[selected]);
+      await _loadRemainingPagesForLocalFilters();
+    }
+  }
+
+  Future<void> _loadRemainingPagesForLocalFilters() async {
+    if (_periodFilter == _PeriodFilter.all &&
+        _originFilter == _OriginFilter.all) {
+      return;
+    }
+    final requestId = _requestId;
+    while (mounted &&
+        requestId == _requestId &&
+        _hasNext &&
+        _errorMessage == null) {
+      if (_isLoading || _isLoadingMore) return;
+      final nextPage = _nextPage;
+      await _loadPrograms();
+      if (_nextPage == nextPage) return;
+    }
+  }
+
+  Future<void> _selectSort() async {
+    final selected = await _showFilterSheet(
+      title: '정렬',
+      labels: const ['최신순', '종료 임박순'],
+      selected: _sort.index,
+    );
+    if (!mounted || selected == null) return;
+    setState(() => _sort = _ManageSort.values[selected]);
+    await _reloadPrograms();
+  }
+
+  void _openSearch() {
+    setState(() => _searchMode = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _searchFocus.requestFocus();
+    });
+  }
+
+  void _closeSearch() {
+    _searchFocus.unfocus();
+    _searchController.clear();
+    _searchDebounce?.cancel();
+    setState(() => _searchMode = false);
+    _reloadPrograms();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.white,
-      body: Column(
-        children: [
-          SizedBox(height: 50.h),
-          AppBarWidget(
-            centerType: AppBarCenterType.text,
-            leadingIcon: 'arrow_left.svg',
-            center: '프로그램 관리',
-            onLeadingTap: () => Navigator.pop(context),
-            trailing: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: _openProgramCreate,
-              child: SizedBox(
-                width: 24.r,
-                height: 24.r,
-                child: SvgPicture.asset(
-                  'assets/icons/plus.svg',
-                  colorFilter: const ColorFilter.mode(
-                    AppColors.gray900,
-                    BlendMode.srcIn,
+      floatingActionButton: _searchMode
+          ? null
+          : FloatingActionButton(
+              key: const Key('program-manage-create'),
+              onPressed: _openProgramCreate,
+              backgroundColor: AppColors.gray900,
+              shape: const CircleBorder(),
+              child: const Icon(Icons.add, color: AppColors.white),
+            ),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (!_searchMode)
+              AppBarWidget(
+                centerType: AppBarCenterType.text,
+                leadingIcon: 'arrow_left.svg',
+                center: '프로그램 관리',
+                onLeadingTap: () => Navigator.pop(context),
+                trailing: GestureDetector(
+                  key: const Key('program-manage-search'),
+                  behavior: HitTestBehavior.opaque,
+                  onTap: _openSearch,
+                  child: SizedBox(
+                    width: 24.r,
+                    height: 24.r,
+                    child: SvgPicture.asset(
+                      'assets/icons/search.svg',
+                      colorFilter: const ColorFilter.mode(
+                        AppColors.gray900,
+                        BlendMode.srcIn,
+                      ),
+                    ),
                   ),
                 ),
               ),
+            if (_searchMode)
+              ColoredBox(
+                color: AppColors.white,
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(12.w, 8.h, 20.w, 12.h),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        onPressed: _closeSearch,
+                        icon: const Icon(Icons.arrow_back_ios_new),
+                      ),
+                      Expanded(
+                        child: _ProgramSearchField(
+                          controller: _searchController,
+                          focusNode: _searchFocus,
+                          onClear: () => _searchController.clear(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            if (!_searchMode)
+              ColoredBox(
+                color: AppColors.white,
+                child: FilterList(
+                  verticalPadding: 8,
+                  listOfChip: [
+                    _FilterButton(
+                      label: ['전체', '진행중', '진행예정', '종료'][_periodFilter.index],
+                      onTap: _selectPeriod,
+                    ),
+                    _FilterButton(
+                      label: ['일반·큐레이션', '일반', '큐레이션'][_originFilter.index],
+                      onTap: _selectOrigin,
+                    ),
+                    _FilterButton(
+                      label: ['최신순', '종료 임박순'][_sort.index],
+                      onTap: _selectSort,
+                    ),
+                  ],
+                ),
+              ),
+            Expanded(
+              child: ColoredBox(
+                color: _searchMode
+                    ? AppColors.white
+                    : AppColors.backgroundNormal,
+                child: _buildContent(),
+              ),
             ),
-          ),
-          Padding(
-            padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 0),
-            child: _ProgramSearchField(
-              controller: _searchController,
-              onClear: () => _searchController.clear(),
-            ),
-          ),
-          Expanded(child: _buildContent()),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildContent() {
+    if (_searchMode && _searchController.text.trim().isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final visiblePrograms = _visiblePrograms;
     if (_isLoading && _programs.isEmpty) {
       return const Center(
         child: CircularProgressIndicator(color: AppColors.gray900),
@@ -259,35 +488,36 @@ class _ProgramManageScreenState extends State<ProgramManageScreen> {
       return _ProgramMessageState(
         message: _errorMessage!,
         buttonText: '다시 시도',
-        onTap: () => _loadPrograms(reset: true),
+        onTap: _reloadPrograms,
       );
     }
 
-    if (_programs.isEmpty) {
+    if (visiblePrograms.isEmpty) {
       return const _ProgramMessageState(message: '검색된 프로그램이 없어요.');
     }
 
     return RefreshIndicator(
       backgroundColor: AppColors.backgroundNormal,
       color: AppColors.gray900,
-      onRefresh: () => _loadPrograms(reset: true),
+      onRefresh: _reloadPrograms,
       child: ListView.builder(
         controller: _scrollController,
-        padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 40.h),
-        itemCount: _programs.length + 2,
+        padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 40.h),
+        itemCount: visiblePrograms.length + 2,
         itemBuilder: (context, index) {
           if (index == 0) {
+            if (_searchMode) return const SizedBox.shrink();
             return Padding(
               padding: EdgeInsets.only(bottom: 8.h),
               child: Text(
-                '프로그램 $_totalElements개',
+                '${_periodFilter == _PeriodFilter.all && _originFilter == _OriginFilter.all ? _totalElements : visiblePrograms.length}개',
                 style: AppTypography.headline2.copyWith(
                   color: AppColors.gray500,
                 ),
               ),
             );
           }
-          if (index == _programs.length + 1) {
+          if (index == visiblePrograms.length + 1) {
             return _isLoadingMore
                 ? Padding(
                     padding: EdgeInsets.symmetric(vertical: 20.h),
@@ -299,7 +529,7 @@ class _ProgramManageScreenState extends State<ProgramManageScreen> {
                   )
                 : const SizedBox.shrink();
           }
-          final program = _programs[index - 1];
+          final program = visiblePrograms[index - 1];
           return _ProgramListItem(
             program: program,
             onTap: () => _openProgram(program),
@@ -359,10 +589,15 @@ class _ProgramActionSheet extends StatelessWidget {
 }
 
 class _ProgramSearchField extends StatelessWidget {
-  const _ProgramSearchField({required this.controller, required this.onClear});
+  const _ProgramSearchField({
+    required this.controller,
+    required this.onClear,
+    required this.focusNode,
+  });
 
   final TextEditingController controller;
   final VoidCallback onClear;
+  final FocusNode focusNode;
 
   @override
   Widget build(BuildContext context) {
@@ -370,11 +605,12 @@ class _ProgramSearchField extends StatelessWidget {
       height: 52.h,
       child: TextField(
         controller: controller,
+        focusNode: focusNode,
         textInputAction: TextInputAction.search,
         cursorColor: AppColors.gray900,
         style: AppTypography.body1.copyWith(color: AppColors.gray900),
         decoration: InputDecoration(
-          hintText: '프로그램명, 소개글, 장소로 검색하기',
+          hintText: '프로그램 검색',
           hintStyle: AppTypography.body1.copyWith(color: AppColors.gray400),
           prefixIcon: Padding(
             padding: EdgeInsets.all(15.r),
@@ -416,6 +652,32 @@ class _ProgramSearchField extends StatelessWidget {
   }
 }
 
+class _FilterButton extends StatelessWidget {
+  const _FilterButton({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    behavior: HitTestBehavior.opaque,
+    onTap: onTap,
+    child: FilterChipWidget(
+      text: label,
+      textColor: AppColors.gray900,
+      backgroundColor: AppColors.white,
+      outlineColor: AppColors.lineStrong,
+      padding: EdgeInsets.symmetric(horizontal: 11.w, vertical: 8.h),
+      textStyle: AppTypography.button4,
+      trailing: Icon(
+        Icons.keyboard_arrow_down,
+        size: 15.r,
+        color: AppColors.gray500,
+      ),
+    ),
+  );
+}
+
 class _ProgramListItem extends StatelessWidget {
   const _ProgramListItem({
     required this.program,
@@ -437,56 +699,61 @@ class _ProgramListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        width: double.infinity,
-        padding: EdgeInsets.symmetric(vertical: 16.h),
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: AppColors.lineNormal, width: 1.h),
-          ),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
+    return Padding(
+      padding: EdgeInsets.only(bottom: 10.h),
+      child: Material(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(9.r),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(9.r),
+          child: Padding(
+            padding: EdgeInsets.all(16.r),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: 76.h),
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    program.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTypography.headline1.copyWith(
-                      color: AppColors.gray900,
-                    ),
-                  ),
-                  SizedBox(height: 4.h),
-                  Text(
-                    '(운영기간) ${program.detailDateText}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTypography.caption2.copyWith(
-                      color: AppColors.gray600,
-                    ),
-                  ),
-                  SizedBox(height: 4.h),
-                  Row(
+                  Stack(
+                    clipBehavior: Clip.none,
                     children: [
-                      SvgPicture.asset(
-                        'assets/icons/location-filled.svg',
-                        width: 14.r,
-                        height: 14.r,
-                        colorFilter: const ColorFilter.mode(
-                          AppColors.gray400,
-                          BlendMode.srcIn,
-                        ),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(6.r),
+                        child: program.imageUrls.isEmpty
+                            ? _imagePlaceholder()
+                            : Image.network(
+                                program.imageUrls.first,
+                                width: 60.r,
+                                height: 76.r,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, _, _) => _imagePlaceholder(),
+                              ),
                       ),
-                      SizedBox(width: 2.w),
-                      Expanded(
-                        child: Text(
+                      if (program.hasCurator)
+                        Positioned(
+                          left: 3.w,
+                          bottom: 3.h,
+                          child: SvgPicture.asset(
+                            'assets/icons/curator_badge.svg',
+                            width: 18.r,
+                            height: 18.r,
+                          ),
+                        ),
+                    ],
+                  ),
+                  SizedBox(width: 14.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          program.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.headline1,
+                        ),
+                        SizedBox(height: 5.h),
+                        Text(
                           _location,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -494,29 +761,47 @@ class _ProgramListItem extends StatelessWidget {
                             color: AppColors.gray500,
                           ),
                         ),
+                        SizedBox(height: 5.h),
+                        Text(
+                          program.cardDateText.isEmpty
+                              ? '날짜 미정'
+                              : program.cardDateText,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.caption2.copyWith(
+                            color: AppColors.gray500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: onMoreTap,
+                    behavior: HitTestBehavior.opaque,
+                    child: Padding(
+                      padding: EdgeInsets.only(left: 8.w, bottom: 12.h),
+                      child: Icon(
+                        Icons.more_vert,
+                        size: 20.r,
+                        color: AppColors.gray400,
                       ),
-                    ],
+                    ),
                   ),
                 ],
               ),
             ),
-            GestureDetector(
-              onTap: onMoreTap,
-              behavior: HitTestBehavior.opaque,
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(16.w, 0, 0, 20.h),
-                child: Icon(
-                  Icons.more_vert,
-                  size: 20.r,
-                  color: AppColors.gray400,
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
+
+  Widget _imagePlaceholder() => Container(
+    width: 60.r,
+    height: 76.r,
+    color: AppColors.gray100,
+    child: const Icon(Icons.image_outlined, color: AppColors.gray400),
+  );
 }
 
 class _ProgramMessageState extends StatelessWidget {

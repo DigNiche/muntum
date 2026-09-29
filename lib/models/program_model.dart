@@ -52,6 +52,7 @@ class ProgramModel {
   bool isBookmark;
   bool ended;
   final String status;
+  bool hasCurator;
   final int viewCount;
   final String? officialUrl;
   final List<String> imageUrls;
@@ -89,6 +90,7 @@ class ProgramModel {
     required this.isBookmark,
     this.ended = false,
     this.status = '',
+    this.hasCurator = false,
     this.viewCount = 0,
     this.officialUrl,
     this.imageUrls = const [],
@@ -160,6 +162,7 @@ class ProgramModel {
       isBookmark: json['scrapped'] as bool? ?? json['saved'] as bool? ?? false,
       ended: json['ended'] as bool? ?? false,
       status: json['status'] as String? ?? '',
+      hasCurator: json['curator'] != null,
       viewCount: json['viewCount'] as int? ?? 0,
       officialUrl: json['officialUrl'] as String?,
       createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),

@@ -2,10 +2,16 @@ import 'dart:io';
 
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 
-const supportedUploadImageExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
+const supportedUploadImageExtensions = [
+  '.jpg',
+  '.jpeg',
+  '.png',
+  '.webp',
+  '.gif',
+];
 const convertibleUploadImageExtensions = ['.heic', '.heif'];
 
-const supportedUploadImageMessage = 'JPG, PNG, WEBP 또는 HEIC 이미지를 선택해주세요.';
+const supportedUploadImageMessage = 'JPG, PNG, WEBP, GIF 또는 HEIC 이미지를 선택해주세요.';
 
 class PreparedUploadImage {
   const PreparedUploadImage({required this.path, required this.isTemporary});

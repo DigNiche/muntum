@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/components/animated_scrap_icon.dart';
 import 'package:muntum/components/program_ended_badge.dart';
+import 'package:muntum/components/program_curator_badge.dart';
 import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
@@ -89,6 +90,12 @@ class _HorizontalCardImage extends StatelessWidget {
             ),
             if (program.isEnded)
               ColoredBox(color: AppColors.white.withValues(alpha: 0.3)),
+            if (program.hasCurator)
+              Positioned(
+                left: 8.w,
+                bottom: 8.h,
+                child: const ProgramCuratorBadge(),
+              ),
             Positioned(
               top: 8.h,
               right: 6.w,

@@ -73,7 +73,7 @@ class NaverLocalPlaceSearchRepository implements ReportPlaceSearchRepository {
 
       if (localSearchClientId.isNotEmpty &&
           localSearchClientSecret.isNotEmpty) {
-        return _searchNaverLocal(
+        return await _searchNaverLocal(
           client: client,
           keyword: keyword,
           clientId: localSearchClientId,
