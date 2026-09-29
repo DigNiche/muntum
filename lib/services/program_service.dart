@@ -42,6 +42,47 @@ class ProgramService {
   ProgramService({ApiClient? client}) : _client = client ?? ApiClient();
 
   final ApiClient _client;
+  final Map<String, Future<bool>> _publicCurationLookups = {};
+
+  Future<bool> hasPublicCuration(String programId) {
+    if (programId.isEmpty) return Future.value(false);
+    return _publicCurationLookups.putIfAbsent(programId, () async {
+      try {
+        final response = await _client.get(
+          ApiEndpoints.programCurations(programId),
+          queryParameters: const {'page': 0, 'size': 1},
+        );
+        final data = response['data'];
+        if (data is! Map) return false;
+        final count = data['totalElements'];
+        if (count is num) return count > 0;
+        return data['content'] is List && (data['content'] as List).isNotEmpty;
+      } catch (_) {
+        // A transient lookup failure must not become a cached "no curation".
+        _publicCurationLookups.remove(programId);
+        rethrow;
+      }
+    });
+  }
+
+  Future<void> _enrichPublicCurationFlags(List<ProgramModel> programs) async {
+    var next = 0;
+    Future<void> worker() async {
+      while (next < programs.length) {
+        final program = programs[next++];
+        try {
+          program.hasCurator = await hasPublicCuration(program.id);
+        } catch (_) {
+          // Keep the program visible even if the curation API is unavailable.
+          program.hasCurator = false;
+        }
+      }
+    }
+
+    await Future.wait(
+      List.generate(programs.length < 6 ? programs.length : 6, (_) => worker()),
+    );
+  }
 
   Future<PageResponse<ProgramModel>> fetchRelatedPrograms(
     String programId, {
@@ -52,10 +93,12 @@ class ProgramService {
       ApiEndpoints.relatedPrograms(programId),
       queryParameters: {'page': page, 'size': size},
     );
-    return ApiResponse.fromJson(
+    final relatedPage = ApiResponse.fromJson(
       response,
       (data) => PageResponse.fromJson(data, ProgramModel.fromJson),
     ).data;
+    await _enrichPublicCurationFlags(relatedPage.content);
+    return relatedPage;
   }
 
   /// The related endpoint pads short keyword matches with newest programs.
@@ -238,6 +281,15 @@ class ProgramService {
     String id, {
     bool authorized = false,
   }) async {
+    final program = await _fetchProgramRaw(id, authorized: authorized);
+    await _enrichPublicCurationFlags([program]);
+    return program;
+  }
+
+  Future<ProgramModel> _fetchProgramRaw(
+    String id, {
+    bool authorized = false,
+  }) async {
     final response = await _client.get(
       ApiEndpoints.program(id),
       authorized: authorized,
@@ -259,7 +311,10 @@ class ProgramService {
           return program;
         }
         try {
-          final detail = await fetchProgram(program.id, authorized: authorized);
+          final detail = await _fetchProgramRaw(
+            program.id,
+            authorized: authorized,
+          );
           detail.ended = detail.ended || program.ended;
           return detail;
         } catch (_) {
@@ -267,6 +322,7 @@ class ProgramService {
         }
       }),
     );
+    await _enrichPublicCurationFlags(content);
     return PageResponse<ProgramModel>(
       content: content,
       page: page.page,

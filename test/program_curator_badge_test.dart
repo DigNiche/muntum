@@ -12,8 +12,7 @@ void main() {
     'id': 'curated-ended',
     'title': '종료된 큐레이션 프로그램',
     'ended': true,
-    'curator': {'nickname': '큐레이터'},
-  });
+  })..hasCurator = true;
   final plain = ProgramModel.fromJson({'id': 'plain', 'title': '일반 프로그램'});
 
   for (final buildCard in <Widget Function(ProgramModel)>[

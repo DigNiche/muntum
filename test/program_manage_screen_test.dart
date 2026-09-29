@@ -9,7 +9,7 @@ import 'package:muntum/screens/mypage/manager/program_edit_screen.dart';
 import 'package:muntum/services/program_service.dart';
 
 void main() {
-  test('program curator field distinguishes curation programs', () {
+  test('program curator field does not imply a public curation post', () {
     expect(ProgramModel.fromJson({'title': '일반'}).hasCurator, isFalse);
     expect(
       ProgramModel.fromJson({'title': '일반', 'curator': null}).hasCurator,
@@ -20,11 +20,13 @@ void main() {
         'title': '큐레이션',
         'curator': {'curatorId': 'curator-id'},
       }).hasCurator,
-      isTrue,
+      isFalse,
     );
   });
 
-  testWidgets('program origin filter uses the curator field', (tester) async {
+  testWidgets('program origin filter uses the resolved public curation flag', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -198,7 +200,7 @@ class _FakeProgramService extends ProgramService {
           'startDate': '2026-09-01',
           'endDate': '2026-12-31',
           'curator': {'curatorId': 'curator-id'},
-        }),
+        })..hasCurator = true,
     ]);
   }
 }
@@ -228,7 +230,7 @@ class _PagedProgramService extends ProgramService {
                   'title': '다음 페이지 큐레이션',
                   'curator': {'curatorId': 'curator-id'},
                 },
-        ),
+        )..hasCurator = page == 1,
       ],
       page: page,
       size: 1,

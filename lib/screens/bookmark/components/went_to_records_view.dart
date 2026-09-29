@@ -319,18 +319,19 @@ class _WentToRecordCard extends StatelessWidget {
                     ),
                   ),
                   SizedBox(height: 8.h),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: SvgPicture.asset(
-                      'assets/icons/edit.svg',
-                      width: 16.r,
-                      height: 16.r,
-                      colorFilter: const ColorFilter.mode(
-                        AppColors.gray400,
-                        BlendMode.srcIn,
-                      ),
-                    ),
-                  ),
+                  // TODO:
+                  // Align(
+                  //   alignment: Alignment.centerRight,
+                  //   child: SvgPicture.asset(
+                  //     'assets/icons/edit.svg',
+                  //     width: 16.r,
+                  //     height: 16.r,
+                  //     colorFilter: const ColorFilter.mode(
+                  //       AppColors.gray400,
+                  //       BlendMode.srcIn,
+                  //     ),
+                  //   ),
+                  // ),
                 ],
               ),
             ),

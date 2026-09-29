@@ -27,6 +27,7 @@ import 'package:muntum/services/taste_service.dart';
 import 'package:muntum/stores/program_scrap_store.dart';
 import 'package:muntum/stores/user_preference_store.dart';
 import 'package:muntum/utils/app_toast.dart';
+import 'package:muntum/utils/paginated_progress_target.dart';
 
 class MyNicheScreen extends StatefulWidget {
   final bool isActive;
@@ -61,6 +62,7 @@ class _MyNicheScreenState extends State<MyNicheScreen> {
   int _programRequestId = 0;
   bool _hasNextPage = true;
   bool _isLoadingPrograms = false;
+  Future<void>? _activeProgramLoad;
   bool _isReturningToFirst = false;
   bool _isApplyingProgressDrag = false;
   double? _dragStartPage;
@@ -119,6 +121,20 @@ class _MyNicheScreenState extends State<MyNicheScreen> {
   }
 
   Future<void> _loadPrograms({required bool reset}) async {
+    if (!reset && _activeProgramLoad != null) {
+      await _activeProgramLoad;
+      return;
+    }
+    final load = _performLoadPrograms(reset: reset);
+    _activeProgramLoad = load;
+    try {
+      await load;
+    } finally {
+      if (identical(_activeProgramLoad, load)) _activeProgramLoad = null;
+    }
+  }
+
+  Future<void> _performLoadPrograms({required bool reset}) async {
     if (!reset && (_isLoadingPrograms || !_hasNextPage)) return;
     final requestId = reset ? ++_programRequestId : _programRequestId;
     final requestedPage = reset ? 0 : _nextPage;
@@ -150,7 +166,12 @@ class _MyNicheScreenState extends State<MyNicheScreen> {
       });
       if (reset) _jumpToFirstProgram();
     } on ApiException catch (error) {
-      if (error.statusCode != 401 && error.code != 'A008') rethrow;
+      if (error.statusCode != 401 && error.code != 'A008') {
+        if (mounted && requestId == _programRequestId) {
+          showAppToast(context, '프로그램을 불러오지 못했어요. 다시 시도해주세요.', isError: true);
+        }
+        return;
+      }
       await TokenStore.instance.clear();
       ProgramScrapStore.instance.clear(notify: false);
       UserPreferenceStore.instance.clear();
@@ -158,6 +179,10 @@ class _MyNicheScreenState extends State<MyNicheScreen> {
       setState(() {
         _isLoggedInFuture = Future.value(false);
       });
+    } catch (_) {
+      if (mounted && requestId == _programRequestId) {
+        showAppToast(context, '프로그램을 불러오지 못했어요. 다시 시도해주세요.', isError: true);
+      }
     } finally {
       if (mounted && requestId == _programRequestId) {
         setState(() => _isLoadingPrograms = false);
@@ -257,6 +282,7 @@ class _MyNicheScreenState extends State<MyNicheScreen> {
   }
 
   void _onProgramPageChanged(int index) {
+    if (index >= _programs.length) return;
     setState(() => _currentProgramIndex = index);
     if (index >= _programs.length - 3) {
       _loadPrograms(reset: false);
@@ -402,16 +428,15 @@ class _MyNicheScreenState extends State<MyNicheScreen> {
       while (mounted) {
         final initialRequestedIndex = _progressDragTargetIndex;
         if (initialRequestedIndex == null) return;
-        var requestedIndex = initialRequestedIndex;
-
-        while (requestedIndex >= _programs.length && _hasNextPage) {
-          await _loadPrograms(reset: false);
-          if (!mounted) return;
-          requestedIndex = _progressDragTargetIndex ?? requestedIndex;
-        }
-
-        if (_programs.isEmpty) return;
-        final availableIndex = requestedIndex.clamp(0, _programs.length - 1);
+        final availableIndex = await resolvePaginatedProgressTarget(
+          targetIndex: () => _progressDragTargetIndex ?? initialRequestedIndex,
+          loadedCount: () => _programs.length,
+          hasMore: () => mounted && _hasNextPage,
+          loadMore: () => _loadPrograms(reset: false),
+        );
+        if (!mounted || availableIndex == null) return;
+        final requestedIndex =
+            _progressDragTargetIndex ?? initialRequestedIndex;
         if (_pageController.hasClients &&
             availableIndex != _currentProgramIndex) {
           _pageController.jumpToPage(availableIndex);

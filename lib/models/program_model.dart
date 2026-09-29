@@ -162,7 +162,9 @@ class ProgramModel {
       isBookmark: json['scrapped'] as bool? ?? json['saved'] as bool? ?? false,
       ended: json['ended'] as bool? ?? false,
       status: json['status'] as String? ?? '',
-      hasCurator: json['curator'] != null,
+      // `curator` in a program response may be the manager who entered it.
+      // A badge is earned only by a published entry in /curations.
+      hasCurator: false,
       viewCount: json['viewCount'] as int? ?? 0,
       officialUrl: json['officialUrl'] as String?,
       createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),

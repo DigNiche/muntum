@@ -9,7 +9,6 @@ class MapProgramRepository {
     : _programService = programService ?? ProgramService();
 
   final ProgramService _programService;
-  final Map<String, Future<bool>> _curatorLookups = {};
 
   Future<List<ProgramModel>> fetchNearby({
     required NLatLng center,
@@ -34,7 +33,6 @@ class MapProgramRepository {
       page = response.page + 1;
     }
 
-    await _enrichCuratorFlags(programs);
     programs.sort(
       (first, second) =>
           _distanceFrom(center, first).compareTo(_distanceFrom(center, second)),
@@ -56,7 +54,6 @@ class MapProgramRepository {
     final programs = response.content
         .where((program) => program.hasMapCoordinates)
         .toList();
-    await _enrichCuratorFlags(programs);
 
     if (filter != Filter.nowHot) {
       programs.sort(
@@ -75,34 +72,6 @@ class MapProgramRepository {
       centerLongitude: center.longitude,
       targetLatitude: program.latitude!,
       targetLongitude: program.longitude!,
-    );
-  }
-
-  Future<void> _enrichCuratorFlags(List<ProgramModel> programs) async {
-    // Map list responses may omit `curator`; the program detail response has it.
-    // Keep a small request pool and reuse lookups across map movements.
-    final pending = programs
-        .where((p) => p.id.isNotEmpty && !p.hasCurator)
-        .toList();
-    var next = 0;
-    Future<void> worker() async {
-      while (next < pending.length) {
-        final program = pending[next++];
-        try {
-          program.hasCurator = await _curatorLookups.putIfAbsent(
-            program.id,
-            () => _programService
-                .fetchProgram(program.id)
-                .then((detail) => detail.hasCurator),
-          );
-        } catch (_) {
-          _curatorLookups.remove(program.id);
-        }
-      }
-    }
-
-    await Future.wait(
-      List.generate(pending.length < 6 ? pending.length : 6, (_) => worker()),
     );
   }
 }

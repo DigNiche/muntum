@@ -1037,20 +1037,11 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
                   onPressed: onEdit,
                   style: TextButton.styleFrom(
                     foregroundColor: AppColors.gray700,
-                    backgroundColor: AppColors.gray100,
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 10.w,
-                      vertical: 5.h,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20.r),
-                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 6.w),
                   ),
                   child: Text(
                     '수정',
-                    style: AppTypography.caption2.copyWith(
+                    style: AppTypography.button3.copyWith(
                       color: AppColors.gray700,
                     ),
                   ),
