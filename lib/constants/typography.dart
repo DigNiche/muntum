@@ -20,7 +20,7 @@ class AppTypography {
   }
 
   // Display
-  static final display = _style(
+  static TextStyle get display => _style(
     fontSize: 28.sp,
     lineHeight: 1.4,
     letterSpacingPercent: -2,
@@ -28,28 +28,28 @@ class AppTypography {
   );
 
   // Title
-  static final title1 = _style(
+  static TextStyle get title1 => _style(
     fontSize: 24.sp,
     lineHeight: 1.4,
     letterSpacingPercent: -1,
     fontWeight: FontWeight.w700,
   );
 
-  static final title2 = _style(
+  static TextStyle get title2 => _style(
     fontSize: 22.sp,
     lineHeight: 1.4,
     letterSpacingPercent: -1.5,
     fontWeight: FontWeight.w700,
   );
 
-  static final title3 = _style(
+  static TextStyle get title3 => _style(
     fontSize: 20.sp,
     lineHeight: 1.4,
     letterSpacingPercent: -1.5,
     fontWeight: FontWeight.w700,
   );
 
-  static final title4 = _style(
+  static TextStyle get title4 => _style(
     fontSize: 18.sp,
     lineHeight: 1.4,
     letterSpacingPercent: -1.5,
@@ -57,21 +57,21 @@ class AppTypography {
   );
 
   // Headline
-  static final headline1 = _style(
+  static TextStyle get headline1 => _style(
     fontSize: 16.sp,
     lineHeight: 1.4,
     letterSpacingPercent: -1.5,
     fontWeight: FontWeight.w700,
   );
 
-  static final headline2 = _style(
+  static TextStyle get headline2 => _style(
     fontSize: 15.sp,
     lineHeight: 1.4,
     letterSpacingPercent: -1.5,
     fontWeight: FontWeight.w600,
   );
 
-  static final headline3 = _style(
+  static TextStyle get headline3 => _style(
     fontSize: 14.sp,
     lineHeight: 1.4,
     letterSpacingPercent: -1.5,
@@ -79,21 +79,21 @@ class AppTypography {
   );
 
   // Body
-  static final body1 = _style(
+  static TextStyle get body1 => _style(
     fontSize: 16.sp,
     lineHeight: 1.6,
     letterSpacingPercent: -1.5,
     fontWeight: FontWeight.w400,
   );
 
-  static final body2 = _style(
+  static TextStyle get body2 => _style(
     fontSize: 15.sp,
     lineHeight: 1.6,
     letterSpacingPercent: -1.5,
     fontWeight: FontWeight.w400,
   );
 
-  static final body3 = _style(
+  static TextStyle get body3 => _style(
     fontSize: 14.sp,
     lineHeight: 1.6,
     letterSpacingPercent: -1.5,
@@ -101,21 +101,21 @@ class AppTypography {
   );
 
   // Caption
-  static final caption1 = _style(
+  static TextStyle get caption1 => _style(
     fontSize: 13.sp,
     lineHeight: 1.4,
     letterSpacingPercent: -1.5,
     fontWeight: FontWeight.w500,
   );
 
-  static final caption2 = _style(
+  static TextStyle get caption2 => _style(
     fontSize: 12.sp,
     lineHeight: 1.4,
     letterSpacingPercent: -1.5,
     fontWeight: FontWeight.w500,
   );
 
-  static final caption3 = _style(
+  static TextStyle get caption3 => _style(
     fontSize: 11.sp,
     lineHeight: 1.4,
     letterSpacingPercent: -1.5,
@@ -123,32 +123,32 @@ class AppTypography {
   );
 
   // Button
-  static final button1 = _style(
+  static TextStyle get button1 => _style(
     fontSize: 16.sp,
     lineHeight: 1.3,
     letterSpacingPercent: -2.5,
     fontWeight: FontWeight.w700,
   );
-  static final button2 = _style(
+  static TextStyle get button2 => _style(
     fontSize: 15.sp,
     lineHeight: 1.3,
     letterSpacingPercent: -2.5,
     fontWeight: FontWeight.w700,
   );
-  static final button3 = _style(
+  static TextStyle get button3 => _style(
     fontSize: 14.sp,
     lineHeight: 1.3,
     letterSpacingPercent: -2.5,
     fontWeight: FontWeight.w600,
   );
-  static final button4 = _style(
+  static TextStyle get button4 => _style(
     fontSize: 13.sp,
     lineHeight: 1.4,
     letterSpacingPercent: -1.5,
     fontWeight: FontWeight.w600,
   );
 
-  static final badge = _style(
+  static TextStyle get badge => _style(
     fontSize: 11.sp,
     lineHeight: 1.3,
     letterSpacingPercent: -2.5,

@@ -181,6 +181,54 @@ void main() {
     expect(find.text('프로그램명을 입력해 주세요.'), findsOneWidget);
     expect(find.text('새로 등록'), findsOneWidget);
   });
+
+  testWidgets('linked program is selected and can be opened for replacement', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final service = _LinkedFakeService();
+    final programs = _FakeProgramService();
+    await tester.pumpWidget(
+      ScreenUtilPlusInit(
+        designSize: const Size(390, 844),
+        builder: (_, _) => MaterialApp(
+          home: CurationReviewScreen(
+            summary: service.linkedItem,
+            service: service,
+            programService: programs,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(programs.loadedId, 'program-id');
+    expect(find.text('연결할 프로그램'), findsOneWidget);
+    expect(find.text('프로그램 검색'), findsNothing);
+    await tester.tap(find.text('연결할 프로그램'));
+    await tester.pumpAndSettle();
+    expect(find.text('프로그램 검색'), findsOneWidget);
+  });
+}
+
+class _LinkedFakeService extends _FakeService {
+  final linkedItem = AdminCurationModel.fromJson({
+    'id': 'curation-id',
+    'programId': 'program-id',
+    'curator': {'curatorId': 'curator-id', 'nickname': '큐레이터명'},
+    'submittedProgramTitle': '임시 제목',
+    'submittedPlace': '장소',
+    'tagline': '한줄소개',
+    'content': '소개글',
+    'images': const [],
+    'status': 'CHANGES_REQUESTED',
+    'publicationStatus': 'UNPUBLISHED',
+  });
+
+  @override
+  Future<AdminCurationModel> fetchDetail(String id) async => linkedItem;
 }
 
 class _FakeService extends AdminCurationService {
@@ -225,14 +273,13 @@ class _FakeService extends AdminCurationService {
   }
 
   @override
-  Future<AdminCurationModel> requestChanges({
+  Future<void> requestChanges({
     required String curationId,
     required String reason,
     required String publicationStatus,
   }) async {
     lastReason = reason;
     lastPublicationStatus = publicationStatus;
-    return item;
   }
 
   @override
@@ -250,6 +297,21 @@ class _FakeProgramService extends ProgramService {
 
   final bool empty;
   String? lastSearch;
+  String? loadedId;
+
+  @override
+  Future<ProgramModel> fetchProgram(
+    String id, {
+    bool authorized = false,
+  }) async {
+    loadedId = id;
+    return ProgramModel.fromJson({
+      'id': id,
+      'title': '연결할 프로그램',
+      'venueName': '장소',
+      'programType': 'EXHIBITION',
+    });
+  }
 
   @override
   Future<PageResponse<ProgramModel>> fetchPrograms({

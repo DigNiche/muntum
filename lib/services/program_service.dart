@@ -42,10 +42,17 @@ class ProgramService {
   ProgramService({ApiClient? client}) : _client = client ?? ApiClient();
 
   final ApiClient _client;
-  final Map<String, Future<bool>> _publicCurationLookups = {};
+  final Map<String, Future<int>> _publicCurationLookups = {};
 
-  Future<bool> hasPublicCuration(String programId) {
-    if (programId.isEmpty) return Future.value(false);
+  void invalidatePublicCurationCount(String programId) {
+    _publicCurationLookups.remove(programId);
+  }
+
+  Future<bool> hasPublicCuration(String programId) async =>
+      await publicCurationCount(programId) > 0;
+
+  Future<int> publicCurationCount(String programId) {
+    if (programId.isEmpty) return Future.value(0);
     return _publicCurationLookups.putIfAbsent(programId, () async {
       try {
         final response = await _client.get(
@@ -53,10 +60,10 @@ class ProgramService {
           queryParameters: const {'page': 0, 'size': 1},
         );
         final data = response['data'];
-        if (data is! Map) return false;
+        if (data is! Map) return 0;
         final count = data['totalElements'];
-        if (count is num) return count > 0;
-        return data['content'] is List && (data['content'] as List).isNotEmpty;
+        if (count is num && count > 0) return count.toInt();
+        return data['content'] is List ? (data['content'] as List).length : 0;
       } catch (_) {
         // A transient lookup failure must not become a cached "no curation".
         _publicCurationLookups.remove(programId);
@@ -71,10 +78,12 @@ class ProgramService {
       while (next < programs.length) {
         final program = programs[next++];
         try {
-          program.hasCurator = await hasPublicCuration(program.id);
+          program.publicCurationCount = await publicCurationCount(program.id);
+          program.hasCurator = program.publicCurationCount! > 0;
         } catch (_) {
           // Keep the program visible even if the curation API is unavailable.
           program.hasCurator = false;
+          program.publicCurationCount = null;
         }
       }
     }
@@ -88,6 +97,7 @@ class ProgramService {
     String programId, {
     int page = 0,
     int size = 3,
+    bool enrichCurations = true,
   }) async {
     final response = await _client.get(
       ApiEndpoints.relatedPrograms(programId),
@@ -97,40 +107,21 @@ class ProgramService {
       response,
       (data) => PageResponse.fromJson(data, ProgramModel.fromJson),
     ).data;
-    await _enrichPublicCurationFlags(relatedPage.content);
+    if (enrichCurations) {
+      await _enrichPublicCurationFlags(relatedPage.content);
+    }
     return relatedPage;
   }
 
-  /// The related endpoint pads short keyword matches with newest programs.
-  /// The detail section only displays genuinely shared-keyword programs.
+  /// Display the related API's first page as returned by the backend.
+  /// The backend owns keyword and availability selection for this section.
   Future<List<ProgramModel>> fetchSameKeywordPrograms(
     ProgramModel source, {
     int size = 3,
   }) async {
-    if (source.id.isEmpty ||
-        (source.keywordModels.isEmpty && source.keywords.isEmpty)) {
-      return const [];
-    }
+    if (source.id.isEmpty) return const [];
     final related = await fetchRelatedPrograms(source.id, size: size);
-    final sourceIds = source.keywordModels
-        .map((keyword) => keyword.id)
-        .where((id) => id.isNotEmpty)
-        .toSet();
-    final sourceNames = source.keywords.map((name) => name.trim()).toSet();
-
-    return related.content.where((candidate) {
-      if (candidate.id == source.id) return false;
-      final candidateIds = candidate.keywordModels
-          .map((keyword) => keyword.id)
-          .where((id) => id.isNotEmpty)
-          .toSet();
-      if (sourceIds.isNotEmpty && candidateIds.isNotEmpty) {
-        return sourceIds.intersection(candidateIds).isNotEmpty;
-      }
-      return candidate.keywords
-          .map((name) => name.trim())
-          .any((name) => name.isNotEmpty && sourceNames.contains(name));
-    }).toList();
+    return related.content;
   }
 
   Future<PageResponse<ProgramModel>> fetchPrograms({

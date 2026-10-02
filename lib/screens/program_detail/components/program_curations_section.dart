@@ -1,7 +1,10 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/components/program_curator_badge.dart';
+import 'package:muntum/components/popup_widget.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/models/curation_model.dart';
@@ -9,6 +12,7 @@ import 'package:muntum/screens/mypage/curator/curation_action_sheet.dart';
 import 'package:muntum/screens/mypage/curator/curation_write_screen.dart';
 import 'package:muntum/services/curation_service.dart';
 import 'package:muntum/stores/auth_state.dart';
+import 'package:muntum/stores/current_user_profile_image_store.dart';
 import 'package:muntum/utils/app_toast.dart';
 
 class ProgramCurationsSection extends StatefulWidget {
@@ -32,6 +36,13 @@ class _ProgramCurationsSectionState extends State<ProgramCurationsSection> {
   late final CurationService _service = widget.service ?? CurationService();
   late Future<List<PublicCurationModel>> _curations;
   final Map<String, Future<PublicCurationModel>> _details = {};
+  final ScrollController _cardsController = ScrollController();
+
+  @override
+  void dispose() {
+    _cardsController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -45,7 +56,21 @@ class _ProgramCurationsSectionState extends State<ProgramCurationsSection> {
     if (oldWidget.programId != widget.programId) {
       _details.clear();
       _curations = _load();
+      if (_cardsController.hasClients) _cardsController.jumpTo(0);
     }
+  }
+
+  void _scrollToCard(int index, double cardWidth) {
+    if (!_cardsController.hasClients) return;
+    final target = ((cardWidth + 12.w) * index).clamp(
+      0.0,
+      _cardsController.position.maxScrollExtent,
+    );
+    _cardsController.animateTo(
+      target,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
   }
 
   Future<PublicCurationModel> _detailFor(PublicCurationModel summary) =>
@@ -76,7 +101,7 @@ class _ProgramCurationsSectionState extends State<ProgramCurationsSection> {
           MediaQuery.sizeOf(context).width - 40.w,
         );
         final cardHeight = cardWidth * 395 / 300;
-        Widget cardFor(PublicCurationModel item, {required bool hasNext}) =>
+        Widget cardFor(PublicCurationModel item, {required int index}) =>
             SizedBox(
               width: cardWidth,
               child: FutureBuilder<PublicCurationModel>(
@@ -86,7 +111,10 @@ class _ProgramCurationsSectionState extends State<ProgramCurationsSection> {
                       ? item
                       : item.mergeDetails(detailSnapshot.data!),
                   cardHeight: cardHeight,
-                  showNextArrow: hasNext,
+                  showNextArrow: index < items.length - 1,
+                  showPreviousArrow: index > 0,
+                  onNextArrowTap: () => _scrollToCard(index + 1, cardWidth),
+                  onPreviousArrowTap: () => _scrollToCard(index - 1, cardWidth),
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -137,16 +165,23 @@ class _ProgramCurationsSectionState extends State<ProgramCurationsSection> {
                   SizedBox(
                     height: cardHeight,
                     child: items.length == 1
-                        ? Center(child: cardFor(items.single, hasNext: false))
+                        ? Center(child: cardFor(items.single, index: 0))
                         : ListView.separated(
-                            padding: EdgeInsets.symmetric(horizontal: 20.w),
+                            controller: _cardsController,
+                            padding: EdgeInsets.only(
+                              left: 20.w,
+                              right: math.max(
+                                20.w,
+                                MediaQuery.sizeOf(context).width -
+                                    cardWidth -
+                                    20.w,
+                              ),
+                            ),
                             scrollDirection: Axis.horizontal,
                             itemCount: items.length,
                             separatorBuilder: (_, _) => SizedBox(width: 12.w),
-                            itemBuilder: (context, index) => cardFor(
-                              items[index],
-                              hasNext: index < items.length - 1,
-                            ),
+                            itemBuilder: (context, index) =>
+                                cardFor(items[index], index: index),
                           ),
                   ),
                   SizedBox(height: 32.h),
@@ -165,12 +200,18 @@ class _CurationNoteCard extends StatelessWidget {
     required this.curation,
     required this.cardHeight,
     required this.showNextArrow,
+    required this.showPreviousArrow,
+    required this.onNextArrowTap,
+    required this.onPreviousArrowTap,
     required this.onTap,
   });
 
   final PublicCurationModel curation;
   final double cardHeight;
   final bool showNextArrow;
+  final bool showPreviousArrow;
+  final VoidCallback onNextArrowTap;
+  final VoidCallback onPreviousArrowTap;
   final VoidCallback onTap;
 
   @override
@@ -194,13 +235,31 @@ class _CurationNoteCard extends StatelessWidget {
                     fit: StackFit.expand,
                     children: [
                       _CurationImage(url: curation.thumbnailUrl),
+                      if (showPreviousArrow)
+                        Positioned(
+                          left: 8.w,
+                          bottom: 7.h,
+                          child: IconButton(
+                            key: const ValueKey('curator-note-previous-arrow'),
+                            onPressed: onPreviousArrowTap,
+                            icon: Transform.rotate(
+                              angle: math.pi,
+                              child: SvgPicture.asset(
+                                'assets/icons/curator_note_next_arrow.svg',
+                              ),
+                            ),
+                          ),
+                        ),
                       if (showNextArrow)
                         Positioned(
-                          right: 14.w,
-                          bottom: 15.h,
-                          child: SvgPicture.asset(
-                            'assets/icons/curator_note_next_arrow.svg',
+                          right: 8.w,
+                          bottom: 7.h,
+                          child: IconButton(
                             key: const ValueKey('curator-note-next-arrow'),
+                            onPressed: onNextArrowTap,
+                            icon: SvgPicture.asset(
+                              'assets/icons/curator_note_next_arrow.svg',
+                            ),
                           ),
                         ),
                     ],
@@ -262,7 +321,10 @@ class _CurationNoteCard extends StatelessWidget {
             Positioned(
               left: 18.w,
               top: imageHeight - 20.r,
-              child: _NoteCuratorAvatar(imageUrl: curation.curatorImageUrl),
+              child: _NoteCuratorAvatar(
+                curatorId: curation.curatorId,
+                imageUrl: curation.curatorImageUrl,
+              ),
             ),
           ],
         ),
@@ -272,8 +334,9 @@ class _CurationNoteCard extends StatelessWidget {
 }
 
 class _NoteCuratorAvatar extends StatelessWidget {
-  const _NoteCuratorAvatar({required this.imageUrl});
+  const _NoteCuratorAvatar({required this.curatorId, required this.imageUrl});
 
+  final String? curatorId;
   final String? imageUrl;
 
   @override
@@ -284,16 +347,25 @@ class _NoteCuratorAvatar extends StatelessWidget {
       height: 40.r,
       fit: BoxFit.cover,
     );
-    return ClipOval(
-      child: imageUrl?.isNotEmpty == true
-          ? Image.network(
-              imageUrl!,
-              width: 40.r,
-              height: 40.r,
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => fallback,
-            )
-          : fallback,
+    return AnimatedBuilder(
+      animation: CurrentUserProfileImageStore.instance,
+      builder: (context, _) {
+        final resolvedUrl = CurrentUserProfileImageStore.instance.resolve(
+          userId: curatorId,
+          apiImageUrl: imageUrl,
+        );
+        return ClipOval(
+          child: resolvedUrl?.isNotEmpty == true
+              ? Image.network(
+                  resolvedUrl!,
+                  width: 40.r,
+                  height: 40.r,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => fallback,
+                )
+              : fallback,
+        );
+      },
     );
   }
 }
@@ -348,24 +420,14 @@ class _PublicCurationDetailScreenState
         showAppToast(context, '승인된 글은 삭제할 수 없어요.', isError: true);
         return;
       }
-      final confirmed = await showDialog<bool>(
+      final confirmed = await showConfirmationPopupWidget(
         context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text('작성한 글을 삭제할까요?'),
-          content: const Text('삭제한 글은 복구할 수 없어요.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('취소'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('삭제', style: TextStyle(color: AppColors.error)),
-            ),
-          ],
-        ),
+        title: '작성한 글을 삭제할까요?',
+        description: '삭제한 글은 복구할 수 없어요.',
+        confirmText: '삭제',
+        confirmColor: AppColors.error,
       );
-      if (confirmed != true || !mounted) return;
+      if (!confirmed || !mounted) return;
       await _service.delete(mine.id);
       if (mounted) Navigator.pop(context, 'deleted');
     } catch (_) {
@@ -420,6 +482,7 @@ class _PublicCurationDetailScreenState
                       Row(
                         children: [
                           _DetailCuratorAvatar(
+                            curatorId: detail.curatorId,
                             imageUrl: detail.curatorImageUrl,
                           ),
                           SizedBox(width: 12.w),
@@ -507,8 +570,9 @@ class _PublicCurationDetailScreenState
 }
 
 class _DetailCuratorAvatar extends StatelessWidget {
-  const _DetailCuratorAvatar({required this.imageUrl});
+  const _DetailCuratorAvatar({required this.curatorId, required this.imageUrl});
 
+  final String? curatorId;
   final String? imageUrl;
 
   @override
@@ -519,30 +583,39 @@ class _DetailCuratorAvatar extends StatelessWidget {
       height: 40.r,
       fit: BoxFit.cover,
     );
-    return SizedBox(
-      width: 42.r,
-      height: 42.r,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          ClipOval(
-            child: imageUrl?.isNotEmpty == true
-                ? Image.network(
-                    imageUrl!,
-                    width: 40.r,
-                    height: 40.r,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => fallback,
-                  )
-                : fallback,
+    return AnimatedBuilder(
+      animation: CurrentUserProfileImageStore.instance,
+      builder: (context, _) {
+        final resolvedUrl = CurrentUserProfileImageStore.instance.resolve(
+          userId: curatorId,
+          apiImageUrl: imageUrl,
+        );
+        return SizedBox(
+          width: 42.r,
+          height: 42.r,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              ClipOval(
+                child: resolvedUrl?.isNotEmpty == true
+                    ? Image.network(
+                        resolvedUrl!,
+                        width: 40.r,
+                        height: 40.r,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => fallback,
+                      )
+                    : fallback,
+              ),
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: ProgramCuratorBadge(size: 14.r),
+              ),
+            ],
           ),
-          Positioned(
-            right: 0,
-            bottom: 0,
-            child: ProgramCuratorBadge(size: 14.r),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

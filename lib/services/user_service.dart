@@ -3,6 +3,7 @@ import 'package:muntum/api/api_endpoints.dart';
 import 'package:muntum/api/token_store.dart';
 import 'package:muntum/api/api_response.dart';
 import 'package:muntum/models/user_profile_model.dart';
+import 'package:muntum/stores/current_user_profile_image_store.dart';
 
 class UserService {
   UserService({ApiClient? client}) : _client = client ?? ApiClient();
@@ -11,25 +12,35 @@ class UserService {
 
   Future<UserProfileModel> fetchProfile() async {
     final response = await _client.get(ApiEndpoints.me, authorized: true);
-    return ApiResponse.fromJson(
+    final profile = ApiResponse.fromJson(
       response,
       (data) =>
           UserProfileModel.fromJson(data as Map<String, dynamic>? ?? const {}),
     ).data;
+    CurrentUserProfileImageStore.instance.update(
+      userId: profile.userId,
+      imageUrl: profile.profileImageUrl,
+    );
+    return profile;
   }
 
   Future<UserProfileModel> updateProfileImage(String filePath) async {
     final response = await _client.putFile(
       ApiEndpoints.profileImage,
       filePath: filePath,
-      fileFieldName: 'image',
+      fileFieldName: 'profileImage',
       authorized: true,
     );
-    return ApiResponse.fromJson(
+    final profile = ApiResponse.fromJson(
       response,
       (data) =>
           UserProfileModel.fromJson(data as Map<String, dynamic>? ?? const {}),
     ).data;
+    CurrentUserProfileImageStore.instance.update(
+      userId: profile.userId,
+      imageUrl: profile.profileImageUrl,
+    );
+    return profile;
   }
 
   Future<UserProfileModel> deleteProfileImage() async {
@@ -37,11 +48,16 @@ class UserService {
       ApiEndpoints.profileImage,
       authorized: true,
     );
-    return ApiResponse.fromJson(
+    final profile = ApiResponse.fromJson(
       response,
       (data) =>
           UserProfileModel.fromJson(data as Map<String, dynamic>? ?? const {}),
     ).data;
+    CurrentUserProfileImageStore.instance.update(
+      userId: profile.userId,
+      imageUrl: null,
+    );
+    return profile;
   }
 
   Future<void> updateNickname(String nickname) async {

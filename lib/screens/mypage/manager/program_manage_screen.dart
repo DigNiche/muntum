@@ -10,7 +10,10 @@ import 'package:muntum/components/popup_widget.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/models/program_model.dart';
+import 'package:muntum/models/curation_model.dart';
+import 'package:muntum/services/admin_curation_service.dart';
 import 'package:muntum/screens/mypage/manager/program_edit_screen.dart';
+import 'package:muntum/screens/mypage/manager/program_curations_manage_screen.dart';
 import 'package:muntum/screens/program_detail/program_detail_screen.dart';
 import 'package:muntum/screens/home/components/filter_list.dart';
 import 'package:muntum/services/program_service.dart';
@@ -25,9 +28,14 @@ enum _OriginFilter { all, general, curation }
 enum _ManageSort { latest, endingSoon, popular }
 
 class ProgramManageScreen extends StatefulWidget {
-  const ProgramManageScreen({super.key, this.service});
+  const ProgramManageScreen({
+    super.key,
+    this.service,
+    this.adminCurationService,
+  });
 
   final ProgramService? service;
+  final AdminCurationService? adminCurationService;
 
   @override
   State<ProgramManageScreen> createState() => _ProgramManageScreenState();
@@ -40,6 +48,9 @@ class _ProgramManageScreenState extends State<ProgramManageScreen> {
   final _searchFocus = FocusNode();
   final _scrollController = ScrollController();
   late final ProgramService _service;
+  late final AdminCurationService _adminCurationService;
+  Future<Map<String, int>>? _privateCurationCountsFuture;
+  Map<String, int> _privateCurationCounts = const {};
   final List<ProgramModel> _programs = [];
 
   Timer? _searchDebounce;
@@ -72,8 +83,10 @@ class _ProgramManageScreenState extends State<ProgramManageScreen> {
     };
     final matchesOrigin = switch (_originFilter) {
       _OriginFilter.all => true,
-      _OriginFilter.general => !program.hasCurator,
-      _OriginFilter.curation => program.hasCurator,
+      _OriginFilter.general =>
+        !program.hasCurator && (_privateCurationCounts[program.id] ?? 0) == 0,
+      _OriginFilter.curation =>
+        program.hasCurator || (_privateCurationCounts[program.id] ?? 0) > 0,
     };
     return matchesPeriod && matchesOrigin;
   }).toList();
@@ -82,6 +95,8 @@ class _ProgramManageScreenState extends State<ProgramManageScreen> {
   void initState() {
     super.initState();
     _service = widget.service ?? ProgramService();
+    _adminCurationService =
+        widget.adminCurationService ?? AdminCurationService();
     _searchController.addListener(_onSearchChanged);
     _scrollController.addListener(_onScroll);
     _reloadPrograms();
@@ -155,6 +170,8 @@ class _ProgramManageScreenState extends State<ProgramManageScreen> {
         _hasNext = response.hasMore;
         _errorMessage = null;
       });
+      _privateCurationCountsFuture ??= _fetchPrivateCurationCounts();
+      unawaited(_applyPrivateCurationCounts(requestId));
     } on ApiException catch (error) {
       if (!mounted || requestId != _requestId) return;
       setState(() => _errorMessage = error.message);
@@ -168,6 +185,44 @@ class _ProgramManageScreenState extends State<ProgramManageScreen> {
           _isLoadingMore = false;
         });
       }
+    }
+  }
+
+  Future<Map<String, int>> _fetchPrivateCurationCounts() async {
+    final ids = <String>{};
+    var page = 0;
+    while (true) {
+      final response = await _adminCurationService.fetchList(
+        status: CurationStatus.changesRequested,
+        page: page,
+        size: 100,
+      );
+      ids.addAll(response.content.map((item) => item.curation.id));
+      if (!response.hasMore || response.content.isEmpty) break;
+      page = response.page + 1;
+    }
+    final details = await Future.wait(
+      ids.map((id) => _adminCurationService.fetchDetail(id)),
+    );
+    final counts = <String, int>{};
+    for (final item in details) {
+      final curation = item.curation;
+      if (curation.publicationStatus != 'UNPUBLISHED') continue;
+      final programId = curation.programId;
+      if (programId == null || programId.isEmpty) continue;
+      counts.update(programId, (count) => count + 1, ifAbsent: () => 1);
+    }
+    return counts;
+  }
+
+  Future<void> _applyPrivateCurationCounts(int requestId) async {
+    try {
+      final counts = await _privateCurationCountsFuture!;
+      if (mounted && requestId == _requestId) {
+        setState(() => _privateCurationCounts = counts);
+      }
+    } catch (_) {
+      // Program management remains usable if the review queue is unavailable.
     }
   }
 
@@ -186,6 +241,18 @@ class _ProgramManageScreenState extends State<ProgramManageScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _openCurations(ProgramModel program) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ProgramCurationsManageScreen(program: program),
+      ),
+    );
+    _service.invalidatePublicCurationCount(program.id);
+    _privateCurationCountsFuture = null;
+    if (mounted) await _reloadPrograms();
   }
 
   Future<void> _openProgramCreate() async {
@@ -532,8 +599,12 @@ class _ProgramManageScreenState extends State<ProgramManageScreen> {
           final program = visiblePrograms[index - 1];
           return _ProgramListItem(
             program: program,
+            managedCurationCount:
+                (program.publicCurationCount ?? 0) +
+                (_privateCurationCounts[program.id] ?? 0),
             onTap: () => _openProgram(program),
             onMoreTap: () => _showProgramActions(program),
+            onCurationsTap: () => _openCurations(program),
           );
         },
       ),
@@ -681,13 +752,17 @@ class _FilterButton extends StatelessWidget {
 class _ProgramListItem extends StatelessWidget {
   const _ProgramListItem({
     required this.program,
+    required this.managedCurationCount,
     required this.onTap,
     required this.onMoreTap,
+    required this.onCurationsTap,
   });
 
   final ProgramModel program;
+  final int managedCurationCount;
   final VoidCallback onTap;
   final VoidCallback onMoreTap;
+  final VoidCallback onCurationsTap;
 
   String get _location {
     if (program.locationName.trim().isNotEmpty) {
@@ -709,86 +784,119 @@ class _ProgramListItem extends StatelessWidget {
           borderRadius: BorderRadius.circular(9.r),
           child: Padding(
             padding: EdgeInsets.all(16.r),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: 76.h),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Stack(
-                    clipBehavior: Clip.none,
+            child: Column(
+              children: [
+                ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: 76.h),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(6.r),
-                        child: program.imageUrls.isEmpty
-                            ? _imagePlaceholder()
-                            : Image.network(
-                                program.imageUrls.first,
-                                width: 60.r,
-                                height: 76.r,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, _, _) => _imagePlaceholder(),
+                      Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(6.r),
+                            child: program.imageUrls.isEmpty
+                                ? _imagePlaceholder()
+                                : Image.network(
+                                    program.imageUrls.first,
+                                    width: 60.r,
+                                    height: 76.r,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, _, _) =>
+                                        _imagePlaceholder(),
+                                  ),
+                          ),
+                          if (program.hasCurator)
+                            Positioned(
+                              left: 3.w,
+                              bottom: 3.h,
+                              child: SvgPicture.asset(
+                                'assets/icons/curator_badge.svg',
+                                width: 18.r,
+                                height: 18.r,
                               ),
+                            ),
+                        ],
                       ),
-                      if (program.hasCurator)
-                        Positioned(
-                          left: 3.w,
-                          bottom: 3.h,
-                          child: SvgPicture.asset(
-                            'assets/icons/curator_badge.svg',
-                            width: 18.r,
-                            height: 18.r,
+                      SizedBox(width: 14.w),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              program.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTypography.headline1,
+                            ),
+                            SizedBox(height: 5.h),
+                            Text(
+                              _location,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTypography.caption2.copyWith(
+                                color: AppColors.gray500,
+                              ),
+                            ),
+                            SizedBox(height: 5.h),
+                            Text(
+                              program.cardDateText.isEmpty
+                                  ? '날짜 미정'
+                                  : program.cardDateText,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTypography.caption2.copyWith(
+                                color: AppColors.gray500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: onMoreTap,
+                        behavior: HitTestBehavior.opaque,
+                        child: Padding(
+                          padding: EdgeInsets.only(left: 8.w, bottom: 12.h),
+                          child: Icon(
+                            Icons.more_vert,
+                            size: 20.r,
+                            color: AppColors.gray400,
                           ),
                         ),
+                      ),
                     ],
                   ),
-                  SizedBox(width: 14.w),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          program.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTypography.headline1,
+                ),
+                if (managedCurationCount > 0)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: GestureDetector(
+                      key: Key('program-curations-${program.id}'),
+                      behavior: HitTestBehavior.opaque,
+                      onTap: onCurationsTap,
+                      child: Padding(
+                        padding: EdgeInsets.only(top: 6.h),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '큐레이션 $managedCurationCount',
+                              style: AppTypography.caption2.copyWith(
+                                color: AppColors.gray900,
+                              ),
+                            ),
+                            Icon(
+                              Icons.chevron_right,
+                              size: 16.r,
+                              color: AppColors.gray900,
+                            ),
+                          ],
                         ),
-                        SizedBox(height: 5.h),
-                        Text(
-                          _location,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTypography.caption2.copyWith(
-                            color: AppColors.gray500,
-                          ),
-                        ),
-                        SizedBox(height: 5.h),
-                        Text(
-                          program.cardDateText.isEmpty
-                              ? '날짜 미정'
-                              : program.cardDateText,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTypography.caption2.copyWith(
-                            color: AppColors.gray500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: onMoreTap,
-                    behavior: HitTestBehavior.opaque,
-                    child: Padding(
-                      padding: EdgeInsets.only(left: 8.w, bottom: 12.h),
-                      child: Icon(
-                        Icons.more_vert,
-                        size: 20.r,
-                        color: AppColors.gray400,
                       ),
                     ),
                   ),
-                ],
-              ),
+              ],
             ),
           ),
         ),

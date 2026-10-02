@@ -1,4 +1,4 @@
-import 'package:muntum/api/api_config.dart';
+import 'package:muntum/utils/image_url.dart' as image_url;
 
 /// Public program curation responses intentionally exclude review state.
 class PublicCurationModel {
@@ -121,15 +121,7 @@ class CurationImageModel {
   }
 
   static String normalizeImageUrl(String rawUrl) {
-    final url = rawUrl.trim();
-    if (url.isEmpty) return '';
-    if (url.startsWith('http://') || url.startsWith('https://')) return url;
-    if (url.startsWith('//')) return 'https:$url';
-    if (url.startsWith('/')) return '${ApiConfig.baseUrl}$url';
-    if (RegExp(r'^[\w-]+(?:\.[\w-]+)+(?:\:\d+)?(?:/|$)').hasMatch(url)) {
-      return 'https://$url';
-    }
-    return '${ApiConfig.baseUrl}/$url';
+    return image_url.normalizeImageUrl(rawUrl);
   }
 }
 
@@ -252,11 +244,12 @@ class CuratorProfileModel {
   int get totalCount => approvedCount + pendingCount + changesRequestedCount;
 
   factory CuratorProfileModel.fromJson(Map<String, dynamic> json) {
-    final imageUrl = json['profileImageUrl']?.toString().trim();
     return CuratorProfileModel(
       curatorId: json['curatorId']?.toString() ?? '',
       nickname: json['nickname']?.toString() ?? '',
-      profileImageUrl: imageUrl == null || imageUrl.isEmpty ? null : imageUrl,
+      profileImageUrl: image_url.normalizeOptionalImageUrl(
+        json['profileImageUrl'],
+      ),
       approvedCount: (json['approvedCount'] as num? ?? 0).toInt(),
       pendingCount: (json['pendingCount'] as num? ?? 0).toInt(),
       changesRequestedCount: (json['changesRequestedCount'] as num? ?? 0)

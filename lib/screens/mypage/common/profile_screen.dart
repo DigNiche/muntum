@@ -29,6 +29,7 @@ import 'package:muntum/screens/onboarding/initial_screen.dart';
 import 'package:muntum/services/taste_service.dart';
 import 'package:muntum/services/user_service.dart';
 import 'package:muntum/stores/auth_state.dart';
+import 'package:muntum/stores/current_user_profile_image_store.dart';
 import 'package:muntum/stores/user_preference_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -330,8 +331,16 @@ class _ProfileIdentity extends StatelessWidget {
             children: [
               FutureBuilder<String?>(
                 future: profileImageUrlFuture,
-                builder: (context, snapshot) =>
-                    _ProfileAvatar(imageUrl: snapshot.data, size: 56.r),
+                builder: (context, snapshot) => AnimatedBuilder(
+                  animation: CurrentUserProfileImageStore.instance,
+                  builder: (context, _) => _ProfileAvatar(
+                    imageUrl: CurrentUserProfileImageStore.instance.resolve(
+                      userId: AuthState.instance.userId,
+                      apiImageUrl: snapshot.data,
+                    ),
+                    size: 56.r,
+                  ),
+                ),
               ),
               if (AuthState.instance.isCurator)
                 Positioned(

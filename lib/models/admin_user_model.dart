@@ -1,3 +1,5 @@
+import 'package:muntum/utils/image_url.dart';
+
 class AdminUserModel {
   final String userId;
   final String email;
@@ -30,14 +32,9 @@ class AdminUserModel {
       keywordCount: (json['keywordCount'] as num? ?? 0).toInt(),
       suggestionCount: (json['suggestionCount'] as num? ?? 0).toInt(),
       scrapCount: (json['scrapCount'] as num? ?? 0).toInt(),
-      profileImageUrl: _nullableUrl(json['profileImageUrl']),
+      profileImageUrl: normalizeOptionalImageUrl(json['profileImageUrl']),
       joinedAt: DateTime.tryParse(json['joinedAt']?.toString() ?? ''),
     );
-  }
-
-  static String? _nullableUrl(Object? value) {
-    final url = value?.toString().trim();
-    return url == null || url.isEmpty ? null : url;
   }
 
   String get displayName {

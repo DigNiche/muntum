@@ -55,7 +55,6 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
   late final TextEditingController _addressController;
   late final TextEditingController _startDateController;
   late final TextEditingController _endDateController;
-  late final TextEditingController _periodController;
   late final TextEditingController _hoursController;
   late final TextEditingController _priceController;
   late final TextEditingController _contactController;
@@ -119,13 +118,6 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
     _endDateController = TextEditingController(
       text: _displayDate(program?.endDate ?? ''),
     );
-    _periodController = TextEditingController(
-      text: _startDateController.text.isEmpty
-          ? ''
-          : _endDateController.text.isEmpty
-          ? _startDateController.text
-          : '${_startDateController.text} - ${_endDateController.text}',
-    );
     _hoursController = TextEditingController(
       text: program?.availableTime ?? '',
     );
@@ -163,7 +155,6 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
     _addressController,
     _startDateController,
     _endDateController,
-    _periodController,
     _hoursController,
     _priceController,
     _contactController,
@@ -187,7 +178,6 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
     _addressController.dispose();
     _startDateController.dispose();
     _endDateController.dispose();
-    _periodController.dispose();
     _hoursController.dispose();
     _priceController.dispose();
     _contactController.dispose();
@@ -383,6 +373,8 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
     if (_stage == _ProgramEditorStage.legacy && entered.isNotEmpty) {
       return entered;
     }
+    final existing = widget.program?.oneLineDescription.trim() ?? '';
+    if (existing.isNotEmpty) return existing;
     final description = _curationController.text.trim();
     if (description.isEmpty) return entered;
     final firstLine = description.split(RegExp(r'[\n.!?]')).first.trim();
@@ -406,7 +398,7 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
       'title': _titleController.text.trim(),
       'programType': _programType.apiValue,
       'tagline': _effectiveTagline,
-      'curation': _curationController.text.trim(),
+      'description': _curationController.text.trim(),
       'reserved': _isReservationNeeded,
       'free': _priceController.text.trim() == '무료',
       'price': _priceController.text.trim() == '무료'
@@ -897,26 +889,27 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
       showAppToast(context, '장소를 검색해 선택해주세요.', isError: true);
       return;
     }
-    final periodParts = _periodController.text.trim().split(
-      RegExp(r'\s*[-–~]\s*'),
-    );
-    if (periodParts.length > 2 ||
-        (periodParts.first.isNotEmpty && _apiDate(periodParts.first) == null) ||
-        (periodParts.length == 2 && _apiDate(periodParts.last) == null)) {
-      showAppToast(
-        context,
-        '운영기간을 YYYY.MM.DD - YYYY.MM.DD 형식으로 입력해주세요.',
-        isError: true,
-      );
+    final startText = _startDateController.text.trim();
+    final startDate = _apiDate(startText);
+    final endText = _endDateController.text.trim();
+    final endDate = endText.isEmpty ? null : _apiDate(endText);
+    final datesOptionalAndEmpty =
+        _isCurationApproval && startText.isEmpty && endText.isEmpty;
+    if (!datesOptionalAndEmpty &&
+        (startDate == null ||
+            (endText.isNotEmpty && endDate == null) ||
+            (_isCurationApproval && endDate == null))) {
+      showAppToast(context, '시작일과 마감일을 YYYY.MM.DD 형식으로 입력해주세요.', isError: true);
       return;
     }
-    _startDateController.text = periodParts.first;
-    _endDateController.text = periodParts.length == 2 ? periodParts.last : '';
+    if (startDate != null && endDate != null && _isAfter(startDate, endDate)) {
+      showAppToast(context, '마감일은 시작일보다 빠를 수 없어요.', isError: true);
+      return;
+    }
     if (!_isCurationApproval &&
-        (_apiDate(_startDateController.text) == null ||
-            _hoursController.text.trim().isEmpty ||
+        (_hoursController.text.trim().isEmpty ||
             _priceController.text.trim().isEmpty)) {
-      showAppToast(context, '운영기간, 운영시간, 가격을 입력해주세요.', isError: true);
+      showAppToast(context, '운영시간과 가격을 입력해주세요.', isError: true);
       return;
     }
     setState(() {
@@ -988,7 +981,13 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
                 children: [
                   _summaryField('장소', _venueController.text),
                   _summaryField('주소', _addressController.text),
-                  _summaryField('운영날짜/기간', _periodController.text),
+                  _summaryField('시작일', _startDateController.text),
+                  _summaryField(
+                    '마감일',
+                    _endDateController.text.isEmpty
+                        ? '상시'
+                        : _endDateController.text,
+                  ),
                   _summaryField('운영시간', _hoursController.text),
                   _summaryField('가격', _priceController.text),
                   _summaryField('예약', _isReservationNeeded ? '사전예약' : '자유관람'),
@@ -1170,9 +1169,14 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
         readOnly: true,
       ),
       _ProgramTextField(
-        label: '운영날짜/기간',
-        controller: _periodController,
-        hintText: 'YYYY.MM.DD - YYYY.MM.DD',
+        label: '시작일',
+        controller: _startDateController,
+        hintText: '예: 2026.07.14',
+      ),
+      _ProgramTextField(
+        label: '마감일 (선택)',
+        controller: _endDateController,
+        hintText: '미입력 시 상시로 표시돼요.',
       ),
       _ProgramTextField(
         label: '운영시간',

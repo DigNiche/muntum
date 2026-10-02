@@ -6,7 +6,6 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/api/token_store.dart';
 import 'package:muntum/components/action_bottom_sheet.dart';
 import 'package:muntum/constants/colors.dart';
-import 'package:muntum/constants/typography.dart';
 import 'package:muntum/models/program_model.dart';
 import 'package:muntum/screens/map/map_program_coordinates.dart';
 import 'package:muntum/screens/mypage/audience/report_submit_screen.dart';
@@ -221,13 +220,6 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                                     ),
                             ),
                             SizedBox(height: 40.h),
-                            Text(
-                              program.oneLineDescription,
-                              style: AppTypography.title3.copyWith(
-                                color: AppColors.gray900,
-                              ),
-                            ),
-                            SizedBox(height: 24.h),
                             ProgramDetailMarkdownBody(
                               markdown: program.detail.isEmpty
                                   ? '상세 정보가 준비 중입니다.'

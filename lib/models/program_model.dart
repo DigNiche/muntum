@@ -53,6 +53,7 @@ class ProgramModel {
   bool ended;
   final String status;
   bool hasCurator;
+  int? publicCurationCount;
   final int viewCount;
   final String? officialUrl;
   final List<String> imageUrls;
@@ -91,6 +92,7 @@ class ProgramModel {
     this.ended = false,
     this.status = '',
     this.hasCurator = false,
+    this.publicCurationCount,
     this.viewCount = 0,
     this.officialUrl,
     this.imageUrls = const [],
@@ -126,7 +128,11 @@ class ProgramModel {
           json['tagline'] as String? ??
           json['oneLineDescription'] as String? ??
           '',
-      detail: json['curation'] as String? ?? json['detail'] as String? ?? '',
+      detail:
+          json['description'] as String? ??
+          json['curation'] as String? ??
+          json['detail'] as String? ??
+          '',
       images: imageUrls
           .map((url) => Image.network(url, fit: BoxFit.cover))
           .toList(),

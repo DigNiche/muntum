@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:muntum/api/api_exception.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/button_solid.dart';
+import 'package:muntum/components/popup_widget.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/models/curation_model.dart';
@@ -15,6 +16,7 @@ import 'package:muntum/models/report_model.dart';
 import 'package:muntum/screens/mypage/common/report_place_search_screen.dart';
 import 'package:muntum/screens/mypage/curator/curation_submit_complete_screen.dart';
 import 'package:muntum/services/curation_service.dart';
+import 'package:muntum/services/program_service.dart';
 import 'package:muntum/utils/app_toast.dart';
 import 'package:muntum/utils/image_upload_format.dart';
 
@@ -22,11 +24,13 @@ class CurationWriteScreen extends StatefulWidget {
   const CurationWriteScreen({
     super.key,
     this.service,
+    this.programService,
     this.initialCuration,
     this.resubmitAfterUpdate = false,
   });
 
   final CurationService? service;
+  final ProgramService? programService;
   final CurationModel? initialCuration;
   final bool resubmitAfterUpdate;
 
@@ -38,6 +42,8 @@ class _CurationWriteScreenState extends State<CurationWriteScreen> {
   static const int _maxImages = 5;
 
   late final CurationService _service;
+  late final ProgramService _programService;
+  String _initialProgramTitle = '';
   final _programController = TextEditingController();
   final _taglineController = TextEditingController();
   final _contentController = TextEditingController();
@@ -54,7 +60,7 @@ class _CurationWriteScreenState extends State<CurationWriteScreen> {
   bool get _hasChanges {
     final initial = widget.initialCuration;
     if (initial == null) return true;
-    return _programController.text.trim() != initial.programTitle ||
+    return _programController.text.trim() != _initialProgramTitle ||
         _place?.name.trim() != initial.place ||
         _taglineController.text.trim() != initial.tagline ||
         _contentController.text.trim() != initial.content ||
@@ -74,9 +80,11 @@ class _CurationWriteScreenState extends State<CurationWriteScreen> {
   void initState() {
     super.initState();
     _service = widget.service ?? CurationService();
+    _programService = widget.programService ?? ProgramService();
     final initial = widget.initialCuration;
     if (initial != null) {
-      _programController.text = initial.programTitle;
+      _initialProgramTitle = initial.programTitle;
+      _programController.text = _initialProgramTitle;
       _taglineController.text = initial.tagline;
       _contentController.text = initial.content;
       _place = ReportPlace(name: initial.place, address: initial.place);
@@ -87,6 +95,21 @@ class _CurationWriteScreenState extends State<CurationWriteScreen> {
       _contentController,
     ]) {
       controller.addListener(_onChanged);
+    }
+    if (initial?.programId?.isNotEmpty == true) {
+      _loadLinkedProgramTitle(initial!.programId!);
+    }
+  }
+
+  Future<void> _loadLinkedProgramTitle(String programId) async {
+    try {
+      final program = await _programService.fetchProgram(programId);
+      if (!mounted || program.title.trim().isEmpty) return;
+      if (_programController.text.trim() != _initialProgramTitle) return;
+      _initialProgramTitle = program.title.trim();
+      _programController.text = _initialProgramTitle;
+    } catch (_) {
+      // Retain the submitted title if the linked program is unavailable.
     }
   }
 
@@ -204,27 +227,13 @@ class _CurationWriteScreenState extends State<CurationWriteScreen> {
       Navigator.pop(context);
       return;
     }
-    final leave = await showDialog<bool>(
+    final leave = await showConfirmationPopupWidget(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(
-          '작성 중인 내용이 저장되지 않습니다.\n페이지를 나갈까요?',
-          textAlign: TextAlign.center,
-          style: AppTypography.headline2.copyWith(color: AppColors.gray900),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('나가기'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('계속 작성'),
-          ),
-        ],
-      ),
+      title: '페이지를 나갈까요?',
+      description: '작성 중인 내용이 저장되지 않습니다.',
+      confirmText: '나가기',
     );
-    if (mounted && leave == true) Navigator.pop(context);
+    if (mounted && leave) Navigator.pop(context);
   }
 
   @override

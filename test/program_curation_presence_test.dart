@@ -14,6 +14,10 @@ void main() {
 
       final page = await service.fetchPrograms();
       expect(page.content.map((program) => program.hasCurator), [false, true]);
+      expect(page.content.map((program) => program.publicCurationCount), [
+        0,
+        1,
+      ]);
       expect(
         client.detailCalls,
         1,

@@ -11,27 +11,42 @@ void main() {
   final matching = _program('matching', ['shared']);
   final fallback = _program('fallback', ['different']);
 
-  test('related API fallback is not shown as a same-keyword program', () async {
-    final service = _RelatedService([matching, fallback, source]);
-
-    final results = await service.fetchSameKeywordPrograms(source);
-
-    expect(service.requestedId, 'source');
-    expect(service.requestedSize, 3);
-    expect(results.map((program) => program.id), ['matching']);
-  });
-
   test(
-    'programs with no keywords do not request unrelated fallbacks',
+    'shows the related API response without client-side filtering',
     () async {
-      final service = _RelatedService([fallback]);
-      expect(
-        await service.fetchSameKeywordPrograms(_program('empty', [])),
-        isEmpty,
-      );
-      expect(service.requestedId, isNull);
+      final service = _RelatedService([matching, fallback, source]);
+
+      final results = await service.fetchSameKeywordPrograms(source);
+
+      expect(service.requestedId, 'source');
+      expect(service.requestedSize, 3);
+      expect(results.map((program) => program.id), [
+        'matching',
+        'fallback',
+        'source',
+      ]);
     },
   );
+
+  test('keeps ended programs and does not fetch extra pages', () async {
+    final service = _PagedRelatedService();
+
+    final results = await service.fetchSameKeywordPrograms(source, size: 1);
+
+    expect(service.requestedPages, [0]);
+    expect(results.map((program) => program.id), ['ended']);
+  });
+
+  test('requests related programs even when source has no keywords', () async {
+    final service = _RelatedService([fallback]);
+    expect(
+      (await service.fetchSameKeywordPrograms(
+        _program('empty', []),
+      )).map((program) => program.id),
+      ['fallback'],
+    );
+    expect(service.requestedId, 'empty');
+  });
 
   testWidgets('empty same-keyword results hide the heading', (tester) async {
     await tester.pumpWidget(
@@ -91,9 +106,50 @@ class _RelatedService extends ProgramService {
     String programId, {
     int page = 0,
     int size = 3,
+    bool enrichCurations = true,
   }) async {
     requestedId = programId;
     requestedSize = size;
     return PageResponse.fromList(programs);
   }
+
+  @override
+  Future<int> publicCurationCount(String programId) async => 0;
+}
+
+class _PagedRelatedService extends ProgramService {
+  final requestedPages = <int>[];
+
+  @override
+  Future<PageResponse<ProgramModel>> fetchRelatedPrograms(
+    String programId, {
+    int page = 0,
+    int size = 3,
+    bool enrichCurations = true,
+  }) async {
+    requestedPages.add(page);
+    final program = ProgramModel.fromJson({
+      'id': page == 0 ? 'ended' : 'ongoing',
+      'title': '같은 키워드 프로그램',
+      'ended': page == 0,
+      'status': page == 0 ? 'ENDED' : 'ACTIVE',
+      'keywords': [
+        {'id': 'shared', 'name': 'shared'},
+      ],
+    });
+    return PageResponse<ProgramModel>(
+      content: [program],
+      page: page,
+      size: size,
+      totalElements: 2,
+      totalPages: 2,
+      first: page == 0,
+      last: page == 1,
+      hasPrevious: page == 1,
+      hasNext: page == 0,
+    );
+  }
+
+  @override
+  Future<int> publicCurationCount(String programId) async => 0;
 }

@@ -8,6 +8,22 @@ class AdminUserService {
 
   final ApiClient _client;
 
+  Future<AdminUserModel?> findUserById({
+    required String userId,
+    required String email,
+  }) async {
+    if (userId.isEmpty || email.trim().isEmpty) return null;
+    var page = 0;
+    while (true) {
+      final result = await fetchUsers(search: email, page: page);
+      for (final user in result.content) {
+        if (user.userId == userId) return user;
+      }
+      if (!result.hasMore) return null;
+      page++;
+    }
+  }
+
   Future<PageResponse<AdminUserModel>> fetchUsers({
     String? search,
     int page = 0,

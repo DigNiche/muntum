@@ -12,6 +12,7 @@ import 'package:muntum/screens/program_detail/components/program_curations_secti
 import 'package:muntum/services/curation_service.dart';
 import 'package:muntum/services/program_service.dart';
 import 'package:muntum/stores/auth_state.dart';
+import 'package:muntum/stores/current_user_profile_image_store.dart';
 
 void main() {
   final service = _FakeCurationService();
@@ -23,6 +24,40 @@ void main() {
           MaterialApp(home: WrittenProgramList(service: service)),
     );
   }
+
+  testWidgets('curator page uses the updated current-user profile photo', (
+    tester,
+  ) async {
+    AuthState.instance.replace(userId: 'curator-id', role: 'CURATOR');
+    addTearDown(() {
+      CurrentUserProfileImageStore.instance.clear();
+      AuthState.instance.clear();
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    await tester.pumpWidget(buildSubject());
+    await tester.pumpAndSettle();
+    CurrentUserProfileImageStore.instance.update(
+      userId: 'curator-id',
+      imageUrl: 'https://example.com/new-profile.jpg',
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      tester
+          .widgetList<Image>(find.byType(Image))
+          .any(
+            (image) =>
+                image.image is NetworkImage &&
+                (image.image as NetworkImage).url ==
+                    'https://example.com/new-profile.jpg',
+          ),
+      isTrue,
+    );
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('approved posts and review statuses are split into tabs', (
     tester,

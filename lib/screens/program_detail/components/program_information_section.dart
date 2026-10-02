@@ -24,6 +24,7 @@ class ProgramInformationSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final contacts = _splitContacts(program.phoneNumber);
     return Column(
       spacing: 4.h,
       children: [
@@ -48,12 +49,14 @@ class ProgramInformationSection extends StatelessWidget {
           title: '사전예약',
           body: program.isReservationNeeded ? '필요' : '불필요',
         ),
-        Divider(color: AppColors.lineNormal, thickness: 1.sp),
-        _ProgramRelatedInfoDescription(
-          title: '관련정보',
-          body: program.phoneNumber,
-          onTapContact: onTapContact,
-        ),
+        if (contacts.isNotEmpty) ...[
+          Divider(color: AppColors.lineNormal, thickness: 1.sp),
+          _ProgramRelatedInfoDescription(
+            title: '문의처',
+            contacts: contacts,
+            onTapContact: onTapContact,
+          ),
+        ],
         Divider(color: AppColors.lineNormal, thickness: 1.sp),
         _ProgramLinkDescription(
           link: program.link,
@@ -236,19 +239,17 @@ class _ProgramDescription extends StatelessWidget {
 
 class _ProgramRelatedInfoDescription extends StatelessWidget {
   final String title;
-  final String body;
+  final List<String> contacts;
   final ValueChanged<String> onTapContact;
 
   const _ProgramRelatedInfoDescription({
     required this.title,
-    required this.body,
+    required this.contacts,
     required this.onTapContact,
   });
 
   @override
   Widget build(BuildContext context) {
-    final contacts = _splitContacts(body);
-
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -261,49 +262,44 @@ class _ProgramRelatedInfoDescription extends StatelessWidget {
         ),
         SizedBox(width: 20.w),
         Expanded(
-          child: contacts.isEmpty
-              ? Text(
-                  '정보 없음',
-                  style: AppTypography.body1.copyWith(color: AppColors.gray900),
-                )
-              : Wrap(
-                  spacing: 4.w,
-                  runSpacing: 4.h,
-                  children: [
-                    for (var i = 0; i < contacts.length; i++) ...[
-                      GestureDetector(
-                        onTap: () => onTapContact(contacts[i]),
-                        behavior: HitTestBehavior.opaque,
-                        child: Text(
-                          contacts[i],
-                          style: AppTypography.body1.copyWith(
-                            color: AppColors.gray900,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                      ),
-                      if (i != contacts.length - 1)
-                        Text(
-                          '/',
-                          style: AppTypography.body1.copyWith(
-                            color: AppColors.gray900,
-                          ),
-                        ),
-                    ],
-                  ],
+          child: Wrap(
+            spacing: 4.w,
+            runSpacing: 4.h,
+            children: [
+              for (var i = 0; i < contacts.length; i++) ...[
+                GestureDetector(
+                  onTap: () => onTapContact(contacts[i]),
+                  behavior: HitTestBehavior.opaque,
+                  child: Text(
+                    contacts[i],
+                    style: AppTypography.body1.copyWith(
+                      color: AppColors.gray900,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
                 ),
+                if (i != contacts.length - 1)
+                  Text(
+                    '/',
+                    style: AppTypography.body1.copyWith(
+                      color: AppColors.gray900,
+                    ),
+                  ),
+              ],
+            ],
+          ),
         ),
       ],
     );
   }
+}
 
-  List<String> _splitContacts(String value) {
-    final normalized = value.trim();
-    if (normalized.isEmpty) return const [];
-    return normalized
-        .split(RegExp(r'\s*(?:/|,|;|\n)\s*'))
-        .map((contact) => contact.trim())
-        .where((contact) => contact.isNotEmpty)
-        .toList();
-  }
+List<String> _splitContacts(String value) {
+  final normalized = value.trim();
+  if (normalized.isEmpty) return const [];
+  return normalized
+      .split(RegExp(r'\s*(?:/|,|;|\n)\s*'))
+      .map((contact) => contact.trim())
+      .where((contact) => contact.isNotEmpty)
+      .toList();
 }

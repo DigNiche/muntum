@@ -10,7 +10,9 @@ import 'package:muntum/screens/onboarding/sign_up_screens/keyword_screen.dart';
 import 'package:muntum/services/user_service.dart';
 
 class NicknameScreen extends StatefulWidget {
-  const NicknameScreen({super.key});
+  const NicknameScreen({super.key, this.service});
+
+  final UserService? service;
 
   @override
   State<NicknameScreen> createState() => _NicknameScreenState();
@@ -124,8 +126,8 @@ class _NicknameScreenState extends State<NicknameScreen> {
 
   Future<void> _saveNickname() async {
     if (_isLoading) return;
-    final nickname = _controller.text.trim();
-    if (nickname.isEmpty || nickname.length > 50 || nickname.contains(' ')) {
+    final nickname = _controller.text;
+    if (nickname.trim().isEmpty || nickname.length > 50) {
       setState(() => _isError = true);
       return;
     }
@@ -135,7 +137,7 @@ class _NicknameScreenState extends State<NicknameScreen> {
       _isError = false;
     });
     try {
-      await UserService().updateNickname(nickname);
+      await (widget.service ?? UserService()).updateNickname(nickname);
       if (!mounted) return;
       Navigator.pushReplacement(
         context,

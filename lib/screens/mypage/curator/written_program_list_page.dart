@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/api/api_exception.dart';
 import 'package:muntum/components/app_color_transition.dart';
 import 'package:muntum/components/appbar.dart';
+import 'package:muntum/components/popup_widget.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/models/curation_model.dart';
@@ -16,6 +17,7 @@ import 'package:muntum/screens/program_detail/components/program_curations_secti
 import 'package:muntum/services/curation_service.dart';
 import 'package:muntum/services/program_service.dart';
 import 'package:muntum/stores/auth_state.dart';
+import 'package:muntum/stores/current_user_profile_image_store.dart';
 import 'package:muntum/utils/app_toast.dart';
 
 enum _CurationTab { posts, status }
@@ -151,24 +153,14 @@ class _WrittenProgramListState extends State<WrittenProgramList> {
       showAppToast(context, '승인된 글은 삭제할 수 없어요.', isError: true);
       return;
     }
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showConfirmationPopupWidget(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('작성한 글을 삭제할까요?'),
-        content: const Text('삭제한 글은 복구할 수 없어요.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('삭제', style: TextStyle(color: AppColors.error)),
-          ),
-        ],
-      ),
+      title: '작성한 글을 삭제할까요?',
+      description: '삭제한 글은 복구할 수 없어요.',
+      confirmText: '삭제',
+      confirmColor: AppColors.error,
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
     try {
       await _service.delete(curation.id);
       if (!mounted) return;
@@ -775,7 +767,10 @@ class _CurationPostState extends State<_CurationPost> {
               programId: programId,
               curatorId: widget.profile?.curatorId,
               curatorName: widget.profile?.nickname ?? '큐레이터',
-              curatorImageUrl: widget.profile?.profileImageUrl,
+              curatorImageUrl: CurrentUserProfileImageStore.instance.resolve(
+                userId: widget.profile?.curatorId,
+                apiImageUrl: widget.profile?.profileImageUrl,
+              ),
               tagline: curation.tagline,
               thumbnailUrl: curation.images.firstOrNull?.imageUrl,
               content: curation.content,
@@ -1086,40 +1081,49 @@ class _CuratorAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fallback = Image.asset(
-      'assets/default_profile_img.jpg',
-      width: size,
-      height: size,
-      fit: BoxFit.cover,
-    );
-    return SizedBox(
-      width: size + 4.r,
-      height: size + 4.r,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          ClipOval(
-            child: imageUrl?.isNotEmpty == true
-                ? Image.network(
-                    imageUrl!,
-                    width: size,
-                    height: size,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => fallback,
-                  )
-                : fallback,
+    return AnimatedBuilder(
+      animation: CurrentUserProfileImageStore.instance,
+      builder: (context, _) {
+        final resolvedUrl = CurrentUserProfileImageStore.instance.resolve(
+          userId: AuthState.instance.userId,
+          apiImageUrl: imageUrl,
+        );
+        final fallback = Image.asset(
+          'assets/default_profile_img.jpg',
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+        );
+        return SizedBox(
+          width: size + 4.r,
+          height: size + 4.r,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              ClipOval(
+                child: resolvedUrl?.isNotEmpty == true
+                    ? Image.network(
+                        resolvedUrl!,
+                        width: size,
+                        height: size,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => fallback,
+                      )
+                    : fallback,
+              ),
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: SvgPicture.asset(
+                  'assets/icons/curator_badge.svg',
+                  width: (size * 0.36).clamp(14.r, 20.r),
+                  height: (size * 0.36).clamp(14.r, 20.r),
+                ),
+              ),
+            ],
           ),
-          Positioned(
-            right: 0,
-            bottom: 0,
-            child: SvgPicture.asset(
-              'assets/icons/curator_badge.svg',
-              width: (size * 0.36).clamp(14.r, 20.r),
-              height: (size * 0.36).clamp(14.r, 20.r),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

@@ -3,9 +3,12 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/api/api_exception.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/button_solid.dart';
+import 'package:muntum/components/user_profile_sheet.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/models/curator_application_model.dart';
+import 'package:muntum/models/admin_user_model.dart';
+import 'package:muntum/services/admin_user_service.dart';
 import 'package:muntum/services/curator_application_service.dart';
 import 'package:muntum/utils/app_toast.dart';
 
@@ -15,11 +18,13 @@ class CuratorApplicationReviewScreen extends StatefulWidget {
     required this.applicationId,
     required this.initialApplication,
     required this.service,
+    this.userService,
   });
 
   final String applicationId;
   final CuratorApplicationModel initialApplication;
   final CuratorApplicationService service;
+  final AdminUserService? userService;
 
   @override
   State<CuratorApplicationReviewScreen> createState() =>
@@ -30,11 +35,29 @@ class _CuratorApplicationReviewScreenState
     extends State<CuratorApplicationReviewScreen> {
   late Future<CuratorApplicationModel> _applicationFuture;
   bool _isReviewing = false;
+  late final AdminUserService _userService;
 
   @override
   void initState() {
     super.initState();
+    _userService = widget.userService ?? AdminUserService();
     _applicationFuture = widget.service.fetchDetail(widget.applicationId);
+  }
+
+  void _showApplicantProfile(CuratorApplicantModel applicant) {
+    final userFuture = _userService
+        .findUserById(userId: applicant.userId, email: applicant.email)
+        .catchError((Object _) => null);
+    showModalBottomSheet<void>(
+      context: context,
+      barrierColor: AppColors.dimMedium,
+      backgroundColor: Colors.transparent,
+      builder: (_) => FutureBuilder<AdminUserModel?>(
+        future: userFuture,
+        builder: (context, snapshot) =>
+            UserProfileSheet(user: snapshot.data, applicant: applicant),
+      ),
+    );
   }
 
   Future<void> _approve() async {
@@ -203,7 +226,12 @@ class _CuratorApplicationReviewScreenState
               Expanded(
                 child: SingleChildScrollView(
                   padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 32.h),
-                  child: _ApplicationDetails(application: application),
+                  child: _ApplicationDetails(
+                    application: application,
+                    onApplicantTap: application.applicant == null
+                        ? null
+                        : () => _showApplicantProfile(application.applicant!),
+                  ),
                 ),
               ),
               if (application.status == CuratorApplicationStatus.pending)
@@ -252,9 +280,13 @@ class _CuratorApplicationReviewScreenState
 }
 
 class _ApplicationDetails extends StatelessWidget {
-  const _ApplicationDetails({required this.application});
+  const _ApplicationDetails({
+    required this.application,
+    required this.onApplicantTap,
+  });
 
   final CuratorApplicationModel application;
+  final VoidCallback? onApplicantTap;
 
   @override
   Widget build(BuildContext context) {
@@ -262,31 +294,35 @@ class _ApplicationDetails extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            _ApplicantAvatar(imageUrl: applicant?.profileImageUrl),
-            SizedBox(width: 12.w),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    applicant?.nickname ?? '닉네임 미설정',
-                    style: AppTypography.button3.copyWith(
-                      color: AppColors.gray900,
+        InkWell(
+          key: const ValueKey('application-applicant-profile'),
+          onTap: onApplicantTap,
+          child: Row(
+            children: [
+              _ApplicantAvatar(imageUrl: applicant?.profileImageUrl),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      applicant?.nickname ?? '닉네임 미설정',
+                      style: AppTypography.button3.copyWith(
+                        color: AppColors.gray900,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 2.h),
-                  Text(
-                    applicant?.email ?? '',
-                    style: AppTypography.caption3.copyWith(
-                      color: AppColors.gray500,
+                    SizedBox(height: 2.h),
+                    Text(
+                      applicant?.email ?? '',
+                      style: AppTypography.caption3.copyWith(
+                        color: AppColors.gray500,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         SizedBox(height: 24.h),
         Divider(height: 1.h, color: AppColors.lineNormal),

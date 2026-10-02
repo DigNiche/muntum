@@ -1,3 +1,5 @@
+import 'package:muntum/utils/image_url.dart';
+
 enum CuratorApplicationStatus { notApplied, pending, approved, rejected }
 
 extension CuratorApplicationStatusX on CuratorApplicationStatus {
@@ -130,14 +132,11 @@ class CuratorApplicantModel {
 
   factory CuratorApplicantModel.fromJson(Map<String, dynamic> json) {
     final nickname = json['nickname']?.toString().trim();
-    final profileImageUrl = json['profileImageUrl']?.toString().trim();
     return CuratorApplicantModel(
       userId: json['userId']?.toString() ?? '',
       email: json['email']?.toString() ?? '',
       nickname: nickname == null || nickname.isEmpty ? null : nickname,
-      profileImageUrl: profileImageUrl == null || profileImageUrl.isEmpty
-          ? null
-          : profileImageUrl,
+      profileImageUrl: normalizeOptionalImageUrl(json['profileImageUrl']),
       role: json['role']?.toString() ?? '',
       status: json['status']?.toString() ?? '',
       joinedAt: DateTime.tryParse(json['joinedAt']?.toString() ?? ''),

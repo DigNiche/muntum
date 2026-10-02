@@ -56,6 +56,7 @@ class CuratorWelcomeCard extends StatelessWidget {
           ),
           Lottie.asset(
             'assets/lottie/curator_celebration.lottie',
+            key: const ValueKey('curator-welcome-celebration'),
             repeat: false,
             width: 240.w,
             height: 110.h,

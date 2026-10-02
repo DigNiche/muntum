@@ -383,12 +383,12 @@ class _ApplicationGuideCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '💡 지원 부담은 낮게, 참여는 자유롭게!',
+            '💡 지원 문턱은 낮게, 참여는 자유롭게!',
             style: AppTypography.headline1.copyWith(color: AppColors.black),
           ),
           SizedBox(height: 10.h),
           Text(
-            '작성 가이드는 준비되어 있어 누구나 쉽게 도전할 수 있습니다. 별도의 복잡한 자격 조건 없이, 나만의 솔직한 문장으로 문틈 큐레이터 신청해 보세요.',
+            '작성 가이드가 준비되어 있어 누구나 쉽게 도전할 수 있습니다. 별도의 복잡한 자격 조건 없이, 나만의 솔직한 문장으로 마음 편하게 신청해 보세요.',
             style: AppTypography.body3.copyWith(color: AppColors.gray800),
           ),
           SizedBox(height: 10.h),

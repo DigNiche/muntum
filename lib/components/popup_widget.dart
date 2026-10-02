@@ -20,6 +20,9 @@ Future<void> showPopupWidget({
     context: context,
     builder: (BuildContext context) {
       return Dialog(
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        insetPadding: EdgeInsets.symmetric(horizontal: 20.w),
         child: Container(
           padding: EdgeInsets.fromLTRB(16.w, 24.h, 16.w, 16.h),
           decoration: BoxDecoration(
@@ -78,4 +81,28 @@ Future<void> showPopupWidget({
       );
     },
   );
+}
+
+Future<bool> showConfirmationPopupWidget({
+  required BuildContext context,
+  required String title,
+  required String description,
+  required String confirmText,
+  Color confirmColor = AppColors.black,
+}) async {
+  var confirmed = false;
+  await showPopupWidget(
+    context: context,
+    title: title,
+    description: description,
+    text1: '취소',
+    text2: confirmText,
+    text2Color: confirmColor,
+    onText1Tap: () => Navigator.of(context, rootNavigator: true).pop(),
+    onText2Tap: () {
+      confirmed = true;
+      Navigator.of(context, rootNavigator: true).pop();
+    },
+  );
+  return confirmed;
 }

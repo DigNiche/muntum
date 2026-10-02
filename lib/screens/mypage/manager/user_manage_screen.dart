@@ -6,6 +6,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/api/api_exception.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/filter_chip.dart';
+import 'package:muntum/components/user_profile_sheet.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/models/admin_user_model.dart';
@@ -403,7 +404,7 @@ class _UserManageScreenState extends State<UserManageScreen> {
                 context: context,
                 barrierColor: AppColors.dimMedium,
                 backgroundColor: Colors.transparent,
-                builder: (_) => _UserProfileSheet(user: user),
+                builder: (_) => UserProfileSheet(user: user),
               ),
             ),
           );
@@ -498,7 +499,12 @@ class _UserListItem extends StatelessWidget {
             padding: EdgeInsets.symmetric(horizontal: 16.w),
             child: Row(
               children: [
-                _UserAvatar(user: user, size: 40.r),
+                UserAvatar(
+                  userId: user.userId,
+                  imageUrl: user.profileImageUrl,
+                  role: user.role,
+                  size: 40.r,
+                ),
                 SizedBox(width: 16.w),
                 Expanded(
                   child: Column(
@@ -528,142 +534,6 @@ class _UserListItem extends StatelessWidget {
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _UserAvatar extends StatelessWidget {
-  const _UserAvatar({required this.user, required this.size});
-
-  final AdminUserModel user;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    final fallback = Image.asset(
-      'assets/default_profile_img.jpg',
-      width: size,
-      height: size,
-      fit: BoxFit.cover,
-    );
-    return SizedBox(
-      width: size + 2.r,
-      height: size + 2.r,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          ClipOval(
-            child: user.profileImageUrl == null
-                ? fallback
-                : Image.network(
-                    user.profileImageUrl!,
-                    width: size,
-                    height: size,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => fallback,
-                  ),
-          ),
-          if (user.isCurator || user.isManager)
-            Positioned(
-              right: 0,
-              bottom: 0,
-              child: SvgPicture.asset(
-                user.isManager
-                    ? 'assets/icons/manager_badge.svg'
-                    : 'assets/icons/curator_badge.svg',
-                key: ValueKey('user-role-badge-${user.userId}'),
-                width: 16.r,
-                height: 16.r,
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _UserProfileSheet extends StatelessWidget {
-  const _UserProfileSheet({required this.user});
-
-  final AdminUserModel user;
-
-  @override
-  Widget build(BuildContext context) {
-    final stats = <(String, String)>[
-      ('스크랩', '${user.scrapCount}'),
-      ('제보', '${user.suggestionCount}'),
-      if (user.isCurator || user.isManager) ('작성글', '-'),
-    ];
-    return Container(
-      key: const ValueKey('user-profile-sheet'),
-      width: double.infinity,
-      height: 330.h,
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(10.r)),
-      ),
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 28.h),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                '가입일: ${user.formattedJoinedAt}',
-                style: AppTypography.caption2.copyWith(
-                  color: AppColors.gray500,
-                ),
-              ),
-            ),
-            SizedBox(height: 16.h),
-            _UserAvatar(user: user, size: 56.r),
-            SizedBox(height: 16.h),
-            Text(
-              user.displayName,
-              style: AppTypography.title4.copyWith(color: AppColors.gray900),
-            ),
-            SizedBox(height: 4.h),
-            Text(
-              user.accountLabel,
-              style: AppTypography.body3.copyWith(color: AppColors.gray600),
-            ),
-            SizedBox(height: 24.h),
-            Container(
-              height: 56.h,
-              decoration: BoxDecoration(
-                color: AppColors.backgroundNormal,
-                borderRadius: BorderRadius.circular(8.r),
-              ),
-              child: Row(
-                children: [
-                  for (var i = 0; i < stats.length; i++) ...[
-                    if (i > 0)
-                      SizedBox(
-                        height: 20.h,
-                        child: VerticalDivider(
-                          width: 1.w,
-                          thickness: 1.w,
-                          color: AppColors.lineStrong,
-                        ),
-                      ),
-                    Expanded(
-                      child: Center(
-                        child: Text(
-                          '${stats[i].$1} ${stats[i].$2}',
-                          style: AppTypography.caption1.copyWith(
-                            color: AppColors.gray900,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ],
         ),
       ),
     );

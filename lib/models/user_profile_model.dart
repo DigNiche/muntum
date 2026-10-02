@@ -1,3 +1,5 @@
+import 'package:muntum/utils/image_url.dart';
+
 class UserProfileModel {
   const UserProfileModel({
     required this.userId,
@@ -22,7 +24,6 @@ class UserProfileModel {
   final DateTime? joinedAt;
 
   factory UserProfileModel.fromJson(Map<String, dynamic> json) {
-    final rawProfileImageUrl = json['profileImageUrl']?.toString().trim();
     return UserProfileModel(
       userId: json['userId']?.toString() ?? '',
       email: json['email']?.toString() ?? '',
@@ -31,9 +32,7 @@ class UserProfileModel {
       keywordCount: (json['keywordCount'] as num? ?? 0).toInt(),
       suggestionCount: (json['suggestionCount'] as num? ?? 0).toInt(),
       scrapCount: (json['scrapCount'] as num? ?? 0).toInt(),
-      profileImageUrl: rawProfileImageUrl == null || rawProfileImageUrl.isEmpty
-          ? null
-          : rawProfileImageUrl,
+      profileImageUrl: normalizeOptionalImageUrl(json['profileImageUrl']),
       joinedAt: DateTime.tryParse(json['joinedAt']?.toString() ?? ''),
     );
   }

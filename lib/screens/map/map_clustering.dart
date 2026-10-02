@@ -90,8 +90,7 @@ class MapClusteringController {
 
   /// 줌이 커질수록 클러스터로 묶는 최대 거리를 줄여 개별 마커를 노출한다.
   double thresholdMetersForZoom(double zoom) {
-    print(zoom);
-    if (zoom < 12.0) return 450;
+    if (zoom < 12.0) return 300;
     if (zoom < 12.5) return 100;
     if (zoom < 13.5) return 30;
     if (zoom < 14.5) return 10;

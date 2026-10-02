@@ -770,6 +770,60 @@ void main() {
     expect(didLongPressAddress, isTrue);
   });
 
+  testWidgets('program detail labels a populated contact as 문의처', (
+    tester,
+  ) async {
+    String? tappedContact;
+    final program = _program(
+      id: 'with-contact',
+      title: '문의처가 있는 프로그램',
+      phoneNumber: '02-1234-5678',
+    );
+
+    await tester.pumpWidget(
+      ScreenUtilPlusInit(
+        designSize: const Size(390, 844),
+        builder: (context, child) => MaterialApp(home: Scaffold(body: child)),
+        child: ProgramInformationSection(
+          program: program,
+          onTapContact: (contact) => tappedContact = contact,
+        ),
+      ),
+    );
+
+    expect(find.text('문의처'), findsOneWidget);
+    expect(find.text('관련정보'), findsNothing);
+    await tester.tap(find.text('02-1234-5678'));
+    expect(tappedContact, '02-1234-5678');
+  });
+
+  testWidgets('program detail hides the contact row when it has no value', (
+    tester,
+  ) async {
+    for (final contact in ['', '   ', ' / ; ']) {
+      final program = _program(
+        id: 'without-contact',
+        title: '문의처가 없는 프로그램',
+        phoneNumber: contact,
+      );
+
+      await tester.pumpWidget(
+        ScreenUtilPlusInit(
+          designSize: const Size(390, 844),
+          builder: (context, child) => MaterialApp(home: Scaffold(body: child)),
+          child: ProgramInformationSection(
+            program: program,
+            onTapContact: (_) {},
+          ),
+        ),
+      );
+
+      expect(find.text('문의처'), findsNothing);
+      expect(find.text('정보 없음'), findsNothing);
+      expect(find.text('링크'), findsOneWidget);
+    }
+  });
+
   testWidgets('horizontal card replaces overflowing keywords with a count', (
     tester,
   ) async {

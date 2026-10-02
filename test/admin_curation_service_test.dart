@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:muntum/api/api_client.dart';
 import 'package:muntum/api/api_endpoints.dart';
+import 'package:muntum/api/api_exception.dart';
 import 'package:muntum/models/curation_model.dart';
 import 'package:muntum/services/admin_curation_service.dart';
 
@@ -48,13 +49,54 @@ void main() {
       reason: '내용을 확인해주세요.',
       publicationStatus: 'UNPUBLISHED',
     );
-    expect(client.method, 'PATCH');
+    expect(client.lastPatchPath, ApiEndpoints.requestCurationChanges('id'));
     expect(client.path, ApiEndpoints.requestCurationChanges('id'));
     expect(client.body, {
       'changeRequestReason': '내용을 확인해주세요.',
       'publicationStatus': 'UNPUBLISHED',
     });
   });
+
+  test(
+    'change request is not reported successful without persisted status',
+    () async {
+      final client = _RecordingClient()
+        ..applyChangeRequest = false
+        ..patchDecodeError = true;
+      await expectLater(
+        AdminCurationService(client: client).requestChanges(
+          curationId: 'id',
+          reason: '내용을 확인해주세요.',
+          publicationStatus: 'PUBLISHED',
+        ),
+        throwsA(isA<ApiException>()),
+      );
+    },
+  );
+
+  test('committed change survives an unreadable PATCH response', () async {
+    final client = _RecordingClient()..patchDecodeError = true;
+    await AdminCurationService(client: client).requestChanges(
+      curationId: 'id',
+      reason: '내용을 확인해주세요.',
+      publicationStatus: 'PUBLISHED',
+    );
+    expect(client.changeRequestApplied, isTrue);
+    expect(client.path, ApiEndpoints.managerCuration('id'));
+  });
+
+  test(
+    'committed change does not show an HTTP error as a failed request',
+    () async {
+      final client = _RecordingClient()..patchServerError = true;
+      await AdminCurationService(client: client).requestChanges(
+        curationId: 'id',
+        reason: '내용을 확인해주세요.',
+        publicationStatus: 'UNPUBLISHED',
+      );
+      expect(client.changeRequestApplied, isTrue);
+    },
+  );
 }
 
 class _RecordingClient extends ApiClient {
@@ -66,6 +108,21 @@ class _RecordingClient extends ApiClient {
   String? jsonFieldName;
   String? fileFieldName;
   List<String>? files;
+  String? lastPatchPath;
+  bool applyChangeRequest = true;
+  bool patchDecodeError = false;
+  bool patchServerError = false;
+  bool changeRequestApplied = false;
+
+  Map<String, dynamic> get currentDetail {
+    final detail = _detail();
+    if (changeRequestApplied) {
+      detail['status'] = 'CHANGES_REQUESTED';
+      detail['changeRequestReason'] = body?['changeRequestReason'];
+      detail['publicationStatus'] = body?['publicationStatus'];
+    }
+    return detail;
+  }
 
   @override
   Future<Map<String, dynamic>> get(
@@ -88,7 +145,7 @@ class _RecordingClient extends ApiClient {
               'first': false,
               'last': true,
             }
-          : _detail(),
+          : currentDetail,
     };
   }
 
@@ -100,8 +157,17 @@ class _RecordingClient extends ApiClient {
   }) async {
     method = 'PATCH';
     this.path = path;
+    lastPatchPath = path;
     this.body = body;
     this.authorized = authorized;
+    if (path == ApiEndpoints.requestCurationChanges('id')) {
+      changeRequestApplied = applyChangeRequest;
+      if (patchServerError) {
+        throw const ApiException(statusCode: 500, message: '처리 중 오류가 발생했습니다.');
+      }
+      if (patchDecodeError) throw const FormatException('invalid response');
+      return const {};
+    }
     return {'data': _detail()};
   }
 

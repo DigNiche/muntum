@@ -11,11 +11,14 @@ import 'package:muntum/components/button_solid.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/services/user_service.dart';
+import 'package:muntum/stores/current_user_profile_image_store.dart';
 import 'package:muntum/utils/app_toast.dart';
 import 'package:muntum/utils/image_upload_format.dart';
 
 class NickNameChangeScreen extends StatefulWidget {
-  const NickNameChangeScreen({super.key});
+  const NickNameChangeScreen({super.key, this.service});
+
+  final UserService? service;
 
   @override
   State<NickNameChangeScreen> createState() => _NickNameChangeScreenState();
@@ -35,7 +38,7 @@ class _NickNameChangeScreenState extends State<NickNameChangeScreen> {
   bool _deleteProfileImage = false;
 
   bool get _hasChanges =>
-      _controller.text.trim() != _initialNickname ||
+      _controller.text != _initialNickname ||
       _selectedProfileImage != null ||
       _deleteProfileImage;
 
@@ -52,7 +55,7 @@ class _NickNameChangeScreenState extends State<NickNameChangeScreen> {
 
   Future<void> _loadNickname() async {
     try {
-      final profile = await UserService().fetchProfile();
+      final profile = await (widget.service ?? UserService()).fetchProfile();
       if (!mounted) return;
       _initialNickname = profile.nickname;
       _controller.text = profile.nickname;
@@ -321,6 +324,15 @@ class _NickNameChangeScreenState extends State<NickNameChangeScreen> {
       if (prepared.isTemporary) File(prepared.path).delete().ignore();
       return;
     }
+    final preparedFileExists = await File(prepared.path).exists();
+    if (!mounted) {
+      if (prepared.isTemporary) File(prepared.path).delete().ignore();
+      return;
+    }
+    if (!preparedFileExists) {
+      showAppToast(context, '이미지를 준비하지 못했어요. 다시 선택해주세요.', isError: true);
+      return;
+    }
     _deleteTemporaryProfileImage();
     setState(() {
       _selectedProfileImage = XFile(prepared.path);
@@ -338,21 +350,28 @@ class _NickNameChangeScreenState extends State<NickNameChangeScreen> {
   }
 
   Future<void> _saveProfile() async {
-    final nickname = _controller.text.trim();
-    if (_isSaving || nickname.isEmpty) return;
+    final nickname = _controller.text;
+    if (_isSaving || nickname.trim().isEmpty) return;
 
     setState(() {
       _isSaving = true;
       _isError = false;
     });
     try {
-      final service = UserService();
+      final service = widget.service ?? UserService();
       if (nickname != _initialNickname) {
         await service.updateNickname(nickname);
       }
       final selectedImage = _selectedProfileImage;
       if (selectedImage != null) {
-        await service.updateProfileImage(selectedImage.path);
+        final profile = await service.updateProfileImage(selectedImage.path);
+        final previousUrl = _profileImageUrl;
+        final updatedUrl = profile.profileImageUrl;
+        if (previousUrl != null) await NetworkImage(previousUrl).evict();
+        if (updatedUrl != null && updatedUrl != previousUrl) {
+          await NetworkImage(updatedUrl).evict();
+        }
+        CurrentUserProfileImageStore.instance.refresh();
       } else if (_deleteProfileImage && _profileImageUrl != null) {
         await service.deleteProfileImage();
       }

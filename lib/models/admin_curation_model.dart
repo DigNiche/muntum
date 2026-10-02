@@ -1,4 +1,5 @@
 import 'package:muntum/models/curation_model.dart';
+import 'package:muntum/utils/image_url.dart';
 
 class AdminCuratorModel {
   const AdminCuratorModel({
@@ -12,11 +13,10 @@ class AdminCuratorModel {
   final String? profileImageUrl;
 
   factory AdminCuratorModel.fromJson(Map<String, dynamic> json) {
-    final imageUrl = json['profileImageUrl']?.toString().trim();
     return AdminCuratorModel(
       id: json['curatorId']?.toString() ?? '',
       nickname: json['nickname']?.toString() ?? '익명의 큐레이터',
-      profileImageUrl: imageUrl == null || imageUrl.isEmpty ? null : imageUrl,
+      profileImageUrl: normalizeOptionalImageUrl(json['profileImageUrl']),
     );
   }
 }

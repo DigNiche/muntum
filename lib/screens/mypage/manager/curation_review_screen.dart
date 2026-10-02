@@ -38,11 +38,14 @@ class _CurationReviewScreenState extends State<CurationReviewScreen> {
   late final ProgramService _programService;
   AdminCurationModel? _detail;
   ProgramModel? _program;
+  String? _linkedProgramId;
   bool _loading = true;
   bool _working = false;
   String? _error;
 
   bool get _pending => _detail?.curation.status == CurationStatus.pending;
+  bool get _canRequestChanges =>
+      _pending || _detail?.curation.status == CurationStatus.approved;
 
   @override
   void initState() {
@@ -59,9 +62,20 @@ class _CurationReviewScreenState extends State<CurationReviewScreen> {
     });
     try {
       final detail = await _service.fetchDetail(widget.summary.curation.id);
+      final linkedId = detail.curation.programId;
+      ProgramModel? linkedProgram;
+      if (linkedId != null && linkedId.isNotEmpty) {
+        try {
+          linkedProgram = await _programService.fetchProgram(linkedId);
+        } catch (_) {
+          // Keep the review accessible if the linked program cannot be loaded.
+        }
+      }
       if (!mounted) return;
       setState(() {
         _detail = detail;
+        _linkedProgramId = linkedId;
+        _program = linkedProgram;
         _loading = false;
       });
     } on ApiException catch (error) {
@@ -90,14 +104,22 @@ class _CurationReviewScreenState extends State<CurationReviewScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(12.r)),
       ),
       builder: (_) => _ProgramSearchSheet(
-        initialQuery: _detail!.curation.programTitle,
+        initialQuery: _program?.title ?? _detail!.curation.programTitle,
         service: _programService,
       ),
     );
     if (!mounted || result == null) return;
     if (result is ProgramModel) {
+      if (!_pending && result.id != _linkedProgramId) {
+        showAppToast(
+          context,
+          '현재는 승인 또는 수정요청 글의 프로그램 연결을 변경할 수 없어요.',
+          isError: true,
+        );
+        return;
+      }
       setState(() => _program = result);
-    } else if (result == 'new') {
+    } else if (result == 'new' && _pending) {
       final approved = await Navigator.push<bool>(
         context,
         MaterialPageRoute(
@@ -131,26 +153,31 @@ class _CurationReviewScreenState extends State<CurationReviewScreen> {
 
   Future<void> _requestChanges() async {
     if (_working) return;
-    final reason = await showModalBottomSheet<String>(
+    final selection = await showModalBottomSheet<CurationChangeSelection>(
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(12.r)),
       ),
-      builder: (_) => const _ChangeReasonSheet(),
+      builder: (_) => const ChangeReasonSheet(),
     );
-    if (!mounted || reason == null) return;
+    if (!mounted || selection == null) return;
     setState(() => _working = true);
     try {
       await _service.requestChanges(
         curationId: _detail!.curation.id,
-        reason: reason,
-        publicationStatus: 'UNPUBLISHED',
+        reason: selection.reason,
+        publicationStatus: _pending
+            ? 'UNPUBLISHED'
+            : selection.publicationStatus,
       );
       if (mounted) Navigator.pop(context, 'changes');
     } on ApiException catch (error) {
-      if (mounted) showAppToast(context, error.message, isError: true);
+      if (mounted) {
+        if (error.code == 'CURATION_CHANGE_UNVERIFIED') _load();
+        showAppToast(context, error.message, isError: true);
+      }
     } catch (_) {
       if (mounted) showAppToast(context, '수정 요청을 보내지 못했어요.', isError: true);
     } finally {
@@ -270,7 +297,8 @@ class _CurationReviewScreenState extends State<CurationReviewScreen> {
                                 program: _program!,
                                 onTap: _searchProgram,
                               )
-                            else if (_pending)
+                            else if (_pending ||
+                                (_linkedProgramId?.isNotEmpty ?? false))
                               Padding(
                                 padding: EdgeInsets.only(top: 4.h),
                                 child: SizedBox(
@@ -347,7 +375,7 @@ class _CurationReviewScreenState extends State<CurationReviewScreen> {
                       ],
                     ),
             ),
-            if (detail != null && _pending)
+            if (detail != null && _canRequestChanges)
               Padding(
                 padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 16.h),
                 child: Row(
@@ -365,23 +393,26 @@ class _CurationReviewScreenState extends State<CurationReviewScreen> {
                         ),
                       ),
                     ),
-                    SizedBox(width: 10.w),
-                    Expanded(
-                      child: SizedBox(
-                        height: 48.h,
-                        child: ButtonSolid(
-                          text: _working ? '처리 중' : '등록하기',
-                          textColor: _working || _program == null
-                              ? AppColors.gray400
-                              : AppColors.white,
-                          boxColor: _working || _program == null
-                              ? AppColors.gray200
-                              : AppColors.black,
-                          padding: EdgeInsets.zero,
-                          onTap: _working || _program == null ? null : _approve,
+                    if (_pending) SizedBox(width: 10.w),
+                    if (_pending)
+                      Expanded(
+                        child: SizedBox(
+                          height: 48.h,
+                          child: ButtonSolid(
+                            text: _working ? '처리 중' : '등록하기',
+                            textColor: _working || _program == null
+                                ? AppColors.gray400
+                                : AppColors.white,
+                            boxColor: _working || _program == null
+                                ? AppColors.gray200
+                                : AppColors.black,
+                            padding: EdgeInsets.zero,
+                            onTap: _working || _program == null
+                                ? null
+                                : _approve,
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -778,13 +809,19 @@ class _ProgramSearchSheetState extends State<_ProgramSearchSheet> {
   }
 }
 
-class _ChangeReasonSheet extends StatefulWidget {
-  const _ChangeReasonSheet();
-  @override
-  State<_ChangeReasonSheet> createState() => _ChangeReasonSheetState();
+class CurationChangeSelection {
+  const CurationChangeSelection(this.reason, this.publicationStatus);
+  final String reason;
+  final String publicationStatus;
 }
 
-class _ChangeReasonSheetState extends State<_ChangeReasonSheet> {
+class ChangeReasonSheet extends StatefulWidget {
+  const ChangeReasonSheet({super.key});
+  @override
+  State<ChangeReasonSheet> createState() => _ChangeReasonSheetState();
+}
+
+class _ChangeReasonSheetState extends State<ChangeReasonSheet> {
   static const _reasons = [
     '글 내 오탈자 및 맞춤법, 띄어쓰기를 확인해주세요.',
     '프로그램 정보와 작성하신 내용이 일치하지 않습니다. 확인 후 수정해 주세요.',
@@ -890,7 +927,15 @@ class _ChangeReasonSheetState extends State<_ChangeReasonSheet> {
                       padding: EdgeInsets.zero,
                       onTap: reason.isEmpty
                           ? null
-                          : () => Navigator.pop(context, reason),
+                          : () => Navigator.pop(
+                              context,
+                              CurationChangeSelection(
+                                reason,
+                                _selected == 1 || _selected == 2
+                                    ? 'UNPUBLISHED'
+                                    : 'PUBLISHED',
+                              ),
+                            ),
                     ),
                   ),
                 ),

@@ -3,6 +3,7 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/api/api_exception.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/button_solid.dart';
+import 'package:muntum/components/popup_widget.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/models/curation_model.dart';
@@ -122,24 +123,14 @@ class _CurationDetailScreenState extends State<CurationDetailScreen> {
   }
 
   Future<void> _confirmDelete() async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showConfirmationPopupWidget(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('작성한 글을 삭제할까요?'),
-        content: const Text('삭제한 글은 복구할 수 없어요.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('삭제', style: TextStyle(color: AppColors.error)),
-          ),
-        ],
-      ),
+      title: '작성한 글을 삭제할까요?',
+      description: '삭제한 글은 복구할 수 없어요.',
+      confirmText: '삭제',
+      confirmColor: AppColors.error,
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
     setState(() => _isLoading = true);
     try {
       await _service.delete(_curation.id);

@@ -1,5 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:muntum/stores/auth_state.dart';
+import 'package:muntum/stores/current_user_profile_image_store.dart';
 import 'package:muntum/services/analytics_service.dart';
 
 class TokenStore {
@@ -103,6 +104,7 @@ class TokenStore {
   Future<void> clear() async {
     _accessToken = null;
     AuthState.instance.clear();
+    CurrentUserProfileImageStore.instance.clear();
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('refreshToken');
     await prefs.remove('userId');

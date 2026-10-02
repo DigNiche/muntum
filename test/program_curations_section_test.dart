@@ -6,8 +6,57 @@ import 'package:muntum/models/curation_model.dart';
 import 'package:muntum/screens/program_detail/components/program_curations_section.dart';
 import 'package:muntum/services/curation_service.dart';
 import 'package:muntum/stores/auth_state.dart';
+import 'package:muntum/stores/current_user_profile_image_store.dart';
 
 void main() {
+  testWidgets('current author photo appears when public curation omits it', (
+    tester,
+  ) async {
+    AuthState.instance.replace(userId: 'author-id', role: 'CURATOR');
+    addTearDown(() {
+      CurrentUserProfileImageStore.instance.clear();
+      AuthState.instance.clear();
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+
+    await tester.pumpWidget(
+      ScreenUtilPlusInit(
+        designSize: const Size(390, 844),
+        builder: (context, child) => MaterialApp(
+          home: Scaffold(
+            body: ProgramCurationsSection(
+              programId: 'program-id',
+              programTitle: '프로그램명',
+              service: _FakePublicCurationService(),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    CurrentUserProfileImageStore.instance.update(
+      userId: 'author-id',
+      imageUrl: 'https://example.com/new-profile.jpg',
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      tester
+          .widgetList<Image>(find.byType(Image))
+          .any(
+            (image) =>
+                image.image is NetworkImage &&
+                (image.image as NetworkImage).url ==
+                    'https://example.com/new-profile.jpg',
+          ),
+      isTrue,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('curator Note shows the supplied SVG and a layered card', (
     tester,
   ) async {
@@ -51,7 +100,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('multiple curator cards show the supplied next arrow', (
+  testWidgets('curator card arrows move between next and previous notes', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(390, 844);
@@ -74,7 +123,35 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('curator-note-next-arrow')), findsWidgets);
+    expect(
+      find.byKey(const ValueKey('curator-note-next-arrow')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('curator-note-previous-arrow')),
+      findsOneWidget,
+    );
+    final first = tester.getRect(
+      find.byKey(const ValueKey('curation-note-note-id')),
+    );
+    final second = tester.getRect(
+      find.byKey(const ValueKey('curation-note-note-1')),
+    );
+    expect(first.left, closeTo(20, 0.1));
+    expect(second.left - first.right, closeTo(12, 0.1));
+    expect(first.width / first.height, closeTo(300 / 395, 0.001));
+    await tester.tap(find.byKey(const ValueKey('curator-note-next-arrow')));
+    await tester.pumpAndSettle();
+    expect(
+      tester.getRect(find.byKey(const ValueKey('curation-note-note-1'))).left,
+      closeTo(20, 0.1),
+    );
+    await tester.tap(find.byKey(const ValueKey('curator-note-previous-arrow')));
+    await tester.pumpAndSettle();
+    expect(
+      tester.getRect(find.byKey(const ValueKey('curation-note-note-id'))).left,
+      closeTo(20, 0.1),
+    );
     expect(tester.takeException(), isNull);
   });
 
