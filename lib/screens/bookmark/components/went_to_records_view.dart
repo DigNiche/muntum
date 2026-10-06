@@ -267,6 +267,7 @@ class _WentToRecordsViewState extends State<WentToRecordsView> {
             );
           }
           return _WentToRecordCard(
+            key: ValueKey(_records[index].program.id),
             record: _records[index],
             isLast: index == _records.length - 1,
             onTap: () => _openProgram(_records[index]),
@@ -293,6 +294,7 @@ class _WentToRecordCard extends StatelessWidget {
   final VoidCallback onEdit;
 
   const _WentToRecordCard({
+    super.key,
     required this.record,
     required this.isLast,
     required this.onTap,
@@ -301,112 +303,194 @@ class _WentToRecordCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 20.h),
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SizedBox(
-              width: 40.w,
-              child: Column(
-                children: [
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: onTap,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(
-                        AppBorderRadius.radius_8,
-                      ),
-                      child: SizedBox(
-                        width: 40.w,
-                        height: 53.h,
-                        child: record.program.images.isEmpty
-                            ? const ColoredBox(color: AppColors.gray200)
-                            : record.program.images.first,
-                      ),
-                    ),
-                  ),
-                  if (!isLast) ...[
-                    SizedBox(height: 20.h),
-                    Expanded(
-                      child: Container(width: 1.w, color: AppColors.lineStrong),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            SizedBox(width: 12.w),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: onTap,
-                    child: Container(
-                      padding: EdgeInsets.all(16.r),
-                      decoration: BoxDecoration(
-                        color: AppColors.gray50,
-                        borderRadius: BorderRadius.circular(
-                          AppBorderRadius.radius_8,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final commentWidth = constraints.maxWidth - 40.w - 12.w - 32.r;
+        return Padding(
+          padding: EdgeInsets.only(bottom: 20.h),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(
+                  width: 40.w,
+                  child: Column(
+                    children: [
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: onTap,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(
+                            AppBorderRadius.radius_8,
+                          ),
+                          child: SizedBox(
+                            width: 40.w,
+                            height: 53.h,
+                            child: record.program.images.isEmpty
+                                ? const ColoredBox(color: AppColors.gray200)
+                                : record.program.images.first,
+                          ),
                         ),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            record.program.title,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTypography.headline1.copyWith(
-                              color: AppColors.gray900,
+                      if (!isLast) ...[
+                        SizedBox(height: 20.h),
+                        Expanded(
+                          child: Container(
+                            width: 1.w,
+                            color: AppColors.lineStrong,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: onTap,
+                        child: Container(
+                          padding: EdgeInsets.all(16.r),
+                          decoration: BoxDecoration(
+                            color: AppColors.gray50,
+                            borderRadius: BorderRadius.circular(
+                              AppBorderRadius.radius_8,
                             ),
                           ),
-                          SizedBox(height: 20.h),
-                          _ReactionLabel(reaction: record.reaction),
-                          if (record.comment?.trim().isNotEmpty == true) ...[
-                            SizedBox(height: 8.h),
-                            Text(
-                              record.comment!,
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppTypography.body3.copyWith(
-                                color: AppColors.gray900,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                record.program.title,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTypography.headline1.copyWith(
+                                  color: AppColors.gray900,
+                                ),
+                              ),
+                              SizedBox(height: 20.h),
+                              _ReactionLabel(reaction: record.reaction),
+                              if (record.comment?.trim().isNotEmpty ==
+                                  true) ...[
+                                SizedBox(height: 8.h),
+                                _ExpandableRecordComment(
+                                  key: ValueKey(
+                                    'visit-comment-${record.program.id}',
+                                  ),
+                                  programId: record.program.id,
+                                  text: record.comment!,
+                                  availableWidth: commentWidth,
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 8.h),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: GestureDetector(
+                          key: ValueKey(
+                            'edit-visit-record-${record.program.id}',
+                          ),
+                          behavior: HitTestBehavior.opaque,
+                          onTap: onEdit,
+                          child: Padding(
+                            padding: EdgeInsets.all(6.r),
+                            child: SvgPicture.asset(
+                              'assets/icons/edit.svg',
+                              width: 16.r,
+                              height: 16.r,
+                              colorFilter: const ColorFilter.mode(
+                                AppColors.gray400,
+                                BlendMode.srcIn,
                               ),
                             ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 8.h),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: GestureDetector(
-                      key: ValueKey('edit-visit-record-${record.program.id}'),
-                      behavior: HitTestBehavior.opaque,
-                      onTap: onEdit,
-                      child: Padding(
-                        padding: EdgeInsets.all(6.r),
-                        child: SvgPicture.asset(
-                          'assets/icons/edit.svg',
-                          width: 16.r,
-                          height: 16.r,
-                          colorFilter: const ColorFilter.mode(
-                            AppColors.gray400,
-                            BlendMode.srcIn,
                           ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
-                ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ExpandableRecordComment extends StatefulWidget {
+  const _ExpandableRecordComment({
+    super.key,
+    required this.programId,
+    required this.text,
+    required this.availableWidth,
+  });
+
+  final String programId;
+  final String text;
+  final double availableWidth;
+
+  @override
+  State<_ExpandableRecordComment> createState() =>
+      _ExpandableRecordCommentState();
+}
+
+class _ExpandableRecordCommentState extends State<_ExpandableRecordComment> {
+  bool _expanded = false;
+
+  @override
+  void didUpdateWidget(covariant _ExpandableRecordComment oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text) _expanded = false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final style = AppTypography.body3.copyWith(color: AppColors.gray900);
+    final painter = TextPainter(
+      text: TextSpan(
+        text: widget.text,
+        style: DefaultTextStyle.of(context).style.merge(style),
+      ),
+      maxLines: 3,
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+    )..layout(maxWidth: widget.availableWidth.clamp(0.0, double.infinity));
+    final overflows = painter.didExceedMaxLines;
+    painter.dispose();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          widget.text,
+          key: ValueKey('visit-comment-text-${widget.programId}'),
+          maxLines: _expanded ? null : 3,
+          overflow: _expanded ? TextOverflow.visible : TextOverflow.ellipsis,
+          style: style,
+        ),
+        if (overflows)
+          GestureDetector(
+            key: ValueKey('visit-comment-more-${widget.programId}'),
+            behavior: HitTestBehavior.opaque,
+            onTap: () => setState(() => _expanded = !_expanded),
+            child: Padding(
+              padding: EdgeInsets.only(top: 6.h, bottom: 3.h),
+              child: Text(
+                _expanded ? '접기' : '더보기',
+                style: AppTypography.caption2.copyWith(
+                  color: AppColors.gray500,
+                ),
               ),
             ),
-          ],
-        ),
-      ),
+          ),
+      ],
     );
   }
 }

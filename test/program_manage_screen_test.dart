@@ -329,6 +329,12 @@ void main() {
     for (final type in ProgramReservationType.values) {
       expect(find.text(type.label), findsOneWidget);
     }
+    final addressField = find.byWidgetPredicate(
+      (widget) => widget is TextField && widget.controller?.text == '서울시 종로구 1',
+    );
+    await tester.enterText(addressField, '서울시 종로구 1 4층');
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
     final reservationField = find.byWidgetPredicate(
       (widget) =>
           widget is TextField && widget.decoration?.hintText == '링크를 첨부해주세요.',
@@ -357,6 +363,7 @@ void main() {
     expect(service.request?['reserved'], isTrue);
     expect(service.request?['reservationType'], 'PRE_REGISTRATION_AND_ON_SITE');
     expect(service.request?['reservationUrl'], 'https://example.com/book');
+    expect(service.request?['address'], '서울시 종로구 1 4층');
     expect(tester.takeException(), isNull);
   });
 

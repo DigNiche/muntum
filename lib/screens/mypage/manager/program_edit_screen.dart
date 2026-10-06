@@ -8,6 +8,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/button_solid.dart';
+import 'package:muntum/components/editable_photo_frame.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/models/admin_curation_model.dart';
@@ -631,8 +632,7 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
                                 if (_images.isNotEmpty) SizedBox(width: 8.w),
                                 Expanded(
                                   child: ReorderableListView.builder(
-                                    clipBehavior: Clip.none,
-                                    padding: EdgeInsets.only(top: 5.h),
+                                    padding: EdgeInsets.zero,
                                     scrollDirection: Axis.horizontal,
                                     buildDefaultDragHandles: false,
                                     itemCount: _images.length,
@@ -722,9 +722,6 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
                             label: '주소',
                             controller: _addressController,
                             hintText: '장소를 검색하면 주소가 입력돼요.',
-                            readOnly: true,
-                            canRequestFocus: false,
-                            enableInteractiveSelection: false,
                           ),
                           _ProgramTextField(
                             label: '시작일',
@@ -1181,7 +1178,6 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
         label: '주소',
         controller: _addressController,
         hintText: '장소를 선택하면 입력돼요.',
-        readOnly: true,
       ),
       _ProgramTextField(
         label: '시작일',
@@ -1338,7 +1334,6 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
               label: '주소',
               controller: _addressController,
               hintText: '장소를 검색하면 주소가 입력돼요.',
-              readOnly: true,
             ),
             _ProgramTextField(
               label: '시작일',
@@ -1500,8 +1495,6 @@ class _ProgramTextField extends StatelessWidget {
     this.onPrefixIconTap,
     this.labelTrailing,
     this.enabled = true,
-    this.canRequestFocus = true,
-    this.enableInteractiveSelection = true,
   });
 
   final String label;
@@ -1515,8 +1508,6 @@ class _ProgramTextField extends StatelessWidget {
   final VoidCallback? onPrefixIconTap;
   final Widget? labelTrailing;
   final bool enabled;
-  final bool canRequestFocus;
-  final bool enableInteractiveSelection;
 
   @override
   Widget build(BuildContext context) {
@@ -1542,8 +1533,6 @@ class _ProgramTextField extends StatelessWidget {
             controller: controller,
             enabled: enabled,
             readOnly: readOnly,
-            canRequestFocus: canRequestFocus,
-            enableInteractiveSelection: enableInteractiveSelection,
             onTap: onTap,
             maxLines: maxLines,
             minLines: maxLines == 1 ? 1 : maxLines,
@@ -2077,11 +2066,14 @@ class _EditableImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 76.w,
-      height: 100.h,
-      child: Stack(
-        clipBehavior: Clip.none,
+    return EditablePhotoFrame(
+      thumbnailSize: Size(76.w, 100.h),
+      topOffset: -5.h,
+      rightOffset: -5.w,
+      buttonSize: 20.r,
+      iconSize: 13.r,
+      onRemove: onRemove,
+      thumbnail: Stack(
         children: [
           Positioned.fill(
             child: ClipRRect(
@@ -2109,22 +2101,6 @@ class _EditableImage extends StatelessWidget {
                 ),
               ),
             ),
-          Positioned(
-            top: -5.h,
-            right: -5.w,
-            child: GestureDetector(
-              onTap: onRemove,
-              child: Container(
-                width: 20.r,
-                height: 20.r,
-                decoration: const BoxDecoration(
-                  color: AppColors.gray900,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.close, color: AppColors.white, size: 13.r),
-              ),
-            ),
-          ),
         ],
       ),
     );

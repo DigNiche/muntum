@@ -42,6 +42,21 @@ void main() {
       tester.widget<TextField>(find.byType(TextField).first).controller!.text,
       '성률 개인전 [Cloud 9]',
     );
+    final introductionField = find.byWidgetPredicate(
+      (widget) =>
+          widget is TextField &&
+          widget.decoration?.hintText == '임팩트 있는 한 줄로 소개해주세요.',
+    );
+    expect(
+      tester.widget<TextField>(introductionField).textInputAction,
+      TextInputAction.next,
+    );
+    await tester.ensureVisible(introductionField);
+    await tester.enterText(introductionField, '전시\n\n  추천\r\n합니다');
+    expect(
+      tester.widget<TextField>(introductionField).controller!.text,
+      '전시 추천 합니다',
+    );
   });
 }
 

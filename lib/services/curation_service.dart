@@ -2,6 +2,7 @@ import 'package:muntum/api/api_client.dart';
 import 'package:muntum/api/api_endpoints.dart';
 import 'package:muntum/api/api_response.dart';
 import 'package:muntum/models/curation_model.dart';
+import 'package:muntum/utils/single_line_text.dart';
 
 class CurationService {
   CurationService({ApiClient? client}) : _client = client ?? ApiClient();
@@ -114,7 +115,7 @@ class CurationService {
       jsonPart: {
         'submittedProgramTitle': programTitle,
         'submittedPlace': place,
-        'tagline': tagline,
+        'tagline': singleLineIntroduction(tagline),
         'content': content,
       },
       filePaths: imagePaths,
@@ -138,7 +139,7 @@ class CurationService {
       jsonPart: {
         'submittedProgramTitle': programTitle,
         'submittedPlace': place,
-        'tagline': tagline,
+        'tagline': singleLineIntroduction(tagline),
         'content': content,
       },
       filePaths: imagePaths,

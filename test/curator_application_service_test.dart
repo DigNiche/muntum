@@ -14,7 +14,7 @@ void main() {
 
       await service.submit(
         programName: '프로그램',
-        tagline: '한줄소개',
+        tagline: '한줄\n소개',
         curation: '소개글',
       );
 
@@ -23,7 +23,7 @@ void main() {
       expect(client.lastAuthorized, isTrue);
       expect(client.lastBody, {
         'programName': '프로그램',
-        'tagline': '한줄소개',
+        'tagline': '한줄 소개',
         'curation': '소개글',
       });
     });
@@ -35,7 +35,7 @@ void main() {
       await service.update(
         id: 'application-id',
         programName: '수정 프로그램',
-        tagline: '수정 소개',
+        tagline: '수정\r\n소개',
         curation: '수정 내용',
       );
 
@@ -45,6 +45,7 @@ void main() {
         ApiEndpoints.curatorApplication('application-id'),
       );
       expect(client.lastAuthorized, isTrue);
+      expect(client.lastBody?['tagline'], '수정 소개');
     });
 
     test('loads the manager queue with the selected status', () async {

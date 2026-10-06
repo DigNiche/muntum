@@ -56,8 +56,8 @@ void main() {
       await CurationService(client: client).submit(
         programTitle: '마틴 파',
         place: '국립현대미술관',
-        tagline: '한줄소개',
-        content: '소개글',
+        tagline: '한줄\n\n  소개',
+        content: '소개글\n둘째 문단',
         imagePaths: const ['/tmp/one.jpg', '/tmp/two.webp'],
       );
 
@@ -68,8 +68,8 @@ void main() {
       expect(client.lastJsonPart, {
         'submittedProgramTitle': '마틴 파',
         'submittedPlace': '국립현대미술관',
-        'tagline': '한줄소개',
-        'content': '소개글',
+        'tagline': '한줄 소개',
+        'content': '소개글\n둘째 문단',
       });
       expect(client.lastAuthorized, isTrue);
     },
@@ -85,12 +85,13 @@ void main() {
         id: 'curation-id',
         programTitle: '수정 프로그램',
         place: '수정 장소',
-        tagline: '수정 한줄소개',
+        tagline: '수정\r\n한줄소개',
         content: '수정 본문',
       );
       expect(client.lastMethod, 'PUT_MULTIPART');
       expect(client.lastPath, ApiEndpoints.curation('curation-id'));
       expect(client.lastFiles, isEmpty);
+      expect(client.lastJsonPart?['tagline'], '수정 한줄소개');
 
       await service.resubmit('curation-id');
       expect(client.lastMethod, 'PATCH');

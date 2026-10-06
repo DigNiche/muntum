@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:muntum/api/api_exception.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/button_solid.dart';
+import 'package:muntum/components/editable_photo_frame.dart';
 import 'package:muntum/components/popup_widget.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
@@ -19,6 +20,7 @@ import 'package:muntum/services/curation_service.dart';
 import 'package:muntum/services/program_service.dart';
 import 'package:muntum/utils/app_toast.dart';
 import 'package:muntum/utils/image_upload_format.dart';
+import 'package:muntum/utils/single_line_text.dart';
 
 class CurationWriteScreen extends StatefulWidget {
   const CurationWriteScreen({
@@ -85,7 +87,7 @@ class _CurationWriteScreenState extends State<CurationWriteScreen> {
     if (initial != null) {
       _initialProgramTitle = initial.programTitle;
       _programController.text = _initialProgramTitle;
-      _taglineController.text = initial.tagline;
+      _taglineController.text = singleLineIntroduction(initial.tagline);
       _contentController.text = initial.content;
       _place = ReportPlace(name: initial.place, address: initial.place);
     }
@@ -275,6 +277,7 @@ class _CurationWriteScreenState extends State<CurationWriteScreen> {
                       controller: _taglineController,
                       hint: '임팩트 있는 한 줄로 소개해주세요.',
                       maxLength: 255,
+                      singleLineInput: true,
                       maxLines: 4,
                       minHeight: 132,
                     ),
@@ -295,19 +298,25 @@ class _CurationWriteScreenState extends State<CurationWriteScreen> {
                     ),
                     SizedBox(height: 10.h),
                     SizedBox(
-                      height: 104.h,
+                      height: 104.h + 4.r,
                       child: ListView(
                         scrollDirection: Axis.horizontal,
                         children: [
-                          _AddImageButton(
-                            count: _imageCount,
-                            onTap: _pickImages,
+                          Align(
+                            alignment: Alignment.bottomCenter,
+                            child: _AddImageButton(
+                              count: _imageCount,
+                              onTap: _pickImages,
+                            ),
                           ),
                           if (_images.isEmpty && _isEditing)
                             for (final image
                                 in widget.initialCuration!.images) ...[
                               SizedBox(width: 8.w),
-                              _ExistingImage(imageUrl: image.imageUrl),
+                              Align(
+                                alignment: Alignment.bottomCenter,
+                                child: _ExistingImage(imageUrl: image.imageUrl),
+                              ),
                             ],
                           for (
                             var index = 0;
@@ -360,6 +369,7 @@ class _CurationField extends StatelessWidget {
     this.maxLength,
     this.maxLines = 1,
     this.minHeight = 54,
+    this.singleLineInput = false,
   });
 
   final String label;
@@ -368,6 +378,7 @@ class _CurationField extends StatelessWidget {
   final int? maxLength;
   final int maxLines;
   final double minHeight;
+  final bool singleLineInput;
 
   @override
   Widget build(BuildContext context) {
@@ -385,6 +396,11 @@ class _CurationField extends StatelessWidget {
             controller: controller,
             maxLength: maxLength,
             maxLines: maxLines,
+            keyboardType: singleLineInput ? TextInputType.text : null,
+            textInputAction: singleLineInput ? TextInputAction.next : null,
+            inputFormatters: singleLineInput
+                ? [singleLineIntroductionFormatter]
+                : null,
             style: AppTypography.body2.copyWith(color: AppColors.gray900),
             cursorColor: AppColors.gray900,
             decoration: InputDecoration(
@@ -506,51 +522,44 @@ class _SelectedImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(8.r),
-          child: Image.file(
-            File(image.path),
-            width: 76.w,
-            height: 104.h,
-            fit: BoxFit.cover,
-          ),
-        ),
-        if (isRepresentative)
-          Positioned(
-            left: 8.w,
-            bottom: 8.h,
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-              decoration: BoxDecoration(
-                color: AppColors.dimStrong,
-                borderRadius: BorderRadius.circular(5.r),
-              ),
-              child: Text(
-                '대표',
-                style: AppTypography.caption3.copyWith(color: AppColors.white),
-              ),
+    return EditablePhotoFrame(
+      thumbnailSize: Size(76.w, 104.h),
+      topOffset: -4.r,
+      rightOffset: -4.r,
+      buttonSize: 22.r,
+      iconSize: 14.r,
+      onRemove: onRemove,
+      thumbnail: Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8.r),
+            child: Image.file(
+              File(image.path),
+              width: 76.w,
+              height: 104.h,
+              fit: BoxFit.cover,
             ),
           ),
-        Positioned(
-          right: -4.r,
-          top: -4.r,
-          child: GestureDetector(
-            onTap: onRemove,
-            child: Container(
-              width: 22.r,
-              height: 22.r,
-              decoration: const BoxDecoration(
-                color: AppColors.gray900,
-                shape: BoxShape.circle,
+          if (isRepresentative)
+            Positioned(
+              left: 8.w,
+              bottom: 8.h,
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                decoration: BoxDecoration(
+                  color: AppColors.dimStrong,
+                  borderRadius: BorderRadius.circular(5.r),
+                ),
+                child: Text(
+                  '대표',
+                  style: AppTypography.caption3.copyWith(
+                    color: AppColors.white,
+                  ),
+                ),
               ),
-              child: Icon(Icons.close, size: 14.r, color: AppColors.white),
             ),
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

@@ -9,6 +9,7 @@ import 'package:muntum/screens/mypage/curator/curator_application_complete_scree
 import 'package:muntum/models/curator_application_model.dart';
 import 'package:muntum/services/curator_application_service.dart';
 import 'package:muntum/utils/app_toast.dart';
+import 'package:muntum/utils/single_line_text.dart';
 
 class CuratorApplicationFormScreen extends StatefulWidget {
   const CuratorApplicationFormScreen({
@@ -42,7 +43,7 @@ class _CuratorApplicationFormScreenState
     final application = widget.application;
     if (application != null) {
       _programNameController.text = application.programName;
-      _summaryController.text = application.tagline;
+      _summaryController.text = singleLineIntroduction(application.tagline);
       _introductionController.text = application.curation;
     }
   }
@@ -101,7 +102,8 @@ class _CuratorApplicationFormScreenState
                     controller: _summaryController,
                     height: 136.h,
                     maxLines: null,
-                    textInputAction: TextInputAction.newline,
+                    textInputAction: TextInputAction.next,
+                    singleLineInput: true,
                   ),
                   SizedBox(height: 40.h),
                   _ApplicationTextField(
@@ -232,6 +234,7 @@ class _ApplicationTextField extends StatelessWidget {
     required this.textInputAction,
     this.height,
     this.maxLines = 1,
+    this.singleLineInput = false,
   });
 
   final String label;
@@ -240,12 +243,17 @@ class _ApplicationTextField extends StatelessWidget {
   final TextInputAction textInputAction;
   final double? height;
   final int? maxLines;
+  final bool singleLineInput;
 
   @override
   Widget build(BuildContext context) {
     final field = TextField(
       controller: controller,
       maxLines: maxLines,
+      keyboardType: singleLineInput ? TextInputType.text : null,
+      inputFormatters: singleLineInput
+          ? [singleLineIntroductionFormatter]
+          : null,
       expands: height != null,
       textAlignVertical: TextAlignVertical.top,
       textInputAction: textInputAction,

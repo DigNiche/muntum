@@ -22,6 +22,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('좋았어요'), findsOneWidget);
     expect(find.text('첫 기록'), findsOneWidget);
+    expect(find.text('더보기'), findsNothing);
 
     await tester.tap(
       find.byKey(const ValueKey('edit-visit-record-program-id')),
@@ -39,6 +40,42 @@ void main() {
     expect(service.lastComment, '수정한 기록');
     expect(find.text('수정한 기록'), findsOneWidget);
   });
+
+  testWidgets(
+    'long visit comment expands and collapses without opening a program',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final service = _ReactionService()
+        ..comment = List.generate(
+          6,
+          (index) => '기억에 남는 내용 ${index + 1}',
+        ).join('\n');
+      await tester.pumpWidget(
+        ScreenUtilPlusInit(
+          designSize: const Size(390, 844),
+          builder: (_, child) => MaterialApp(home: Scaffold(body: child)),
+          child: WentToRecordsView(service: service),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final comment = find.byKey(
+        const ValueKey('visit-comment-text-program-id'),
+      );
+      final collapsedHeight = tester.getSize(comment).height;
+      expect(find.text('더보기'), findsOneWidget);
+      await tester.tap(find.text('더보기'));
+      await tester.pumpAndSettle();
+      expect(find.text('접기'), findsOneWidget);
+      expect(tester.getSize(comment).height, greaterThan(collapsedHeight));
+      await tester.tap(find.text('접기'));
+      await tester.pumpAndSettle();
+      expect(tester.getSize(comment).height, collapsedHeight);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }
 
 class _ReactionService extends ProgramReactionService {

@@ -2,6 +2,7 @@ import 'package:muntum/api/api_client.dart';
 import 'package:muntum/api/api_endpoints.dart';
 import 'package:muntum/api/api_response.dart';
 import 'package:muntum/models/curator_application_model.dart';
+import 'package:muntum/utils/single_line_text.dart';
 
 class CuratorApplicationService {
   CuratorApplicationService({ApiClient? client})
@@ -19,7 +20,7 @@ class CuratorApplicationService {
       authorized: true,
       body: {
         'programName': programName,
-        'tagline': tagline,
+        'tagline': singleLineIntroduction(tagline),
         'curation': curation,
       },
     );
@@ -150,7 +151,7 @@ class CuratorApplicationService {
       authorized: true,
       body: {
         'programName': programName,
-        'tagline': tagline,
+        'tagline': singleLineIntroduction(tagline),
         'curation': curation,
       },
     );
