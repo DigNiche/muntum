@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/components/program_ended_badge.dart';
 import 'package:muntum/constants/colors.dart';
@@ -12,6 +15,7 @@ class ProgramInformationSection extends StatelessWidget {
   final VoidCallback? onLongPressAddress;
   final ValueChanged<String> onTapContact;
   final VoidCallback? onTapWebsite;
+  final VoidCallback? onTapReservation;
 
   const ProgramInformationSection({
     super.key,
@@ -20,6 +24,7 @@ class ProgramInformationSection extends StatelessWidget {
     this.onLongPressAddress,
     required this.onTapContact,
     this.onTapWebsite,
+    this.onTapReservation,
   });
 
   @override
@@ -45,10 +50,7 @@ class ProgramInformationSection extends StatelessWidget {
         Divider(color: AppColors.lineNormal, thickness: 1.sp),
         _ProgramDescription(title: '가격', body: program.cost),
         Divider(color: AppColors.lineNormal, thickness: 1.sp),
-        _ProgramDescription(
-          title: '사전예약',
-          body: program.isReservationNeeded ? '필요' : '불필요',
-        ),
+        _ProgramDescription(title: '예약', body: program.reservationType.label),
         if (contacts.isNotEmpty) ...[
           Divider(color: AppColors.lineNormal, thickness: 1.sp),
           _ProgramRelatedInfoDescription(
@@ -57,15 +59,16 @@ class ProgramInformationSection extends StatelessWidget {
             onTapContact: onTapContact,
           ),
         ],
-        Divider(color: AppColors.lineNormal, thickness: 1.sp),
-        _ProgramLinkDescription(
-          link: program.link,
-          onTap: onTapWebsite,
-          linkWidget: SvgPicture.asset(
-            'assets/icons/captive_portal.svg',
-            color: AppColors.black,
+        if (program.link.trim().isNotEmpty ||
+            program.reservationUrl.trim().isNotEmpty) ...[
+          Divider(color: AppColors.lineNormal, thickness: 1.sp),
+          _ProgramLinkDescription(
+            link: program.link,
+            onTap: onTapWebsite,
+            reservationUrl: program.reservationUrl,
+            onTapReservation: onTapReservation,
           ),
-        ),
+        ],
       ],
     );
   }
@@ -147,13 +150,15 @@ class _LocationDescription extends StatelessWidget {
 }
 
 class _ProgramLinkDescription extends StatelessWidget {
-  final Widget linkWidget;
   final String link;
   final VoidCallback? onTap;
+  final String reservationUrl;
+  final VoidCallback? onTapReservation;
   const _ProgramLinkDescription({
-    required this.linkWidget,
     required this.link,
     required this.onTap,
+    required this.reservationUrl,
+    required this.onTapReservation,
   });
 
   @override
@@ -168,21 +173,89 @@ class _ProgramLinkDescription extends StatelessWidget {
           ),
         ),
         SizedBox(width: 20.w),
-        GestureDetector(
-          onTap: onTap,
-          behavior: HitTestBehavior.opaque,
-          child: Container(
-            padding: EdgeInsets.all(8.r),
-            width: 32.r,
-            height: 32.r,
-            decoration: BoxDecoration(
-              color: AppColors.gray200,
-              borderRadius: BorderRadius.circular(99),
+        if (link.trim().isNotEmpty)
+          _ProgramLinkIcon(
+            key: const ValueKey('program-website-link'),
+            onTap: onTap,
+            icon: SvgPicture.asset(
+              'assets/icons/captive_portal.svg',
+              colorFilter: const ColorFilter.mode(
+                AppColors.black,
+                BlendMode.srcIn,
+              ),
             ),
-            child: linkWidget,
           ),
-        ),
+        if (link.trim().isNotEmpty && reservationUrl.trim().isNotEmpty)
+          SizedBox(width: 8.w),
+        if (reservationUrl.trim().isNotEmpty)
+          _ProgramLinkIcon(
+            key: const ValueKey('program-reservation-link'),
+            onTap: onTapReservation,
+            icon: const _ReservationIcon(),
+          ),
       ],
+    );
+  }
+}
+
+class _ProgramLinkIcon extends StatelessWidget {
+  const _ProgramLinkIcon({super.key, required this.icon, required this.onTap});
+
+  final Widget icon;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: EdgeInsets.all(8.r),
+        width: 32.r,
+        height: 32.r,
+        decoration: BoxDecoration(
+          color: AppColors.gray200,
+          borderRadius: BorderRadius.circular(99),
+        ),
+        child: icon,
+      ),
+    );
+  }
+}
+
+// reservation_icon.svg contains a base64 PNG pattern, which flutter_svg cannot
+// paint. Decode the image in that asset directly so the supplied icon is visible.
+class _ReservationIcon extends StatelessWidget {
+  const _ReservationIcon();
+
+  static final Future<Uint8List> _imageBytes = _loadImageBytes();
+
+  static Future<Uint8List> _loadImageBytes() async {
+    final svg = await rootBundle.loadString(
+      'assets/icons/reservation_icon.svg',
+    );
+    final image = RegExp(r'data:image/png;base64,([^"\s]+)').firstMatch(svg);
+    if (image == null) {
+      throw const FormatException('Reservation icon image is missing');
+    }
+    return base64Decode(image.group(1)!);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Uint8List>(
+      future: _imageBytes,
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          return Image.memory(
+            snapshot.data!,
+            fit: BoxFit.contain,
+            color: AppColors.black,
+            colorBlendMode: BlendMode.srcIn,
+          );
+        }
+        return const Icon(Icons.event_available, color: AppColors.black);
+      },
     );
   }
 }

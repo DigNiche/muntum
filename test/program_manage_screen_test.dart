@@ -12,6 +12,26 @@ import 'package:muntum/services/program_service.dart';
 import 'package:muntum/services/admin_curation_service.dart';
 
 void main() {
+  test('program reservation fields follow the four API values', () {
+    for (final type in ProgramReservationType.values) {
+      final program = ProgramModel.fromJson({
+        'id': 'reservation-program',
+        'reservationType': type.apiValue,
+        'reservationUrl': 'https://example.com/book',
+      });
+      expect(program.reservationType, type);
+      expect(program.reservationUrl, 'https://example.com/book');
+    }
+    expect(
+      ProgramModel.fromJson({'reserved': true}).reservationType,
+      ProgramReservationType.preRegistration,
+    );
+    expect(
+      ProgramModel.fromJson({'reserved': false}).reservationType,
+      ProgramReservationType.freeEntry,
+    );
+  });
+
   test('program curator field does not imply a public curation post', () {
     expect(ProgramModel.fromJson({'title': '일반'}).hasCurator, isFalse);
     expect(
@@ -270,6 +290,114 @@ void main() {
     await tester.tap(find.text('작성완료'));
     await tester.pumpAndSettle();
     expect(find.text('상시'), findsOneWidget);
+  });
+
+  testWidgets('operating editor sends reservation method and optional link', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final service = _CaptureProgramService();
+    final program = ProgramModel.fromJson({
+      'id': 'reservation-program',
+      'title': '예약 테스트',
+      'curation': '소개글',
+      'venueName': '전시장',
+      'address': '서울시 종로구 1',
+      'startDate': '2026-09-01',
+      'operatingHours': '10:00~18:00',
+      'price': '10,000원',
+      'reservationType': 'FREE_ENTRY',
+      'keywords': [
+        {'id': 'keyword', 'name': '전시', 'active': true},
+      ],
+    });
+    await tester.pumpWidget(
+      ScreenUtilPlusInit(
+        designSize: const Size(390, 844),
+        builder: (_, _) => MaterialApp(
+          home: ProgramEditScreen(program: program, programService: service),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(TextButton, '수정').last);
+    await tester.pumpAndSettle();
+
+    for (final type in ProgramReservationType.values) {
+      expect(find.text(type.label), findsOneWidget);
+    }
+    final reservationField = find.byWidgetPredicate(
+      (widget) =>
+          widget is TextField && widget.decoration?.hintText == '링크를 첨부해주세요.',
+    );
+    expect(tester.widget<TextField>(reservationField).enabled, isFalse);
+    await tester.ensureVisible(find.text('현장예매'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('현장예매'));
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextField>(reservationField).enabled, isFalse);
+    await tester.ensureVisible(find.text('사전예약·현장예매'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('사전예약·현장예매'));
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextField>(reservationField).enabled, isTrue);
+    await tester.ensureVisible(reservationField);
+    await tester.enterText(reservationField, 'https://example.com/book');
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('작성완료'));
+    await tester.pumpAndSettle();
+    expect(find.text('예약 링크'), findsOneWidget);
+    await tester.tap(find.text('저장하기'));
+    await tester.pumpAndSettle();
+
+    expect(service.request?['reserved'], isTrue);
+    expect(service.request?['reservationType'], 'PRE_REGISTRATION_AND_ON_SITE');
+    expect(service.request?['reservationUrl'], 'https://example.com/book');
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('on-site reservation does not submit a stale reservation link', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final service = _CaptureProgramService();
+    final program = ProgramModel.fromJson({
+      'id': 'on-site-program',
+      'title': '현장예매 프로그램',
+      'curation': '소개글',
+      'venueName': '전시장',
+      'address': '서울시 종로구 1',
+      'startDate': '2026-09-01',
+      'operatingHours': '10:00~18:00',
+      'price': '10,000원',
+      'reservationType': 'ON_SITE',
+      'reservationUrl': 'https://example.com/old-booking',
+      'keywords': [
+        {'id': 'keyword', 'name': '전시', 'active': true},
+      ],
+    });
+    await tester.pumpWidget(
+      ScreenUtilPlusInit(
+        designSize: const Size(390, 844),
+        builder: (_, _) => MaterialApp(
+          home: ProgramEditScreen(program: program, programService: service),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('저장하기'));
+    await tester.pumpAndSettle();
+
+    expect(service.request?['reserved'], isTrue);
+    expect(service.request?['reservationType'], 'ON_SITE');
+    expect(service.request?['reservationUrl'], isNull);
   });
 
   testWidgets('editing another field preserves the program tagline', (

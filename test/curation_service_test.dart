@@ -23,6 +23,8 @@ void main() {
       ApiEndpoints.programCuration('program-id', 'curation-id'),
     );
     expect(detail.content, '본문');
+    expect(page.content.single.createdAt, isNull);
+    expect(detail.formattedCreatedAt, '26.10.05');
   });
 
   test('loads my curator profile from the curator profile endpoint', () async {
@@ -143,6 +145,7 @@ class _RecordingApiClient extends ApiClient {
           'curator': {'nickname': '문틈 큐레이터'},
           'tagline': '한줄소개',
           'content': '본문',
+          'createdAt': '2026-10-05T14:15:49.334852',
           'images': [],
         },
       };

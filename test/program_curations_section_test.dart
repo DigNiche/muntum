@@ -155,57 +155,63 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('curation detail matches author, date and image spacing', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(390, 844);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
+  testWidgets(
+    'curation detail shows detail-only date with author and image spacing',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(
-      ScreenUtilPlusInit(
-        designSize: const Size(390, 844),
-        builder: (context, child) => MaterialApp(
-          home: PublicCurationDetailScreen(
-            programId: 'program-id',
-            programTitle: '프로그램명',
-            summary: PublicCurationModel.fromJson({
-              'id': 'note-id',
-              'programId': 'program-id',
-              'curator': {'nickname': '문틈 큐레이터'},
-              'tagline': '큐레이션 한줄소개',
-              'createdAt': '2026-12-12T10:00:00',
-            }),
-            service: _FakePublicCurationService(includeImages: true),
+      await tester.pumpWidget(
+        ScreenUtilPlusInit(
+          designSize: const Size(390, 844),
+          builder: (context, child) => MaterialApp(
+            home: PublicCurationDetailScreen(
+              programId: 'program-id',
+              programTitle: '프로그램명',
+              summary: PublicCurationModel.fromJson({
+                'id': 'note-id',
+                'programId': 'program-id',
+                'curator': {'nickname': '문틈 큐레이터'},
+                'tagline': '큐레이션 한줄소개',
+              }),
+              service: _FakePublicCurationService(
+                includeImages: true,
+                detailCreatedAt: '2026-10-05T14:15:49.334852',
+              ),
+            ),
           ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.text('작성일 26.12.12'), findsOneWidget);
-    expect(find.byKey(const ValueKey('program-curator-badge')), findsOneWidget);
-    final title = tester.getRect(
-      find.byKey(const ValueKey('curation-detail-title')),
-    );
-    final image = tester.getRect(
-      find.byKey(const ValueKey('curation-detail-image-0')),
-    );
-    final secondImage = tester.getRect(
-      find.byKey(const ValueKey('curation-detail-image-1')),
-    );
-    final content = tester.getRect(
-      find.byKey(const ValueKey('curation-detail-content')),
-    );
-    expect(title.left, closeTo(20, 0.1));
-    expect(image.left, closeTo(20, 0.1));
-    expect(image.width, closeTo(240, 0.1));
-    expect(image.height, closeTo(320, 0.1));
-    expect(secondImage.left - image.right, closeTo(12, 0.1));
-    expect(content.top - image.bottom, closeTo(24, 0.1));
-    expect(tester.takeException(), isNull);
-  });
+      expect(find.text('작성일 26.10.05'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('program-curator-badge')),
+        findsOneWidget,
+      );
+      final title = tester.getRect(
+        find.byKey(const ValueKey('curation-detail-title')),
+      );
+      final image = tester.getRect(
+        find.byKey(const ValueKey('curation-detail-image-0')),
+      );
+      final secondImage = tester.getRect(
+        find.byKey(const ValueKey('curation-detail-image-1')),
+      );
+      final content = tester.getRect(
+        find.byKey(const ValueKey('curation-detail-content')),
+      );
+      expect(title.left, closeTo(20, 0.1));
+      expect(image.left, closeTo(20, 0.1));
+      expect(image.width, closeTo(240, 0.1));
+      expect(image.height, closeTo(320, 0.1));
+      expect(secondImage.left - image.right, closeTo(12, 0.1));
+      expect(content.top - image.bottom, closeTo(24, 0.1));
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('public curation hides actions from non-authors', (tester) async {
     AuthState.instance.replace(userId: 'someone-else', role: 'CURATOR');
@@ -238,10 +244,15 @@ void main() {
 }
 
 class _FakePublicCurationService extends CurationService {
-  _FakePublicCurationService({this.count = 1, this.includeImages = false});
+  _FakePublicCurationService({
+    this.count = 1,
+    this.includeImages = false,
+    this.detailCreatedAt,
+  });
 
   final int count;
   final bool includeImages;
+  final String? detailCreatedAt;
 
   @override
   Future<PageResponse<PublicCurationModel>> fetchProgramCurations(
@@ -271,6 +282,7 @@ class _FakePublicCurationService extends CurationService {
     'curator': {'curatorId': 'author-id', 'nickname': '문틈 큐레이터'},
     'tagline': '큐레이션 한줄소개',
     'content': '본문 미리보기',
+    if (detailCreatedAt != null) 'createdAt': detailCreatedAt,
     'images': includeImages
         ? [
             {'id': 'image-1', 'imageUrl': '', 'displayOrder': 0},

@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:muntum/models/keyword_model.dart';
 import 'package:muntum/models/program_filter.dart';
 import 'package:muntum/models/program_reaction.dart';
+import 'package:muntum/models/program_reservation_type.dart';
 import 'package:muntum/models/program_type.dart';
 
 export 'package:muntum/models/program_filter.dart';
+export 'package:muntum/models/program_reservation_type.dart';
 export 'package:muntum/models/program_type.dart';
 
 class ProgramModel {
@@ -36,6 +38,8 @@ class ProgramModel {
   final bool isFree;
   // 사전예약
   final bool isReservationNeeded;
+  final ProgramReservationType reservationType;
+  final String reservationUrl;
   // 전화번호
   final String phoneNumber;
   // 링크
@@ -82,6 +86,8 @@ class ProgramModel {
     required this.cost,
     this.isFree = false,
     required this.isReservationNeeded,
+    ProgramReservationType? reservationType,
+    this.reservationUrl = '',
     required this.phoneNumber,
     required this.link,
     required this.filters,
@@ -102,7 +108,11 @@ class ProgramModel {
     this.startDate = '',
     this.endDate = '',
     this.reaction = const ProgramReactionSummary(),
-  });
+  }) : reservationType =
+           reservationType ??
+           (isReservationNeeded
+               ? ProgramReservationType.preRegistration
+               : ProgramReservationType.freeEntry);
 
   factory ProgramModel.fromJson(Map<String, dynamic> json) {
     final imageUrls = _parseImageUrls(json);
@@ -115,6 +125,13 @@ class ProgramModel {
     );
     final free = json['free'] as bool? ?? false;
     final reserved = json['reserved'] as bool? ?? false;
+    final reservationType =
+        ProgramReservationType.fromApiValue(
+          json['reservationType'] as String?,
+        ) ??
+        (reserved
+            ? ProgramReservationType.preRegistration
+            : ProgramReservationType.freeEntry);
     final startDate =
         json['startDate'] as String? ?? json['startTime'] as String? ?? '';
     final endDate =
@@ -155,6 +172,8 @@ class ProgramModel {
       cost: free ? '무료' : json['price'] as String? ?? '',
       isFree: free,
       isReservationNeeded: reserved,
+      reservationType: reservationType,
+      reservationUrl: json['reservationUrl'] as String? ?? '',
       phoneNumber: json['inquiryContact'] as String? ?? '',
       link: json['officialUrl'] as String? ?? '',
       filters: _filtersFromApi(

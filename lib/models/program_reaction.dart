@@ -17,11 +17,13 @@ ProgramReaction? programReactionFromJson(Object? value) {
 
 class ProgramReactionSummary {
   final ProgramReaction? myReaction;
+  final String? myComment;
   final int likeCount;
   final int dislikeCount;
 
   const ProgramReactionSummary({
     this.myReaction,
+    this.myComment,
     this.likeCount = 0,
     this.dislikeCount = 0,
   });
@@ -31,8 +33,26 @@ class ProgramReactionSummary {
     final map = Map<String, dynamic>.from(json);
     return ProgramReactionSummary(
       myReaction: programReactionFromJson(map['myReaction']),
+      myComment: map['myComment'] as String?,
       likeCount: (map['likeCount'] as num? ?? 0).toInt(),
       dislikeCount: (map['dislikeCount'] as num? ?? 0).toInt(),
+    );
+  }
+}
+
+class ProgramReactionRecord {
+  final ProgramReaction? reaction;
+  final String? comment;
+
+  const ProgramReactionRecord({required this.reaction, this.comment});
+
+  factory ProgramReactionRecord.fromJson(Object? json) {
+    if (json is! Map) {
+      return const ProgramReactionRecord(reaction: null);
+    }
+    return ProgramReactionRecord(
+      reaction: programReactionFromJson(json['myReaction']),
+      comment: json['myComment'] as String?,
     );
   }
 }

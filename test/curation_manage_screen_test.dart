@@ -77,12 +77,65 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('작성완료'));
     await tester.pumpAndSettle();
+    expect(find.text('작성완료'), findsOneWidget);
+    expect(service.approvalCalls, 0);
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+
+    final startDateField = find
+        .byWidgetPredicate(
+          (widget) =>
+              widget is TextField &&
+              widget.decoration?.hintText == '예: 2026.07.14',
+        )
+        .first;
+    await tester.ensureVisible(startDateField);
+    await tester.enterText(startDateField, '2026.10.05');
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('작성완료'));
+    await tester.tap(find.text('작성완료'));
+    await tester.pumpAndSettle();
+    expect(find.text('작성완료'), findsOneWidget);
+    expect(service.approvalCalls, 0);
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+
+    final hoursField = find.byWidgetPredicate(
+      (widget) =>
+          widget is TextField &&
+          widget.decoration?.hintText == '예: 월-목 11:00~20:00',
+    );
+    await tester.ensureVisible(hoursField);
+    await tester.enterText(hoursField, '월-목 11:00~20:00');
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('사전예약'));
+    await tester.tap(find.text('사전예약'));
+    await tester.pumpAndSettle();
+    final reservationField = find.byWidgetPredicate(
+      (widget) =>
+          widget is TextField && widget.decoration?.hintText == '링크를 첨부해주세요.',
+    );
+    await tester.ensureVisible(reservationField);
+    await tester.enterText(reservationField, 'https://example.com/book');
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('작성완료'));
+    await tester.tap(find.text('작성완료'));
+    await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('등록하기'));
     await tester.tap(find.text('등록하기'));
     await tester.pumpAndSettle();
 
     expect(service.approvalCalls, 1);
     expect(service.lastProgram?['description'], '소개글');
+    expect(service.lastProgram?['operatingHours'], '월-목 11:00~20:00');
+    expect(service.lastProgram?['operatingPeriodMeta'], '2026.10.05');
+    expect(service.lastProgram?['operatingPeriod'], isNull);
+    expect(service.lastProgram?['reserved'], isTrue);
+    expect(service.lastProgram?['reservationType'], 'PRE_REGISTRATION');
+    expect(service.lastProgram?['reservationUrl'], 'https://example.com/book');
     expect(service.lastProgram?.containsKey('curation'), isFalse);
   });
 

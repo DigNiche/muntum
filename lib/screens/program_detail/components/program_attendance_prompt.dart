@@ -4,17 +4,21 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/models/program_reaction.dart';
+import 'package:muntum/screens/program_detail/components/program_reaction_sheet.dart';
 import 'package:muntum/services/program_reaction_service.dart';
-import 'package:muntum/utils/app_toast.dart';
 
 class ProgramAttendancePrompt extends StatefulWidget {
   final String programId;
   final ProgramReaction? initialReaction;
+  final String? initialComment;
+  final ProgramReactionService? service;
 
   const ProgramAttendancePrompt({
     super.key,
     required this.programId,
     required this.initialReaction,
+    this.initialComment,
+    this.service,
   });
 
   @override
@@ -24,7 +28,7 @@ class ProgramAttendancePrompt extends StatefulWidget {
 
 class _ProgramAttendancePromptState extends State<ProgramAttendancePrompt> {
   late ProgramReaction? _reaction;
-  bool _isSaving = false;
+  late String? _comment;
 
   @override
   void initState() {
@@ -35,15 +39,16 @@ class _ProgramAttendancePromptState extends State<ProgramAttendancePrompt> {
   @override
   void didUpdateWidget(covariant ProgramAttendancePrompt oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (_isSaving) return;
     if (oldWidget.programId != widget.programId ||
-        oldWidget.initialReaction != widget.initialReaction) {
+        oldWidget.initialReaction != widget.initialReaction ||
+        oldWidget.initialComment != widget.initialComment) {
       _syncFromWidget();
     }
   }
 
   void _syncFromWidget() {
     _reaction = widget.initialReaction;
+    _comment = widget.initialComment;
   }
 
   @override
@@ -64,19 +69,21 @@ class _ProgramAttendancePromptState extends State<ProgramAttendancePrompt> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _ReactionButton(
+                key: const ValueKey('detail-like'),
                 semanticsLabel: '좋았어요',
                 text: '좋았어요!',
                 iconPath: 'assets/icons/thumb_up_filled.svg',
                 isSelected: _reaction == ProgramReaction.like,
-                onTap: () => _selectReaction(ProgramReaction.like),
+                onTap: () => _openEditor(ProgramReaction.like),
               ),
               SizedBox(width: 20.w),
               _ReactionButton(
+                key: const ValueKey('detail-dislike'),
                 semanticsLabel: '아쉬웠어요',
                 text: '아쉬웠어요',
                 iconPath: 'assets/icons/thumb_down_filled.svg',
                 isSelected: _reaction == ProgramReaction.dislike,
-                onTap: () => _selectReaction(ProgramReaction.dislike),
+                onTap: () => _openEditor(ProgramReaction.dislike),
               ),
             ],
           ),
@@ -85,36 +92,21 @@ class _ProgramAttendancePromptState extends State<ProgramAttendancePrompt> {
     );
   }
 
-  Future<void> _selectReaction(ProgramReaction selectedReaction) async {
-    if (_isSaving || widget.programId.isEmpty) return;
-    final previousReaction = _reaction;
-    final nextReaction = previousReaction == selectedReaction
-        ? null
-        : selectedReaction;
-
+  Future<void> _openEditor(ProgramReaction selectedReaction) async {
+    if (widget.programId.isEmpty) return;
+    final result = await showProgramReactionSheet(
+      context: context,
+      programId: widget.programId,
+      initialReaction: _reaction,
+      suggestedReaction: selectedReaction,
+      initialComment: _comment,
+      service: widget.service,
+    );
+    if (!mounted || result == null) return;
     setState(() {
-      _reaction = nextReaction;
-      _isSaving = true;
+      _reaction = result.reaction;
+      _comment = result.comment;
     });
-
-    try {
-      final savedReaction = await ProgramReactionService().updateReaction(
-        programId: widget.programId,
-        reaction: nextReaction,
-      );
-      if (!mounted) return;
-      setState(() {
-        _reaction = savedReaction;
-        _isSaving = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _reaction = previousReaction;
-        _isSaving = false;
-      });
-      showAppToast(context, '기록을 저장하지 못했어요. 다시 시도해주세요.', isError: true);
-    }
   }
 }
 
@@ -126,6 +118,7 @@ class _ReactionButton extends StatelessWidget {
   final VoidCallback onTap;
 
   const _ReactionButton({
+    super.key,
     required this.semanticsLabel,
     required this.text,
     required this.iconPath,

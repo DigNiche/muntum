@@ -218,6 +218,13 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                                       program.link,
                                       linkType: 'website',
                                     ),
+                              onTapReservation: program.reservationUrl.isEmpty
+                                  ? null
+                                  : () => _launchExternalUrl(
+                                      program,
+                                      program.reservationUrl,
+                                      linkType: 'reservation',
+                                    ),
                             ),
                             SizedBox(height: 40.h),
                             ProgramDetailMarkdownBody(
@@ -257,6 +264,7 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                             child: ProgramAttendancePrompt(
                               programId: program.id,
                               initialReaction: program.reaction.myReaction,
+                              initialComment: program.reaction.myComment,
                             ),
                           );
                         },

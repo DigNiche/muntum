@@ -59,10 +59,11 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
   late final TextEditingController _priceController;
   late final TextEditingController _contactController;
   late final TextEditingController _urlController;
+  late final TextEditingController _reservationUrlController;
   late final TextEditingController _keywordsController;
 
   late ProgramType _programType;
-  late bool _isReservationNeeded;
+  late ProgramReservationType _reservationType;
   late final List<_ProgramImageItem> _images;
   bool _imagesChanged = false;
   bool _isSaving = false;
@@ -134,11 +135,15 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
     _urlController = TextEditingController(
       text: program?.officialUrl ?? program?.link ?? '',
     );
+    _reservationUrlController = TextEditingController(
+      text: program?.reservationUrl ?? '',
+    );
     _keywordsController = TextEditingController(
       text: program?.keywords.take(3).join(', ') ?? '',
     );
     _programType = program?.programType ?? ProgramType.exhibition;
-    _isReservationNeeded = program?.isReservationNeeded ?? false;
+    _reservationType =
+        program?.reservationType ?? ProgramReservationType.freeEntry;
     _images = (program?.imageUrls.take(_maxImages) ?? const <String>[])
         .map(_ProgramImageItem.network)
         .toList();
@@ -159,6 +164,7 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
     _priceController,
     _contactController,
     _urlController,
+    _reservationUrlController,
     _keywordsController,
   ];
 
@@ -182,6 +188,7 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
     _priceController.dispose();
     _contactController.dispose();
     _urlController.dispose();
+    _reservationUrlController.dispose();
     _keywordsController.dispose();
     super.dispose();
   }
@@ -326,13 +333,19 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
       if (_addressController.text.trim().length > 255) {
         return '주소는 255자 이내로 입력해주세요.';
       }
-      final startText = _startDateController.text.trim();
+      final start = _apiDate(_startDateController.text);
+      if (start == null) return '시작일을 YYYY.MM.DD 형식으로 입력해주세요.';
       final endText = _endDateController.text.trim();
-      if (startText.isNotEmpty || endText.isNotEmpty) {
-        final start = _apiDate(startText);
-        final end = _apiDate(endText);
-        if (start == null || end == null) return '운영기간은 시작일과 종료일을 함께 입력해주세요.';
-        if (_isAfter(start, end)) return '종료일은 시작일보다 빠를 수 없어요.';
+      final end = endText.isEmpty ? null : _apiDate(endText);
+      if (endText.isNotEmpty && end == null) {
+        return '마감일을 YYYY.MM.DD 형식으로 입력해주세요.';
+      }
+      if (end != null && _isAfter(start, end)) {
+        return '마감일은 시작일보다 빠를 수 없어요.';
+      }
+      if (_hoursController.text.trim().isEmpty) return '운영시간을 입력해주세요.';
+      if (_activeReservationUrl.length > 500) {
+        return '예약 링크는 500자 이내로 입력해주세요.';
       }
       if (_keywordNames.length > 3) return '키워드는 최대 3개까지 입력해주세요.';
       return null;
@@ -355,6 +368,9 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
       return '마감일은 시작일보다 빠를 수 없어요.';
     }
     if (_hoursController.text.trim().isEmpty) return '운영시간을 입력해주세요.';
+    if (_activeReservationUrl.length > 500) {
+      return '예약 링크는 500자 이내로 입력해주세요.';
+    }
     if (_priceController.text.trim().isEmpty) return '가격을 입력해주세요.';
     final keywords = _keywordNames;
     if (keywords.isEmpty) return '키워드를 선택해주세요.';
@@ -389,6 +405,10 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
       .toSet()
       .toList();
 
+  String get _activeReservationUrl => _reservationType.allowsReservationUrl
+      ? _reservationUrlController.text.trim()
+      : '';
+
   Map<String, dynamic> _buildRequest() {
     final startDate = _apiDate(_startDateController.text)!;
     final endDate = _endDateController.text.trim().isEmpty
@@ -399,7 +419,11 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
       'programType': _programType.apiValue,
       'tagline': _effectiveTagline,
       'description': _curationController.text.trim(),
-      'reserved': _isReservationNeeded,
+      'reserved': _reservationType.needsReservation,
+      'reservationType': _reservationType.apiValue,
+      'reservationUrl': _activeReservationUrl.isEmpty
+          ? null
+          : _activeReservationUrl,
       'free': _priceController.text.trim() == '무료',
       'price': _priceController.text.trim() == '무료'
           ? ''
@@ -419,13 +443,19 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
   }
 
   Map<String, dynamic> _buildApprovalRequest() {
-    final start = _apiDate(_startDateController.text);
-    final end = _apiDate(_endDateController.text);
+    final start = _apiDate(_startDateController.text)!;
+    final end = _endDateController.text.trim().isEmpty
+        ? null
+        : _apiDate(_endDateController.text);
     return {
       'title': _titleController.text.trim(),
       'programType': _programType.apiValue,
       'description': _curationController.text.trim(),
-      'reserved': _isReservationNeeded,
+      'reserved': _reservationType.needsReservation,
+      'reservationType': _reservationType.apiValue,
+      'reservationUrl': _activeReservationUrl.isEmpty
+          ? null
+          : _activeReservationUrl,
       'free': _priceController.text.trim() == '무료',
       'price': _priceController.text.trim() == '무료'
           ? null
@@ -436,11 +466,9 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
       'officialUrl': _urlController.text.trim().isEmpty
           ? null
           : _urlController.text.trim(),
-      'operatingPeriod': start != null && end != null ? '$start - $end' : null,
-      'operatingPeriodMeta': null,
-      'operatingHours': _hoursController.text.trim().isEmpty
-          ? null
-          : _hoursController.text.trim(),
+      'operatingPeriod': end == null ? null : '$start - $end',
+      'operatingPeriodMeta': end == null ? start : '',
+      'operatingHours': _hoursController.text.trim(),
       'operatingHoursMeta': null,
       'inquiryContact': _contactController.text.trim().isEmpty
           ? null
@@ -729,26 +757,9 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
                             hintText: '예: 무료 / 15,000원 / 프로그램별 상이',
                             controller: _priceController,
                           ),
-                          _sectionLabel('사전 예약'),
+                          _sectionLabel('예약'),
                           SizedBox(height: 10.h),
-                          Row(
-                            children: [
-                              _SelectionChip(
-                                text: '필요',
-                                selected: _isReservationNeeded,
-                                onTap: () =>
-                                    setState(() => _isReservationNeeded = true),
-                              ),
-                              SizedBox(width: 8.w),
-                              _SelectionChip(
-                                text: '불필요',
-                                selected: !_isReservationNeeded,
-                                onTap: () => setState(
-                                  () => _isReservationNeeded = false,
-                                ),
-                              ),
-                            ],
-                          ),
+                          _buildReservationChoices(),
                           SizedBox(height: 26.h),
                           _ProgramTextField(
                             label: '키워드',
@@ -770,10 +781,11 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
                             controller: _contactController,
                           ),
                           _ProgramTextField(
-                            label: '링크 (선택)',
+                            label: '일반링크 (선택)',
                             hintText: "링크를 첨부해주세요.",
                             controller: _urlController,
                           ),
+                          _buildReservationUrlField(),
                         ],
                       ),
               ),
@@ -893,23 +905,24 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
     final startDate = _apiDate(startText);
     final endText = _endDateController.text.trim();
     final endDate = endText.isEmpty ? null : _apiDate(endText);
-    final datesOptionalAndEmpty =
-        _isCurationApproval && startText.isEmpty && endText.isEmpty;
-    if (!datesOptionalAndEmpty &&
-        (startDate == null ||
-            (endText.isNotEmpty && endDate == null) ||
-            (_isCurationApproval && endDate == null))) {
-      showAppToast(context, '시작일과 마감일을 YYYY.MM.DD 형식으로 입력해주세요.', isError: true);
+    if (startDate == null) {
+      showAppToast(context, '시작일을 YYYY.MM.DD 형식으로 입력해주세요.', isError: true);
       return;
     }
-    if (startDate != null && endDate != null && _isAfter(startDate, endDate)) {
+    if (endText.isNotEmpty && endDate == null) {
+      showAppToast(context, '마감일을 YYYY.MM.DD 형식으로 입력해주세요.', isError: true);
+      return;
+    }
+    if (endDate != null && _isAfter(startDate, endDate)) {
       showAppToast(context, '마감일은 시작일보다 빠를 수 없어요.', isError: true);
       return;
     }
-    if (!_isCurationApproval &&
-        (_hoursController.text.trim().isEmpty ||
-            _priceController.text.trim().isEmpty)) {
-      showAppToast(context, '운영시간과 가격을 입력해주세요.', isError: true);
+    if (_hoursController.text.trim().isEmpty) {
+      showAppToast(context, '운영시간을 입력해주세요.', isError: true);
+      return;
+    }
+    if (!_isCurationApproval && _priceController.text.trim().isEmpty) {
+      showAppToast(context, '가격을 입력해주세요.', isError: true);
       return;
     }
     setState(() {
@@ -990,9 +1003,11 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
                   ),
                   _summaryField('운영시간', _hoursController.text),
                   _summaryField('가격', _priceController.text),
-                  _summaryField('예약', _isReservationNeeded ? '사전예약' : '자유관람'),
+                  _summaryField('예약', _reservationType.label),
                   _summaryField('연락처', _contactController.text),
-                  _summaryField('링크', _urlController.text),
+                  _summaryField('일반링크', _urlController.text),
+                  if (_activeReservationUrl.isNotEmpty)
+                    _summaryField('예약 링크', _activeReservationUrl),
                 ],
               )
             : null,
@@ -1206,24 +1221,11 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
       ),
       _sectionLabel('예약'),
       SizedBox(height: 10.h),
-      Row(
-        children: [
-          _SelectionChip(
-            text: '사전예약',
-            selected: _isReservationNeeded,
-            onTap: () => setState(() => _isReservationNeeded = true),
-          ),
-          SizedBox(width: 8.w),
-          _SelectionChip(
-            text: '자유관람',
-            selected: !_isReservationNeeded,
-            onTap: () => setState(() => _isReservationNeeded = false),
-          ),
-        ],
-      ),
+      _buildReservationChoices(),
       SizedBox(height: 24.h),
       _ProgramTextField(label: '연락처 (선택)', controller: _contactController),
       _ProgramTextField(label: '일반링크 (선택)', controller: _urlController),
+      _buildReservationUrlField(),
     ],
   );
 
@@ -1359,29 +1361,16 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
               controller: _priceController,
               hintText: '예: 무료 / 15,000원',
             ),
-            _sectionLabel('사전 예약'),
+            _sectionLabel('예약'),
             SizedBox(height: 10.h),
-            Row(
-              children: [
-                _SelectionChip(
-                  text: '필요',
-                  selected: _isReservationNeeded,
-                  onTap: () => setState(() => _isReservationNeeded = true),
-                ),
-                SizedBox(width: 8.w),
-                _SelectionChip(
-                  text: '불필요',
-                  selected: !_isReservationNeeded,
-                  onTap: () => setState(() => _isReservationNeeded = false),
-                ),
-              ],
-            ),
+            _buildReservationChoices(),
             SizedBox(height: 24.h),
             _ProgramTextField(
               label: '연락처 기재 (선택)',
               controller: _contactController,
             ),
-            _ProgramTextField(label: '링크 (선택)', controller: _urlController),
+            _ProgramTextField(label: '일반링크 (선택)', controller: _urlController),
+            _buildReservationUrlField(),
           ],
         ),
       ),
@@ -1469,6 +1458,27 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
         ),
       );
 
+  Widget _buildReservationChoices() => Wrap(
+    spacing: 8.w,
+    runSpacing: 8.h,
+    children: ProgramReservationType.values
+        .map(
+          (type) => _SelectionChip(
+            text: type.label,
+            selected: _reservationType == type,
+            onTap: () => setState(() => _reservationType = type),
+          ),
+        )
+        .toList(),
+  );
+
+  Widget _buildReservationUrlField() => _ProgramTextField(
+    label: '예약 링크 (선택)',
+    controller: _reservationUrlController,
+    hintText: '링크를 첨부해주세요.',
+    enabled: _reservationType.allowsReservationUrl,
+  );
+
   Widget _sectionLabel(String text) {
     return Text(
       text,
@@ -1489,6 +1499,7 @@ class _ProgramTextField extends StatelessWidget {
     this.prefixIcon,
     this.onPrefixIconTap,
     this.labelTrailing,
+    this.enabled = true,
     this.canRequestFocus = true,
     this.enableInteractiveSelection = true,
   });
@@ -1503,6 +1514,7 @@ class _ProgramTextField extends StatelessWidget {
   final Widget? prefixIcon;
   final VoidCallback? onPrefixIconTap;
   final Widget? labelTrailing;
+  final bool enabled;
   final bool canRequestFocus;
   final bool enableInteractiveSelection;
 
@@ -1518,7 +1530,9 @@ class _ProgramTextField extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: AppTypography.button3.copyWith(color: AppColors.gray700),
+                style: AppTypography.button3.copyWith(
+                  color: enabled ? AppColors.gray700 : AppColors.gray400,
+                ),
               ),
               labelTrailing ?? const SizedBox.shrink(),
             ],
@@ -1526,6 +1540,7 @@ class _ProgramTextField extends StatelessWidget {
           SizedBox(height: 10.h),
           TextField(
             controller: controller,
+            enabled: enabled,
             readOnly: readOnly,
             canRequestFocus: canRequestFocus,
             enableInteractiveSelection: enableInteractiveSelection,
@@ -1533,12 +1548,14 @@ class _ProgramTextField extends StatelessWidget {
             maxLines: maxLines,
             minLines: maxLines == 1 ? 1 : maxLines,
             cursorColor: AppColors.gray900,
-            style: AppTypography.body3.copyWith(color: AppColors.gray900),
+            style: AppTypography.body3.copyWith(
+              color: enabled ? AppColors.gray900 : AppColors.gray400,
+            ),
             decoration: InputDecoration(
               hintText: hintText,
               hintStyle: AppTypography.body3.copyWith(color: AppColors.gray400),
               filled: true,
-              fillColor: AppColors.white,
+              fillColor: enabled ? AppColors.white : AppColors.gray100,
               prefixIcon: prefixIcon != null
                   ? Padding(
                       padding: EdgeInsets.symmetric(
@@ -1564,6 +1581,10 @@ class _ProgramTextField extends StatelessWidget {
               contentPadding: EdgeInsets.symmetric(
                 horizontal: 14.w,
                 vertical: 13.h,
+              ),
+              disabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8.r),
+                borderSide: BorderSide.none,
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8.r),

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -8,12 +10,14 @@ import 'package:muntum/constants/typography.dart';
 import 'package:muntum/models/program_model.dart';
 import 'package:muntum/models/program_reaction.dart';
 import 'package:muntum/screens/program_detail/program_detail_screen.dart';
+import 'package:muntum/screens/program_detail/components/program_reaction_sheet.dart';
 import 'package:muntum/services/program_reaction_service.dart';
 
 class WentToRecordsView extends StatefulWidget {
   final bool isActive;
+  final ProgramReactionService? service;
 
-  const WentToRecordsView({super.key, this.isActive = true});
+  const WentToRecordsView({super.key, this.isActive = true, this.service});
 
   @override
   State<WentToRecordsView> createState() => _WentToRecordsViewState();
@@ -23,6 +27,8 @@ class _WentToRecordsViewState extends State<WentToRecordsView> {
   static const _pageSize = 20;
 
   final ScrollController _scrollController = ScrollController();
+  late final ProgramReactionService _reactionService =
+      widget.service ?? ProgramReactionService();
   final List<_WentToRecord> _records = [];
   final Map<ProgramReaction, int> _nextPages = {
     ProgramReaction.like: 0,
@@ -112,6 +118,7 @@ class _WentToRecordsViewState extends State<WentToRecordsView> {
           ..addAll(recordsByProgramId.values);
         _hasLoaded = true;
       });
+      unawaited(_hydrateComments(pageRecords, requestId));
     } catch (_) {
       if (!mounted || requestId != _requestId) return;
       setState(() {
@@ -125,12 +132,39 @@ class _WentToRecordsViewState extends State<WentToRecordsView> {
     }
   }
 
+  Future<void> _hydrateComments(
+    List<_WentToRecord> records,
+    int requestId,
+  ) async {
+    // The reaction-list response does not document comments; detail does.
+    final service = _reactionService;
+    var next = 0;
+    Future<void> worker() async {
+      while (next < records.length && requestId == _requestId) {
+        final record = records[next++];
+        if (record.comment != null || record.program.id.isEmpty) continue;
+        try {
+          final summary = await service.fetchMyRecord(record.program.id);
+          if (!mounted || requestId != _requestId) return;
+          if (summary.myReaction != record.reaction) continue;
+          setState(() => record.comment = summary.myComment);
+        } catch (_) {
+          // Keep the record visible if one detail request fails.
+        }
+      }
+    }
+
+    await Future.wait(
+      List.generate(records.length < 4 ? records.length : 4, (_) => worker()),
+    );
+  }
+
   Future<PageResponse<ProgramModel>?> _fetchReactionPage(
     ProgramReaction reaction,
   ) async {
     if (_hasNextPages[reaction] != true) return null;
     final requestedPage = _nextPages[reaction] ?? 0;
-    final response = await ProgramReactionService().fetchMyPrograms(
+    final response = await _reactionService.fetchMyPrograms(
       reaction: reaction,
       page: requestedPage,
       size: _pageSize,
@@ -154,6 +188,7 @@ class _WentToRecordsViewState extends State<WentToRecordsView> {
           _WentToRecord(
             program: likedPrograms[index],
             reaction: ProgramReaction.like,
+            comment: likedPrograms[index].reaction.myComment,
           ),
         );
       }
@@ -162,6 +197,7 @@ class _WentToRecordsViewState extends State<WentToRecordsView> {
           _WentToRecord(
             program: dislikedPrograms[index],
             reaction: ProgramReaction.dislike,
+            comment: dislikedPrograms[index].reaction.myComment,
           ),
         );
       }
@@ -182,6 +218,17 @@ class _WentToRecordsViewState extends State<WentToRecordsView> {
       ),
     );
     if (mounted) await _loadRecords(reset: true);
+  }
+
+  Future<void> _editRecord(_WentToRecord record) async {
+    final result = await showProgramReactionSheet(
+      context: context,
+      programId: record.program.id,
+      initialReaction: record.reaction,
+      initialComment: record.comment,
+      service: _reactionService,
+    );
+    if (mounted && result != null) await _loadRecords(reset: true);
   }
 
   @override
@@ -223,6 +270,7 @@ class _WentToRecordsViewState extends State<WentToRecordsView> {
             record: _records[index],
             isLast: index == _records.length - 1,
             onTap: () => _openProgram(_records[index]),
+            onEdit: () => _editRecord(_records[index]),
           );
         },
       ),
@@ -233,19 +281,22 @@ class _WentToRecordsViewState extends State<WentToRecordsView> {
 class _WentToRecord {
   final ProgramModel program;
   final ProgramReaction reaction;
+  String? comment;
 
-  const _WentToRecord({required this.program, required this.reaction});
+  _WentToRecord({required this.program, required this.reaction, this.comment});
 }
 
 class _WentToRecordCard extends StatelessWidget {
   final _WentToRecord record;
   final bool isLast;
   final VoidCallback onTap;
+  final VoidCallback onEdit;
 
   const _WentToRecordCard({
     required this.record,
     required this.isLast,
     required this.onTap,
+    required this.onEdit,
   });
 
   @override
@@ -314,24 +365,42 @@ class _WentToRecordCard extends StatelessWidget {
                           ),
                           SizedBox(height: 20.h),
                           _ReactionLabel(reaction: record.reaction),
+                          if (record.comment?.trim().isNotEmpty == true) ...[
+                            SizedBox(height: 8.h),
+                            Text(
+                              record.comment!,
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTypography.body3.copyWith(
+                                color: AppColors.gray900,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
                   ),
                   SizedBox(height: 8.h),
-                  // TODO:
-                  // Align(
-                  //   alignment: Alignment.centerRight,
-                  //   child: SvgPicture.asset(
-                  //     'assets/icons/edit.svg',
-                  //     width: 16.r,
-                  //     height: 16.r,
-                  //     colorFilter: const ColorFilter.mode(
-                  //       AppColors.gray400,
-                  //       BlendMode.srcIn,
-                  //     ),
-                  //   ),
-                  // ),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: GestureDetector(
+                      key: ValueKey('edit-visit-record-${record.program.id}'),
+                      behavior: HitTestBehavior.opaque,
+                      onTap: onEdit,
+                      child: Padding(
+                        padding: EdgeInsets.all(6.r),
+                        child: SvgPicture.asset(
+                          'assets/icons/edit.svg',
+                          width: 16.r,
+                          height: 16.r,
+                          colorFilter: const ColorFilter.mode(
+                            AppColors.gray400,
+                            BlendMode.srcIn,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),

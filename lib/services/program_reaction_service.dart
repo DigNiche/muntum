@@ -9,18 +9,30 @@ class ProgramReactionService {
 
   final ApiClient _client;
 
-  Future<ProgramReaction?> updateReaction({
+  Future<ProgramReactionRecord> updateReaction({
     required String programId,
     required ProgramReaction? reaction,
+    String? comment,
   }) async {
     final response = await _client.put(
       ApiEndpoints.programReaction(programId),
-      body: {'reactionState': reaction?.apiValue ?? 'NONE'},
+      body: {
+        'reactionState': reaction?.apiValue ?? 'NONE',
+        if (reaction != null && comment != null) 'comment': comment,
+      },
+      authorized: true,
+    );
+    return ApiResponse.fromJson(response, ProgramReactionRecord.fromJson).data;
+  }
+
+  Future<ProgramReactionSummary> fetchMyRecord(String programId) async {
+    final response = await _client.get(
+      ApiEndpoints.program(programId),
       authorized: true,
     );
     return ApiResponse.fromJson(response, (data) {
-      final map = data as Map<String, dynamic>? ?? const {};
-      return programReactionFromJson(map['myReaction']);
+      if (data is! Map) return const ProgramReactionSummary();
+      return ProgramReactionSummary.fromJson(data['reaction']);
     }).data;
   }
 

@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -359,10 +361,16 @@ void main() {
       final program = ProgramModel.fromJson({
         'id': 'reaction-program',
         'title': '반응 프로그램',
-        'reaction': {'myReaction': 'LIKE', 'likeCount': 15, 'dislikeCount': 2},
+        'reaction': {
+          'myReaction': 'LIKE',
+          'myComment': '기억에 남는 전시',
+          'likeCount': 15,
+          'dislikeCount': 2,
+        },
       });
 
       expect(program.reaction.myReaction, ProgramReaction.like);
+      expect(program.reaction.myComment, '기억에 남는 전시');
       expect(program.reaction.likeCount, 15);
       expect(program.reaction.dislikeCount, 2);
     });
@@ -374,18 +382,40 @@ void main() {
       final result = await service.updateReaction(
         programId: 'reaction-program',
         reaction: ProgramReaction.dislike,
+        comment: '조금 아쉬웠어요',
       );
 
       expect(client.lastPath, ApiEndpoints.programReaction('reaction-program'));
-      expect(client.lastBody, {'reactionState': 'DISLIKE'});
+      expect(client.lastBody, {
+        'reactionState': 'DISLIKE',
+        'comment': '조금 아쉬웠어요',
+      });
       expect(client.lastAuthorized, isTrue);
-      expect(result, ProgramReaction.dislike);
+      expect(result.reaction, ProgramReaction.dislike);
+      expect(result.comment, '조금 아쉬웠어요');
+
+      await service.updateReaction(
+        programId: 'reaction-program',
+        reaction: ProgramReaction.like,
+        comment: '',
+      );
+      expect(client.lastBody, {'reactionState': 'LIKE', 'comment': ''});
 
       await service.updateReaction(
         programId: 'reaction-program',
         reaction: null,
       );
       expect(client.lastBody, {'reactionState': 'NONE'});
+    });
+
+    test('loads my comment from the authorized program detail', () async {
+      final client = _ProgramReactionApiClient();
+      final record = await ProgramReactionService(
+        client: client,
+      ).fetchMyRecord('reaction-program');
+      expect(client.lastPath, ApiEndpoints.program('reaction-program'));
+      expect(client.lastAuthorized, isTrue);
+      expect(record.myComment, '기억에 남는 전시');
     });
 
     test('requests my reaction list with paging parameters', () async {
@@ -778,6 +808,7 @@ void main() {
       id: 'with-contact',
       title: '문의처가 있는 프로그램',
       phoneNumber: '02-1234-5678',
+      link: 'https://muntum.work/programs/with-contact',
     );
 
     await tester.pumpWidget(
@@ -793,6 +824,7 @@ void main() {
 
     expect(find.text('문의처'), findsOneWidget);
     expect(find.text('관련정보'), findsNothing);
+    expect(find.text('링크'), findsOneWidget);
     await tester.tap(find.text('02-1234-5678'));
     expect(tappedContact, '02-1234-5678');
   });
@@ -820,8 +852,96 @@ void main() {
 
       expect(find.text('문의처'), findsNothing);
       expect(find.text('정보 없음'), findsNothing);
-      expect(find.text('링크'), findsOneWidget);
+      expect(find.text('링크'), findsNothing);
     }
+  });
+
+  testWidgets('program detail shows a separate reservation link icon', (
+    tester,
+  ) async {
+    var websiteTaps = 0;
+    var reservationTaps = 0;
+    final program = _program(
+      id: 'reservation-links',
+      title: '예약 링크 프로그램',
+      link: 'https://example.com/info',
+      reservationType: ProgramReservationType.preRegistration,
+      reservationUrl: 'https://example.com/book',
+    );
+
+    await tester.pumpWidget(
+      ScreenUtilPlusInit(
+        designSize: const Size(390, 844),
+        builder: (context, child) => MaterialApp(home: Scaffold(body: child)),
+        child: ProgramInformationSection(
+          program: program,
+          onTapContact: (_) {},
+          onTapWebsite: () => websiteTaps++,
+          onTapReservation: () => reservationTaps++,
+        ),
+      ),
+    );
+
+    expect(find.text('예약'), findsOneWidget);
+    expect(find.text('사전예약'), findsOneWidget);
+    expect(find.byKey(const ValueKey('program-website-link')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('program-reservation-link')),
+      findsOneWidget,
+    );
+    await tester.pumpAndSettle();
+    final reservationImage = tester.widget<Image>(
+      find.descendant(
+        of: find.byKey(const ValueKey('program-reservation-link')),
+        matching: find.byType(Image),
+      ),
+    );
+    expect(reservationImage.image, isA<MemoryImage>());
+    await tester.runAsync(() async {
+      final codec = await ui.instantiateImageCodec(
+        (reservationImage.image as MemoryImage).bytes,
+      );
+      final frame = await codec.getNextFrame();
+      final pixels = await frame.image.toByteData(
+        format: ui.ImageByteFormat.rawRgba,
+      );
+      expect(pixels, isNotNull);
+      final alphaValues = List<int>.generate(
+        pixels!.lengthInBytes ~/ 4,
+        (index) => pixels.getUint8(index * 4 + 3),
+      );
+      expect(alphaValues.any((alpha) => alpha > 0), isTrue);
+      expect(alphaValues.any((alpha) => alpha == 0), isTrue);
+      frame.image.dispose();
+      codec.dispose();
+    });
+    await tester.tap(find.byKey(const ValueKey('program-website-link')));
+    await tester.tap(find.byKey(const ValueKey('program-reservation-link')));
+    expect(websiteTaps, 1);
+    expect(reservationTaps, 1);
+
+    await tester.pumpWidget(
+      ScreenUtilPlusInit(
+        designSize: const Size(390, 844),
+        builder: (context, child) => MaterialApp(home: Scaffold(body: child)),
+        child: ProgramInformationSection(
+          program: _program(
+            id: 'reservation-only',
+            title: '예약 링크만 있는 프로그램',
+            reservationType: ProgramReservationType.preRegistration,
+            reservationUrl: 'https://example.com/book',
+          ),
+          onTapContact: (_) {},
+          onTapReservation: () => reservationTaps++,
+        ),
+      ),
+    );
+    expect(find.byKey(const ValueKey('program-website-link')), findsNothing);
+    expect(
+      find.byKey(const ValueKey('program-reservation-link')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('horizontal card replaces overflowing keywords with a count', (
@@ -1168,6 +1288,8 @@ ProgramModel _program({
   List<Filter> filters = const [Filter.exhibition],
   String phoneNumber = '',
   String link = '',
+  ProgramReservationType? reservationType,
+  String reservationUrl = '',
   double latitude = 37.5235,
   double longitude = 126.9804,
 }) {
@@ -1188,6 +1310,8 @@ ProgramModel _program({
     availableTime: '10:00-18:00',
     cost: filters.contains(Filter.free) ? '무료' : '유료',
     isReservationNeeded: false,
+    reservationType: reservationType,
+    reservationUrl: reservationUrl,
     phoneNumber: phoneNumber,
     link: link,
     filters: filters,
@@ -1314,6 +1438,7 @@ class _ProgramReactionApiClient extends ApiClient {
         'myReaction': body?['reactionState'] == 'NONE'
             ? null
             : body?['reactionState'],
+        'myComment': body?['reactionState'] == 'NONE' ? null : body?['comment'],
       },
     };
   }
@@ -1327,6 +1452,14 @@ class _ProgramReactionApiClient extends ApiClient {
     lastPath = path;
     lastQueryParameters = queryParameters;
     lastAuthorized = authorized;
+    if (path == ApiEndpoints.program('reaction-program')) {
+      return {
+        'data': {
+          'id': 'reaction-program',
+          'reaction': {'myReaction': 'LIKE', 'myComment': '기억에 남는 전시'},
+        },
+      };
+    }
     return {
       'data': {
         'content': [
