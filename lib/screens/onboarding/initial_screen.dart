@@ -20,12 +20,20 @@ import 'package:muntum/services/taste_service.dart';
 import 'package:muntum/stores/program_scrap_store.dart';
 import 'package:muntum/stores/user_preference_store.dart';
 import 'package:muntum/utils/app_toast.dart';
+import 'package:muntum/utils/apple_identity_subject.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 class InitialScreen extends StatefulWidget {
   final bool showBackButton;
+  final AppleAuthService? appleAuthService;
+  final AuthService? authService;
 
-  const InitialScreen({super.key, this.showBackButton = false});
+  const InitialScreen({
+    super.key,
+    this.showBackButton = false,
+    this.appleAuthService,
+    this.authService,
+  });
 
   @override
   State<InitialScreen> createState() => _InitialScreenState();
@@ -197,19 +205,27 @@ class _InitialScreenState extends State<InitialScreen> {
   Future<void> _loginWithApple() async {
     if (_isAppleLoading) return;
     setState(() => _isAppleLoading = true);
+    var stage = 'apple_authorization';
+    String? appleSubject;
     try {
-      final request = await AppleAuthService().authorize();
-      final session = await AuthService().socialLogin(request);
+      final request = await (widget.appleAuthService ?? AppleAuthService())
+          .authorize();
+      appleSubject = appleIdentitySubject(request.token);
+      stage = 'social_login';
+      final session = await (widget.authService ?? AuthService()).socialLogin(
+        request,
+      );
       if (!mounted) return;
+      stage = 'post_login';
       await _routeAfterLogin(session.nickname);
     } on SignInWithAppleAuthorizationException catch (error) {
       if (!mounted || error.code == AuthorizationErrorCode.canceled) return;
-      if (kDebugMode) {
-        debugPrint(
-          'Apple authorization failed: ${error.code.name} ${error.message}',
-        );
-      }
-      showAppToast(context, 'Apple 로그인에 실패했습니다. 다시 시도해주세요.', isError: true);
+      _showAppleLoginFailure(
+        message: 'Apple 로그인에 실패했습니다. 다시 시도해주세요.',
+        code: error.code.name,
+        stage: stage,
+        appleSubject: appleSubject,
+      );
     } catch (error) {
       if (!mounted) return;
       final message = switch (error) {
@@ -223,10 +239,41 @@ class _InitialScreenState extends State<InitialScreen> {
         ApiException(code: 'E001') => '서버 오류가 발생했습니다.',
         _ => 'Apple 로그인에 실패했습니다. 다시 시도해주세요.',
       };
-      showAppToast(context, message, isError: true);
+      _showAppleLoginFailure(
+        message: message,
+        code: error is ApiException ? error.code : null,
+        statusCode: error is ApiException ? error.statusCode : null,
+        stage: stage,
+        appleSubject: appleSubject,
+      );
     } finally {
       if (mounted) setState(() => _isAppleLoading = false);
     }
+  }
+
+  void _showAppleLoginFailure({
+    required String message,
+    required String stage,
+    String? code,
+    int? statusCode,
+    String? appleSubject,
+  }) {
+    final occurredAt = DateTime.now().toUtc();
+    final timestamp = occurredAt.toIso8601String();
+    if (kDebugMode) {
+      debugPrint(
+        '[muntum.apple_login] Apple login failed: '
+        'stage=$stage code=${code ?? "unknown"} '
+        'http=${statusCode ?? "unknown"} occurredAt=$timestamp '
+        'sub=${appleSubject ?? "unavailable"}',
+        wrapWidth: null,
+      );
+    }
+    showAppToast(
+      context,
+      '${code == null ? "" : "[$code] "}$message',
+      isError: true,
+    );
   }
 
   Future<void> _routeAfterLogin(String? nickname) async {

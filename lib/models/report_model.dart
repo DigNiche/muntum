@@ -5,12 +5,14 @@ class ReportPlace {
   final String address;
   final double? latitude;
   final double? longitude;
+  final bool isDirectInput;
 
   const ReportPlace({
     required this.name,
     required this.address,
     this.latitude,
     this.longitude,
+    this.isDirectInput = false,
   });
 
   factory ReportPlace.fromSuggestionAddress({

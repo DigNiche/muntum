@@ -10,6 +10,8 @@ void showAppToast(
   String message, {
   bool isError = false,
   bool showIcon = true,
+  int maxLines = 2,
+  Duration duration = const Duration(seconds: 2),
 }) {
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
@@ -20,7 +22,7 @@ void showAppToast(
         elevation: 0,
         margin: EdgeInsets.fromLTRB(20.w, 0, 20.w, 20.h),
         padding: EdgeInsets.zero,
-        duration: const Duration(seconds: 2),
+        duration: duration,
         content: Container(
           padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
           decoration: BoxDecoration(
@@ -49,7 +51,7 @@ void showAppToast(
               Expanded(
                 child: Text(
                   message,
-                  maxLines: 2,
+                  maxLines: maxLines,
                   overflow: TextOverflow.ellipsis,
                   style: AppTypography.headline3.copyWith(
                     color: AppColors.white,

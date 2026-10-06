@@ -549,14 +549,12 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
   Future<void> _selectPlace() async {
     final place = await Navigator.push<ReportPlace>(
       context,
-      MaterialPageRoute(
-        builder: (_) => const ReportPlaceSearchScreen(allowDirectInput: false),
-      ),
+      MaterialPageRoute(builder: (_) => const ReportPlaceSearchScreen()),
     );
     if (!mounted || place == null) return;
     setState(() {
       _venueController.text = place.name;
-      _addressController.text = place.address;
+      if (!place.isDirectInput) _addressController.text = place.address;
     });
   }
 

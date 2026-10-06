@@ -59,9 +59,9 @@ class _ReportPlaceSearchScreenState extends State<ReportPlaceSearchScreen> {
     });
   }
 
-  void _openDirectInputSheet() {
+  Future<void> _openDirectInputSheet() async {
     _directController.clear();
-    showModalBottomSheet<void>(
+    final place = await showModalBottomSheet<ReportPlace>(
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.white,
@@ -135,10 +135,13 @@ class _ReportPlaceSearchScreenState extends State<ReportPlaceSearchScreen> {
                     onTap: canSubmit
                         ? () {
                             final name = _directController.text.trim();
-                            Navigator.pop(context);
                             Navigator.pop(
                               context,
-                              ReportPlace(name: name, address: '직접 입력한 장소'),
+                              ReportPlace(
+                                name: name,
+                                address: '직접 입력한 장소',
+                                isDirectInput: true,
+                              ),
                             );
                           }
                         : null,
@@ -151,6 +154,7 @@ class _ReportPlaceSearchScreenState extends State<ReportPlaceSearchScreen> {
         );
       },
     );
+    if (mounted && place != null) Navigator.pop(context, place);
   }
 
   OutlineInputBorder _inputBorder(Color color) {

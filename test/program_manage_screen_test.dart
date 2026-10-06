@@ -329,6 +329,33 @@ void main() {
     for (final type in ProgramReservationType.values) {
       expect(find.text(type.label), findsOneWidget);
     }
+    final placeField = find.byWidgetPredicate(
+      (widget) => widget is TextField && widget.controller?.text == '전시장',
+    );
+    await tester.tap(placeField);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is TextField && widget.decoration?.hintText == '장소를 검색해보세요.',
+      ),
+      '검색결과없는장소',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('직접 입력하기'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is TextField && widget.decoration?.hintText == '문틈박물관',
+      ),
+      '직접 입력한 전시장',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('완료'));
+    await tester.pumpAndSettle();
+    expect(find.text('직접 입력한 전시장'), findsOneWidget);
+    expect(find.text('직접 입력한 장소'), findsNothing);
     final addressField = find.byWidgetPredicate(
       (widget) => widget is TextField && widget.controller?.text == '서울시 종로구 1',
     );
@@ -364,6 +391,7 @@ void main() {
     expect(service.request?['reservationType'], 'PRE_REGISTRATION_AND_ON_SITE');
     expect(service.request?['reservationUrl'], 'https://example.com/book');
     expect(service.request?['address'], '서울시 종로구 1 4층');
+    expect(service.request?['venueName'], '직접 입력한 전시장');
     expect(tester.takeException(), isNull);
   });
 
