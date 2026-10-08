@@ -65,8 +65,14 @@ void main() {
       expect(message, isNot(contains('발생 시각')));
       expect(message, isNot(contains('private@example.com')));
       expect(message, isNot(contains('test-signature')));
-      expect(log, isNot(contains('private@example.com')));
+      final claimsLog = logs.singleWhere(
+        (value) => value.startsWith('[muntum.apple_login.claims]'),
+      );
+      expect(claimsLog, contains('aud=co.digniche.muntum'));
+      expect(claimsLog, contains('email=private@example.com'));
+      expect(message, isNot(contains('co.digniche.muntum')));
       expect(log, isNot(contains('test-signature')));
+      expect(claimsLog, isNot(contains('test-signature')));
     },
     variant: TargetPlatformVariant({TargetPlatform.iOS}),
   );
@@ -77,7 +83,7 @@ class _AppleAuthorization extends AppleAuthService {
   Future<SocialLoginRequest> authorize() async => SocialLoginRequest(
     provider: SocialAuthProvider.apple,
     token:
-        'test-header.${base64Url.encode(utf8.encode(jsonEncode({'sub': '001234.abcdefghijklmnopqrstuvwx.1234', 'email': 'private@example.com'}))).replaceAll('=', '')}.test-signature',
+        'test-header.${base64Url.encode(utf8.encode(jsonEncode({'sub': '001234.abcdefghijklmnopqrstuvwx.1234', 'aud': 'co.digniche.muntum', 'email': 'private@example.com'}))).replaceAll('=', '')}.test-signature',
     authorizationCode: 'test-code',
     nonce: 'test-nonce',
   );

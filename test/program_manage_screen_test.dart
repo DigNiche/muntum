@@ -6,6 +6,8 @@ import 'package:muntum/components/filter_chip.dart';
 import 'package:muntum/models/program_model.dart';
 import 'package:muntum/models/admin_curation_model.dart';
 import 'package:muntum/models/curation_model.dart';
+import 'package:muntum/models/report_model.dart';
+import 'package:muntum/screens/mypage/common/report_place_search_screen.dart';
 import 'package:muntum/screens/mypage/manager/program_manage_screen.dart';
 import 'package:muntum/screens/mypage/manager/program_edit_screen.dart';
 import 'package:muntum/services/program_service.dart';
@@ -332,7 +334,14 @@ void main() {
     final placeField = find.byWidgetPredicate(
       (widget) => widget is TextField && widget.controller?.text == '전시장',
     );
-    await tester.tap(placeField);
+    expect(tester.widget<TextField>(placeField).readOnly, isFalse);
+    await tester.enterText(placeField, '수정한 전시장');
+    await tester.pumpAndSettle();
+    expect(find.text('장소 검색'), findsNothing);
+    expect(find.text('서울시 종로구 1'), findsOneWidget);
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('program-place-search-icon')));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byWidgetPredicate(
@@ -356,6 +365,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('직접 입력한 전시장'), findsOneWidget);
     expect(find.text('직접 입력한 장소'), findsNothing);
+    final selectedPlaceField = find.byWidgetPredicate(
+      (widget) =>
+          widget is TextField && widget.controller?.text == '직접 입력한 전시장',
+    );
+    await tester.enterText(selectedPlaceField, '직접 입력한 전시장 2층');
     final addressField = find.byWidgetPredicate(
       (widget) => widget is TextField && widget.controller?.text == '서울시 종로구 1',
     );
@@ -391,9 +405,72 @@ void main() {
     expect(service.request?['reservationType'], 'PRE_REGISTRATION_AND_ON_SITE');
     expect(service.request?['reservationUrl'], 'https://example.com/book');
     expect(service.request?['address'], '서울시 종로구 1 4층');
-    expect(service.request?['venueName'], '직접 입력한 전시장');
+    expect(service.request?['venueName'], '직접 입력한 전시장 2층');
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets(
+    'new program place opens search first, then supports editing and reselection',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(
+        ScreenUtilPlusInit(
+          designSize: const Size(390, 844),
+          builder: (_, _) => const MaterialApp(home: ProgramEditScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('작성하기').last);
+      await tester.tap(find.text('작성하기').last);
+      await tester.pumpAndSettle();
+      final placeField = find.byWidgetPredicate(
+        (widget) =>
+            widget is TextField && widget.decoration?.hintText == '장소를 검색해주세요.',
+      );
+      expect(tester.widget<TextField>(placeField).readOnly, isTrue);
+      await tester.tap(placeField);
+      await tester.pumpAndSettle();
+      expect(find.byType(ReportPlaceSearchScreen), findsOneWidget);
+      Navigator.of(
+        tester.element(find.byType(ReportPlaceSearchScreen)),
+      ).pop(const ReportPlace(name: '국립현대미술관', address: '서울시 종로구 삼청로 30'));
+      await tester.pumpAndSettle();
+      expect(tester.widget<TextField>(placeField).readOnly, isFalse);
+      expect(find.text('서울시 종로구 삼청로 30'), findsOneWidget);
+      await tester.enterText(placeField, '');
+      await tester.pumpAndSettle();
+      expect(tester.widget<TextField>(placeField).readOnly, isFalse);
+      await tester.enterText(placeField, '국립현대미술관 서울 2층');
+      await tester.pumpAndSettle();
+      expect(find.byType(ReportPlaceSearchScreen), findsNothing);
+      expect(find.text('서울시 종로구 삼청로 30'), findsOneWidget);
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pumpAndSettle();
+      final searchIcon = find.byKey(const Key('program-place-search-icon'));
+      await tester.tap(searchIcon);
+      await tester.pumpAndSettle();
+      Navigator.of(tester.element(find.byType(ReportPlaceSearchScreen))).pop();
+      await tester.pumpAndSettle();
+      expect(find.text('국립현대미술관 서울 2층'), findsOneWidget);
+      expect(find.text('서울시 종로구 삼청로 30'), findsOneWidget);
+      await tester.tap(searchIcon);
+      await tester.pumpAndSettle();
+      Navigator.of(
+        tester.element(find.byType(ReportPlaceSearchScreen)),
+      ).pop(const ReportPlace(name: '새 전시장', address: '서울시 용산구 10'));
+      await tester.pumpAndSettle();
+      expect(find.text('새 전시장'), findsOneWidget);
+      expect(find.text('서울시 용산구 10'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+    variant: TargetPlatformVariant({
+      TargetPlatform.iOS,
+      TargetPlatform.android,
+    }),
+  );
 
   testWidgets('on-site reservation does not submit a stale reservation link', (
     tester,

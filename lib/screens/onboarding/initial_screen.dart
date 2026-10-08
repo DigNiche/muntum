@@ -20,7 +20,7 @@ import 'package:muntum/services/taste_service.dart';
 import 'package:muntum/stores/program_scrap_store.dart';
 import 'package:muntum/stores/user_preference_store.dart';
 import 'package:muntum/utils/app_toast.dart';
-import 'package:muntum/utils/apple_identity_subject.dart';
+import 'package:muntum/utils/apple_identity_diagnostics.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 class InitialScreen extends StatefulWidget {
@@ -206,11 +206,11 @@ class _InitialScreenState extends State<InitialScreen> {
     if (_isAppleLoading) return;
     setState(() => _isAppleLoading = true);
     var stage = 'apple_authorization';
-    String? appleSubject;
+    AppleIdentityDiagnostics? appleDiagnostics;
     try {
       final request = await (widget.appleAuthService ?? AppleAuthService())
           .authorize();
-      appleSubject = appleIdentitySubject(request.token);
+      appleDiagnostics = appleIdentityDiagnostics(request.token);
       stage = 'social_login';
       final session = await (widget.authService ?? AuthService()).socialLogin(
         request,
@@ -224,7 +224,7 @@ class _InitialScreenState extends State<InitialScreen> {
         message: 'Apple 로그인에 실패했습니다. 다시 시도해주세요.',
         code: error.code.name,
         stage: stage,
-        appleSubject: appleSubject,
+        appleDiagnostics: appleDiagnostics,
       );
     } catch (error) {
       if (!mounted) return;
@@ -244,7 +244,7 @@ class _InitialScreenState extends State<InitialScreen> {
         code: error is ApiException ? error.code : null,
         statusCode: error is ApiException ? error.statusCode : null,
         stage: stage,
-        appleSubject: appleSubject,
+        appleDiagnostics: appleDiagnostics,
       );
     } finally {
       if (mounted) setState(() => _isAppleLoading = false);
@@ -256,7 +256,7 @@ class _InitialScreenState extends State<InitialScreen> {
     required String stage,
     String? code,
     int? statusCode,
-    String? appleSubject,
+    AppleIdentityDiagnostics? appleDiagnostics,
   }) {
     final occurredAt = DateTime.now().toUtc();
     final timestamp = occurredAt.toIso8601String();
@@ -265,7 +265,13 @@ class _InitialScreenState extends State<InitialScreen> {
         '[muntum.apple_login] Apple login failed: '
         'stage=$stage code=${code ?? "unknown"} '
         'http=${statusCode ?? "unknown"} occurredAt=$timestamp '
-        'sub=${appleSubject ?? "unavailable"}',
+        'sub=${appleDiagnostics?.sub ?? "unavailable"}',
+        wrapWidth: null,
+      );
+      debugPrint(
+        '[muntum.apple_login.claims] '
+        'aud=${appleDiagnostics?.aud ?? "unavailable"} '
+        'email=${appleDiagnostics?.email ?? "unavailable"}',
         wrapWidth: null,
       );
     }

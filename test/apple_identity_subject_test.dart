@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:muntum/utils/apple_identity_subject.dart';
+import 'package:muntum/utils/apple_identity_diagnostics.dart';
 
 void main() {
   String token(Object payload) =>
@@ -28,5 +29,29 @@ void main() {
     ]) {
       expect(appleIdentitySubject(value), isNull);
     }
+  });
+
+  test('extracts sub, aud and email without retaining the token', () {
+    final result = appleIdentityDiagnostics(
+      token({
+        'sub': 'test-sub',
+        'aud': 'co.digniche.muntum',
+        'email': 'test@example.com',
+        'nonce': 'not-for-logging',
+      }),
+    )!;
+    expect(result.sub, 'test-sub');
+    expect(result.aud, 'co.digniche.muntum');
+    expect(result.email, 'test@example.com');
+  });
+
+  test('missing claims stay null and malformed tokens do not throw', () {
+    final result = appleIdentityDiagnostics(token({'sub': 'test-sub'}))!;
+    expect(result.aud, isNull);
+    expect(result.email, isNull);
+    final invalid = appleIdentityDiagnostics(token({'aud': 123, 'email': ''}))!;
+    expect(invalid.aud, isNull);
+    expect(invalid.email, isNull);
+    expect(appleIdentityDiagnostics('invalid-token'), isNull);
   });
 }

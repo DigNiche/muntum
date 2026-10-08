@@ -71,6 +71,7 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
   _ProgramEditorStage _stage = _ProgramEditorStage.summary;
   late bool _basicCompleted;
   late bool _operatingCompleted;
+  late bool _hasSelectedPlace;
   final Set<String> _temporaryImagePaths = {};
 
   bool get _isCreating => widget.program == null;
@@ -111,6 +112,7 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
     _addressController = TextEditingController(
       text: program?.location['address'] ?? initialReport?.place.address ?? '',
     );
+    _hasSelectedPlace = _venueController.text.trim().isNotEmpty;
     final storedStartDate = program?.startDate.trim().isNotEmpty == true
         ? program!.startDate
         : _dateOnlyMeta(program?.operatingPeriodMeta ?? '');
@@ -547,16 +549,34 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
   }
 
   Future<void> _selectPlace() async {
+    FocusManager.instance.primaryFocus?.unfocus();
     final place = await Navigator.push<ReportPlace>(
       context,
       MaterialPageRoute(builder: (_) => const ReportPlaceSearchScreen()),
     );
     if (!mounted || place == null) return;
     setState(() {
+      _hasSelectedPlace = true;
       _venueController.text = place.name;
       if (!place.isDirectInput) _addressController.text = place.address;
     });
   }
+
+  Widget _buildPlaceField() => _ProgramTextField(
+    label: '장소',
+    controller: _venueController,
+    hintText: '장소를 검색해주세요.',
+    // Before the first selection, the text area opens search. Once selected,
+    // keep it editable even while clearing/retyping the venue name.
+    readOnly: !_hasSelectedPlace,
+    onTap: _hasSelectedPlace ? null : _selectPlace,
+    prefixIcon: SvgPicture.asset(
+      'assets/icons/search.svg',
+      key: const Key('program-place-search-icon'),
+      colorFilter: const ColorFilter.mode(AppColors.gray800, BlendMode.srcIn),
+    ),
+    onPrefixIconTap: _selectPlace,
+  );
 
   Future<void> _selectKeywords() async {
     final selected = await showModalBottomSheet<List<String>>(
@@ -703,19 +723,7 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
                             maxLines: 8,
                             hintText: "프로그램을 소개해주세요.",
                           ),
-                          _ProgramTextField(
-                            label: '장소',
-                            hintText: '장소를 검색해주세요.',
-                            controller: _venueController,
-                            prefixIcon: SvgPicture.asset(
-                              'assets/icons/search.svg',
-                              colorFilter: const ColorFilter.mode(
-                                AppColors.gray800,
-                                BlendMode.srcIn,
-                              ),
-                            ),
-                            onPrefixIconTap: _selectPlace,
-                          ),
+                          _buildPlaceField(),
                           _ProgramTextField(
                             label: '주소',
                             controller: _addressController,
@@ -1164,14 +1172,7 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
   Widget _buildOperatingSection() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      _ProgramTextField(
-        label: '장소',
-        controller: _venueController,
-        hintText: '장소를 검색해주세요.',
-        readOnly: true,
-        onTap: _selectPlace,
-        suffixIcon: const Icon(Icons.chevron_right),
-      ),
+      _buildPlaceField(),
       _ProgramTextField(
         label: '주소',
         controller: _addressController,
@@ -1320,14 +1321,7 @@ class _ProgramEditScreenState extends State<ProgramEditScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _ProgramTextField(
-              label: '장소',
-              controller: _venueController,
-              hintText: '장소를 검색해주세요.',
-              readOnly: true,
-              onTap: _selectPlace,
-              suffixIcon: const Icon(Icons.chevron_right),
-            ),
+            _buildPlaceField(),
             _ProgramTextField(
               label: '주소',
               controller: _addressController,
