@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/components/cards/map_horizontal_card.dart';
 import 'package:muntum/models/program_model.dart';
+import 'package:muntum/utils/program_card_layout.dart';
 
 class TwoRowHorizontalCardCarousel extends StatelessWidget {
   final List<ProgramModel> programs;
@@ -18,7 +19,7 @@ class TwoRowHorizontalCardCarousel extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.only(bottom: 56.h),
       child: SizedBox(
-        height: 230.h,
+        height: ProgramCardLayout.twoRowHeight(context, programs),
         child: GridView.builder(
           scrollDirection: Axis.horizontal,
           padding: EdgeInsets.symmetric(horizontal: 20.w),

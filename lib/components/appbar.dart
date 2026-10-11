@@ -4,6 +4,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/screens/home/components/searchbar.dart';
+import 'package:muntum/utils/tablet_text_layout.dart';
 
 enum AppBarCenterType { text, searchbar, none }
 
@@ -42,8 +43,29 @@ class AppBarWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isSearchBar = centerType == AppBarCenterType.searchbar;
+    final height = isSearchBar
+        ? TabletTextLayout.atLeast(
+            context,
+            64.h,
+            selectedKeywords.isEmpty
+                ? TabletTextLayout.lineHeight(
+                        context,
+                        searchController?.text ?? '',
+                        AppTypography.body2,
+                      ) +
+                      36.h +
+                      // Reserve the input decorator's internal line/cursor room.
+                      8.r
+                : TabletTextLayout.lineHeight(
+                        context,
+                        '키워드',
+                        AppTypography.button3,
+                      ) +
+                      28.h,
+          )
+        : 64.h;
     return Container(
-      height: 64.h,
+      height: height,
       padding: EdgeInsets.symmetric(vertical: 6.h, horizontal: 20.w),
       child: Stack(
         clipBehavior: Clip.none,
@@ -58,7 +80,7 @@ class AppBarWidget extends StatelessWidget {
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: onLeadingTap,
-                child: SizedBox(width: 64.w, height: 64.h),
+                child: SizedBox(width: 64.w, height: height),
               ),
             ),
         ],

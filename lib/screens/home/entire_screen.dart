@@ -8,6 +8,7 @@ import 'package:muntum/components/page_header.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/models/program_model.dart';
+import 'package:muntum/utils/program_card_layout.dart';
 import 'package:muntum/screens/home/components/banner_carousel.dart';
 import 'package:muntum/screens/home/components/program_type_tabs.dart';
 import 'package:muntum/screens/home/components/section_header.dart';
@@ -96,7 +97,7 @@ class _EntireScreenState extends State<EntireScreen> {
         ? allPrograms
         : _filteredCollectionPrograms;
     return SizedBox(
-      height: _collectionProgramsHeight.h,
+      height: ProgramCardLayout.collectionHeight(context, programs),
       child: VerticalCardCarousel(
         programs: programs,
         entrySource: 'all_collection',

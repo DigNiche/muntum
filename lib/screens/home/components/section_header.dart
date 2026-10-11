@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
+import 'package:muntum/utils/tablet_text_layout.dart';
 
 class SectionHeader1 extends StatelessWidget {
   final String text;
@@ -59,26 +60,30 @@ class SectionHeader2 extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tablet = TabletTextLayout.isTablet(context);
+    final title = Text(
+      text,
+      style: AppTypography.headline1.copyWith(color: AppColors.gray900),
+    );
+    final button = GestureDetector(
+      onTap: onButtonTap,
+      child: Text(
+        buttonName,
+        style: AppTypography.button3.copyWith(color: AppColors.gray500),
+      ),
+    );
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20.0.w),
+      padding: EdgeInsets.symmetric(horizontal: 20.w),
       child: Container(
         color: Colors.transparent,
         padding: EdgeInsets.symmetric(vertical: 4.h),
-        height: 30.h,
+        height: tablet ? null : 30.h,
+        constraints: tablet ? BoxConstraints(minHeight: 30.h) : null,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              text,
-              style: AppTypography.headline1.copyWith(color: AppColors.gray900),
-            ),
-            GestureDetector(
-              onTap: onButtonTap,
-              child: Text(
-                buttonName,
-                style: AppTypography.button3.copyWith(color: AppColors.gray500),
-              ),
-            ),
+            tablet ? Flexible(child: title) : title,
+            tablet ? Flexible(child: button) : button,
           ],
         ),
       ),
