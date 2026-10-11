@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:muntum/components/profile_avatar.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
@@ -214,38 +215,13 @@ class _NickNameChangeScreenState extends State<NickNameChangeScreen> {
     );
   }
 
-  Widget _buildProfileImage() {
-    final selected = _selectedProfileImage;
-    Widget image;
-    if (selected != null) {
-      image = Image.file(
-        File(selected.path),
-        width: 88.r,
-        height: 88.r,
-        fit: BoxFit.cover,
-      );
-    } else if (!_deleteProfileImage && _profileImageUrl != null) {
-      image = Image.network(
-        _profileImageUrl!,
-        width: 88.r,
-        height: 88.r,
-        fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => _defaultProfileImage(),
-      );
-    } else {
-      image = _defaultProfileImage();
-    }
-    return ClipOval(child: image);
-  }
-
-  Widget _defaultProfileImage() {
-    return Image.asset(
-      'assets/default_profile_img.jpg',
-      width: 88.r,
-      height: 88.r,
-      fit: BoxFit.cover,
-    );
-  }
+  Widget _buildProfileImage() => ProfileAvatar(
+    size: ProfileAvatarSize.large,
+    localImagePath: _selectedProfileImage?.path,
+    imageUrl: _deleteProfileImage ? null : _profileImageUrl,
+    useCurrentUserImage: false,
+    showRoleBadge: false,
+  );
 
   Future<void> _showProfileImageOptions() async {
     await showModalBottomSheet<void>(

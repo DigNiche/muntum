@@ -6,6 +6,7 @@ class PublicCurationModel {
     required this.id,
     required this.programId,
     this.curatorId,
+    this.curatorRole = 'CURATOR',
     required this.curatorName,
     required this.curatorImageUrl,
     required this.tagline,
@@ -18,6 +19,7 @@ class PublicCurationModel {
   final String id;
   final String programId;
   final String? curatorId;
+  final String curatorRole;
   final String curatorName;
   final String? curatorImageUrl;
   final String tagline;
@@ -39,6 +41,7 @@ class PublicCurationModel {
         id: id,
         programId: details.programId.isEmpty ? programId : details.programId,
         curatorId: details.curatorId ?? curatorId,
+        curatorRole: details.curatorRole,
         curatorName: details.curatorName == '큐레이터'
             ? curatorName
             : details.curatorName,
@@ -72,6 +75,7 @@ class PublicCurationModel {
       id: json['id']?.toString() ?? '',
       programId: json['programId']?.toString() ?? '',
       curatorId: curator['curatorId']?.toString(),
+      curatorRole: curator['role']?.toString() ?? 'CURATOR',
       curatorName: curator['nickname']?.toString() ?? '큐레이터',
       curatorImageUrl: imageUrl(curator['profileImageUrl']),
       tagline: json['tagline']?.toString() ?? '',
@@ -217,7 +221,8 @@ class CurationModel {
           ? publicationStatus
           : details.publicationStatus,
       changeRequestReason: details.changeRequestReason,
-      reviewedAt: details.reviewedAt ?? reviewedAt,
+      // Resubmission explicitly resets reviewedAt to null.
+      reviewedAt: details.reviewedAt,
       createdAt: details.createdAt ?? createdAt,
       updatedAt: details.updatedAt ?? updatedAt,
     );

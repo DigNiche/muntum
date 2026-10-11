@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:muntum/components/profile_avatar.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/api/api_exception.dart';
 import 'package:muntum/components/appbar.dart';
@@ -299,7 +300,12 @@ class _ApplicationDetails extends StatelessWidget {
           onTap: onApplicantTap,
           child: Row(
             children: [
-              _ApplicantAvatar(imageUrl: applicant?.profileImageUrl),
+              ProfileAvatar(
+                userId: applicant?.userId,
+                imageUrl: applicant?.profileImageUrl,
+                role: applicant?.role,
+                size: ProfileAvatarSize.medium,
+              ),
               SizedBox(width: 12.w),
               Expanded(
                 child: Column(
@@ -388,34 +394,6 @@ class _RejectionBanner extends StatelessWidget {
           height: 1.5,
         ),
       ),
-    );
-  }
-}
-
-class _ApplicantAvatar extends StatelessWidget {
-  const _ApplicantAvatar({required this.imageUrl});
-
-  final String? imageUrl;
-
-  @override
-  Widget build(BuildContext context) {
-    final fallback = Image.asset(
-      'assets/default_profile_img.jpg',
-      width: 48.r,
-      height: 48.r,
-      fit: BoxFit.cover,
-    );
-    final url = imageUrl?.trim();
-    return ClipOval(
-      child: url == null || url.isEmpty
-          ? fallback
-          : Image.network(
-              url,
-              width: 48.r,
-              height: 48.r,
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => fallback,
-            ),
     );
   }
 }

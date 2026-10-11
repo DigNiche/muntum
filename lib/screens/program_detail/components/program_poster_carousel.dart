@@ -39,7 +39,8 @@ class _ProgramPosterCarouselState extends State<ProgramPosterCarousel> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return Stack(
+      alignment: Alignment.center,
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(AppBorderRadius.radius_10),
@@ -72,25 +73,30 @@ class _ProgramPosterCarouselState extends State<ProgramPosterCarousel> {
             ),
           ),
         ),
-        SizedBox(height: 16.h),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: List.generate(
-            widget.images.isEmpty ? 1 : widget.images.length,
-            (index) {
-              final isSelected = _currentIndex == index;
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                curve: Curves.easeInOut,
-                margin: EdgeInsets.symmetric(horizontal: 3.w),
-                width: 7.w,
-                height: 7.w,
-                decoration: BoxDecoration(
-                  color: isSelected ? AppColors.black : AppColors.gray300,
-                  shape: BoxShape.circle,
-                ),
-              );
-            },
+        Positioned(
+          bottom: 16.h,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(
+              widget.images.isEmpty ? 1 : widget.images.length,
+              (index) {
+                final isSelected = _currentIndex == index;
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeInOut,
+                  margin: EdgeInsets.symmetric(horizontal: 3.w),
+                  width: 7.w,
+                  height: 7.w,
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? AppColors.white
+                        : AppColors.white.withAlpha(50),
+                    shape: BoxShape.circle,
+                  ),
+                );
+              },
+            ),
           ),
         ),
       ],

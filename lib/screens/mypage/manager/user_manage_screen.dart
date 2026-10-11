@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:muntum/components/profile_avatar.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
@@ -499,11 +500,11 @@ class _UserListItem extends StatelessWidget {
             padding: EdgeInsets.symmetric(horizontal: 16.w),
             child: Row(
               children: [
-                UserAvatar(
+                ProfileAvatar(
                   userId: user.userId,
                   imageUrl: user.profileImageUrl,
                   role: user.role,
-                  size: 40.r,
+                  size: ProfileAvatarSize.medium,
                 ),
                 SizedBox(width: 16.w),
                 Expanded(

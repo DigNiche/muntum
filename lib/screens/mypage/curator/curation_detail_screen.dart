@@ -39,10 +39,6 @@ class _CurationDetailScreenState extends State<CurationDetailScreen> {
   bool _isRefreshingDetail = false;
   String? _detailError;
 
-  bool get _canDelete =>
-      _curation.status == CurationStatus.pending ||
-      _curation.status == CurationStatus.changesRequested;
-
   @override
   void initState() {
     super.initState();
@@ -98,10 +94,6 @@ class _CurationDetailScreenState extends State<CurationDetailScreen> {
     if (action == CurationAction.edit) {
       await _edit();
     } else {
-      if (!_canDelete) {
-        showAppToast(context, '승인된 글은 삭제할 수 없어요.', isError: true);
-        return;
-      }
       await _confirmDelete();
     }
   }

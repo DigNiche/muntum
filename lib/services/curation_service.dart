@@ -1,4 +1,5 @@
 import 'package:muntum/api/api_client.dart';
+import 'package:muntum/api/api_exception.dart';
 import 'package:muntum/api/api_endpoints.dart';
 import 'package:muntum/api/api_response.dart';
 import 'package:muntum/models/curation_model.dart';
@@ -78,18 +79,24 @@ class CurationService {
     while (true) {
       final page = await fetchMine(page: pageNumber, size: 100);
       summaries.addAll(page.content);
-      if (!page.hasMore) break;
+      if (!page.hasMore || page.content.isEmpty) break;
       pageNumber = page.page + 1;
     }
-    return Future.wait(
+    final details = await Future.wait<CurationModel?>(
       summaries.map((summary) async {
         try {
           return summary.mergeDetails(await fetchMyDetail(summary.id));
+        } on ApiException catch (error) {
+          // A deletion can happen between list and detail requests.
+          // Do not restore a record the server says no longer exists.
+          if (error.statusCode == 404 && error.code == 'CU001') return null;
+          return summary;
         } catch (_) {
           return summary;
         }
       }),
     );
+    return details.whereType<CurationModel>().toList();
   }
 
   Future<CurationModel> fetchMyDetail(String id) async {

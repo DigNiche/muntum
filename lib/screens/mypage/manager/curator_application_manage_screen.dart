@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:muntum/components/profile_avatar.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/api/api_exception.dart';
 import 'package:muntum/components/appbar.dart';
@@ -244,7 +245,12 @@ class _ApplicationCard extends StatelessWidget {
             SizedBox(height: 12.h),
             Row(
               children: [
-                _ApplicantAvatar(imageUrl: applicant?.profileImageUrl),
+                ProfileAvatar(
+                  userId: applicant?.userId,
+                  imageUrl: applicant?.profileImageUrl,
+                  role: applicant?.role,
+                  size: ProfileAvatarSize.small,
+                ),
                 SizedBox(width: 12.w),
                 Expanded(
                   child: Column(
@@ -299,35 +305,6 @@ class _StatusBadge extends StatelessWidget {
           color: pending ? AppColors.primary800 : AppColors.gray600,
         ),
       ),
-    );
-  }
-}
-
-class _ApplicantAvatar extends StatelessWidget {
-  const _ApplicantAvatar({required this.imageUrl});
-
-  final String? imageUrl;
-  static const double size = 40;
-
-  @override
-  Widget build(BuildContext context) {
-    final fallback = Image.asset(
-      'assets/default_profile_img.jpg',
-      width: size.r,
-      height: size.r,
-      fit: BoxFit.cover,
-    );
-    final url = imageUrl?.trim();
-    return ClipOval(
-      child: url == null || url.isEmpty
-          ? fallback
-          : Image.network(
-              url,
-              width: size.r,
-              height: size.r,
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => fallback,
-            ),
     );
   }
 }

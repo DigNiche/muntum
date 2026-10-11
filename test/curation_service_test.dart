@@ -100,6 +100,7 @@ void main() {
       await service.delete('curation-id');
       expect(client.lastMethod, 'DELETE');
       expect(client.lastPath, ApiEndpoints.curation('curation-id'));
+      expect(client.lastAuthorized, isTrue);
     },
   );
 }

@@ -188,7 +188,7 @@ void main() {
 
       expect(find.text('작성일 26.10.05'), findsOneWidget);
       expect(
-        find.byKey(const ValueKey('program-curator-badge')),
+        find.byKey(const ValueKey('user-role-badge-author-id')),
         findsOneWidget,
       );
       final title = tester.getRect(

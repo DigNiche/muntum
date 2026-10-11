@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:muntum/components/profile_avatar.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/api/token_store.dart';
@@ -29,7 +30,6 @@ import 'package:muntum/screens/onboarding/initial_screen.dart';
 import 'package:muntum/services/taste_service.dart';
 import 'package:muntum/services/user_service.dart';
 import 'package:muntum/stores/auth_state.dart';
-import 'package:muntum/stores/current_user_profile_image_store.dart';
 import 'package:muntum/stores/user_preference_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -326,43 +326,14 @@ class _ProfileIdentity extends StatelessWidget {
       padding: EdgeInsets.symmetric(vertical: 16.h),
       child: Row(
         children: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              FutureBuilder<String?>(
-                future: profileImageUrlFuture,
-                builder: (context, snapshot) => AnimatedBuilder(
-                  animation: CurrentUserProfileImageStore.instance,
-                  builder: (context, _) => _ProfileAvatar(
-                    imageUrl: CurrentUserProfileImageStore.instance.resolve(
-                      userId: AuthState.instance.userId,
-                      apiImageUrl: snapshot.data,
-                    ),
-                    size: 56.r,
-                  ),
-                ),
-              ),
-              if (AuthState.instance.isCurator)
-                Positioned(
-                  right: -2.r,
-                  bottom: -2.r,
-                  child: SvgPicture.asset(
-                    'assets/icons/curator_badge.svg',
-                    width: 20.r,
-                    height: 20.r,
-                  ),
-                ),
-              if (AuthState.instance.isAdmin)
-                Positioned(
-                  right: -2.r,
-                  bottom: -2.r,
-                  child: SvgPicture.asset(
-                    'assets/icons/manager_badge.svg',
-                    width: 20.r,
-                    height: 20.r,
-                  ),
-                ),
-            ],
+          FutureBuilder<String?>(
+            future: profileImageUrlFuture,
+            builder: (context, snapshot) => ProfileAvatar(
+              userId: AuthState.instance.userId,
+              imageUrl: snapshot.data,
+              role: AuthState.instance.role,
+              size: ProfileAvatarSize.large,
+            ),
           ),
           SizedBox(width: 16.w),
           Expanded(
@@ -378,35 +349,6 @@ class _ProfileIdentity extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _ProfileAvatar extends StatelessWidget {
-  const _ProfileAvatar({required this.imageUrl, required this.size});
-
-  final String? imageUrl;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    final url = imageUrl?.trim();
-    final fallback = Image.asset(
-      'assets/default_profile_img.jpg',
-      width: size,
-      height: size,
-      fit: BoxFit.cover,
-    );
-    return ClipOval(
-      child: url == null || url.isEmpty
-          ? fallback
-          : Image.network(
-              url,
-              width: size,
-              height: size,
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => fallback,
-            ),
     );
   }
 }

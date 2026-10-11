@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:muntum/components/profile_avatar.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/api/api_exception.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/constants/colors.dart';
@@ -54,32 +54,48 @@ class _ProgramCurationsManageScreenState
       page = response.page + 1;
     }
 
-    // The public endpoint omits unpublished change requests. The manager
-    // endpoint cannot filter by program ID, so verify candidate details.
-    page = 0;
-    while (true) {
-      final response = await _adminService.fetchList(
-        status: CurationStatus.changesRequested,
-        page: page,
-        size: 100,
-      );
-      // The submitted title may differ from the linked program title. Match
-      // only after loading the detail, which carries the actual program ID.
-      ids.addAll(response.content.map((item) => item.curation.id));
-      if (!response.hasMore || response.content.isEmpty) break;
-      page = response.page + 1;
+    // Public lists exclude unpublished records. Review and publication state
+    // are independent, so check all manager states and match by detail program ID.
+    for (final status in [
+      CurationStatus.pending,
+      CurationStatus.approved,
+      CurationStatus.changesRequested,
+    ]) {
+      page = 0;
+      while (true) {
+        final response = await _adminService.fetchList(
+          status: status,
+          page: page,
+          size: 100,
+        );
+        // The submitted title may differ from the linked program title. Match
+        // only after loading the detail, which carries the actual program ID.
+        ids.addAll(response.content.map((item) => item.curation.id));
+        if (!response.hasMore || response.content.isEmpty) break;
+        page = response.page + 1;
+      }
     }
 
     // Keep already visible cards while the public and manager lists catch up
     // immediately after a publication-state change.
     ids.addAll(_knownIds);
-    final details = await Future.wait(
-      ids.toSet().map((id) => _adminService.fetchDetail(id)),
+    final details = await Future.wait<AdminCurationModel?>(
+      ids.toSet().map((id) async {
+        try {
+          return await _adminService.fetchDetail(id);
+        } on ApiException catch (error) {
+          if (error.statusCode == 404 && error.code == 'CU001') return null;
+          rethrow;
+        }
+      }),
     );
     final linked = details
+        .whereType<AdminCurationModel>()
         .where((item) => item.curation.programId == widget.program.id)
         .toList();
-    _knownIds.addAll(linked.map((item) => item.curation.id));
+    _knownIds
+      ..clear()
+      ..addAll(linked.map((item) => item.curation.id));
     return linked;
   }
 
@@ -200,7 +216,12 @@ class _ProgramCurationsManageScreenState
             children: [
               Row(
                 children: [
-                  _CuratorAvatar(imageUrl: item.curator.profileImageUrl),
+                  ProfileAvatar(
+                    userId: item.curator.id,
+                    imageUrl: item.curator.profileImageUrl,
+                    role: item.curator.role,
+                    size: ProfileAvatarSize.medium,
+                  ),
                   SizedBox(width: 10.w),
                   Expanded(
                     child: Column(
@@ -304,50 +325,6 @@ class _ProgramCurationsManageScreenState
             ),
           ),
       ],
-    );
-  }
-}
-
-class _CuratorAvatar extends StatelessWidget {
-  const _CuratorAvatar({required this.imageUrl});
-  final String? imageUrl;
-
-  @override
-  Widget build(BuildContext context) {
-    Widget fallback() => Image.asset(
-      'assets/default_profile_img.jpg',
-      width: 40.r,
-      height: 40.r,
-      fit: BoxFit.cover,
-    );
-    return SizedBox(
-      width: 42.r,
-      height: 42.r,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          ClipOval(
-            child: imageUrl?.isNotEmpty == true
-                ? Image.network(
-                    imageUrl!,
-                    width: 40.r,
-                    height: 40.r,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => fallback(),
-                  )
-                : fallback(),
-          ),
-          Positioned(
-            right: 0,
-            bottom: 0,
-            child: SvgPicture.asset(
-              'assets/icons/curator_badge.svg',
-              width: 15.r,
-              height: 15.r,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

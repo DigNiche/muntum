@@ -1,9 +1,10 @@
 import 'dart:math' as math;
+import 'package:muntum/components/profile_avatar.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:muntum/components/program_curator_badge.dart';
+import 'package:muntum/api/api_exception.dart';
 import 'package:muntum/components/popup_widget.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
@@ -12,7 +13,6 @@ import 'package:muntum/screens/mypage/curator/curation_action_sheet.dart';
 import 'package:muntum/screens/mypage/curator/curation_write_screen.dart';
 import 'package:muntum/services/curation_service.dart';
 import 'package:muntum/stores/auth_state.dart';
-import 'package:muntum/stores/current_user_profile_image_store.dart';
 import 'package:muntum/utils/app_toast.dart';
 
 class ProgramCurationsSection extends StatefulWidget {
@@ -36,6 +36,7 @@ class _ProgramCurationsSectionState extends State<ProgramCurationsSection> {
   late final CurationService _service = widget.service ?? CurationService();
   late Future<List<PublicCurationModel>> _curations;
   final Map<String, Future<PublicCurationModel>> _details = {};
+  final Set<String> _removedIds = {};
   final ScrollController _cardsController = ScrollController();
 
   @override
@@ -55,6 +56,7 @@ class _ProgramCurationsSectionState extends State<ProgramCurationsSection> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.programId != widget.programId) {
       _details.clear();
+      _removedIds.clear();
       _curations = _load();
       if (_cardsController.hasClients) _cardsController.jumpTo(0);
     }
@@ -82,8 +84,18 @@ class _ProgramCurationsSectionState extends State<ProgramCurationsSection> {
   Future<List<PublicCurationModel>> _load() async {
     if (widget.programId.isEmpty) return const [];
     try {
-      final page = await _service.fetchProgramCurations(widget.programId);
-      return page.content;
+      final items = <PublicCurationModel>[];
+      var pageNumber = 0;
+      while (true) {
+        final page = await _service.fetchProgramCurations(
+          widget.programId,
+          page: pageNumber,
+        );
+        items.addAll(page.content);
+        if (!page.hasMore || page.content.isEmpty) break;
+        pageNumber = page.page + 1;
+      }
+      return items;
     } catch (_) {
       return const [];
     }
@@ -94,7 +106,9 @@ class _ProgramCurationsSectionState extends State<ProgramCurationsSection> {
     return FutureBuilder<List<PublicCurationModel>>(
       future: _curations,
       builder: (context, snapshot) {
-        final items = snapshot.data ?? const <PublicCurationModel>[];
+        final items = (snapshot.data ?? const <PublicCurationModel>[])
+            .where((item) => !_removedIds.contains(item.id))
+            .toList();
         if (items.isEmpty) return const SizedBox.shrink();
         final cardWidth = 300.w.clamp(
           0.0,
@@ -115,17 +129,25 @@ class _ProgramCurationsSectionState extends State<ProgramCurationsSection> {
                   showPreviousArrow: index > 0,
                   onNextArrowTap: () => _scrollToCard(index + 1, cardWidth),
                   onPreviousArrowTap: () => _scrollToCard(index - 1, cardWidth),
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => PublicCurationDetailScreen(
-                        programId: widget.programId,
-                        programTitle: widget.programTitle,
-                        summary: item,
-                        service: _service,
+                  onTap: () async {
+                    final result = await Navigator.push<String>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => PublicCurationDetailScreen(
+                          programId: widget.programId,
+                          programTitle: widget.programTitle,
+                          summary: item,
+                          service: _service,
+                        ),
                       ),
-                    ),
-                  ),
+                    );
+                    if (!mounted || result == null) return;
+                    setState(() {
+                      if (result == 'deleted') _removedIds.add(item.id);
+                      _details.clear();
+                      _curations = _load();
+                    });
+                  },
                 ),
               ),
             );
@@ -321,51 +343,16 @@ class _CurationNoteCard extends StatelessWidget {
             Positioned(
               left: 18.w,
               top: imageHeight - 20.r,
-              child: _NoteCuratorAvatar(
-                curatorId: curation.curatorId,
+              child: ProfileAvatar(
+                userId: curation.curatorId,
+                role: curation.curatorRole,
+                size: ProfileAvatarSize.medium,
                 imageUrl: curation.curatorImageUrl,
               ),
             ),
           ],
         ),
       ),
-    );
-  }
-}
-
-class _NoteCuratorAvatar extends StatelessWidget {
-  const _NoteCuratorAvatar({required this.curatorId, required this.imageUrl});
-
-  final String? curatorId;
-  final String? imageUrl;
-
-  @override
-  Widget build(BuildContext context) {
-    final fallback = Image.asset(
-      'assets/default_profile_img.jpg',
-      width: 40.r,
-      height: 40.r,
-      fit: BoxFit.cover,
-    );
-    return AnimatedBuilder(
-      animation: CurrentUserProfileImageStore.instance,
-      builder: (context, _) {
-        final resolvedUrl = CurrentUserProfileImageStore.instance.resolve(
-          userId: curatorId,
-          apiImageUrl: imageUrl,
-        );
-        return ClipOval(
-          child: resolvedUrl?.isNotEmpty == true
-              ? Image.network(
-                  resolvedUrl!,
-                  width: 40.r,
-                  height: 40.r,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => fallback,
-                )
-              : fallback,
-        );
-      },
     );
   }
 }
@@ -416,10 +403,6 @@ class _PublicCurationDetailScreenState
         if (mounted && updated == true) Navigator.pop(context, 'updated');
         return;
       }
-      if (mine.status == CurationStatus.approved) {
-        showAppToast(context, '승인된 글은 삭제할 수 없어요.', isError: true);
-        return;
-      }
       final confirmed = await showConfirmationPopupWidget(
         context: context,
         title: '작성한 글을 삭제할까요?',
@@ -454,6 +437,12 @@ class _PublicCurationDetailScreenState
       body: FutureBuilder<PublicCurationModel>(
         future: _detail,
         builder: (context, snapshot) {
+          final error = snapshot.error;
+          if (error is ApiException &&
+              error.statusCode == 404 &&
+              error.code == 'CU001') {
+            return const Center(child: Text('삭제되었거나 조회할 수 없는 큐레이션입니다.'));
+          }
           final detail = snapshot.data == null
               ? widget.summary
               : widget.summary.mergeDetails(snapshot.data!);
@@ -481,11 +470,13 @@ class _PublicCurationDetailScreenState
                       SizedBox(height: 24.h),
                       Row(
                         children: [
-                          _DetailCuratorAvatar(
-                            curatorId: detail.curatorId,
+                          ProfileAvatar(
+                            userId: detail.curatorId,
+                            role: detail.curatorRole,
+                            size: ProfileAvatarSize.medium,
                             imageUrl: detail.curatorImageUrl,
                           ),
-                          SizedBox(width: 12.w),
+                          SizedBox(width: 16.w),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -565,57 +556,6 @@ class _PublicCurationDetailScreenState
           );
         },
       ),
-    );
-  }
-}
-
-class _DetailCuratorAvatar extends StatelessWidget {
-  const _DetailCuratorAvatar({required this.curatorId, required this.imageUrl});
-
-  final String? curatorId;
-  final String? imageUrl;
-
-  @override
-  Widget build(BuildContext context) {
-    final fallback = Image.asset(
-      'assets/default_profile_img.jpg',
-      width: 40.r,
-      height: 40.r,
-      fit: BoxFit.cover,
-    );
-    return AnimatedBuilder(
-      animation: CurrentUserProfileImageStore.instance,
-      builder: (context, _) {
-        final resolvedUrl = CurrentUserProfileImageStore.instance.resolve(
-          userId: curatorId,
-          apiImageUrl: imageUrl,
-        );
-        return SizedBox(
-          width: 42.r,
-          height: 42.r,
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              ClipOval(
-                child: resolvedUrl?.isNotEmpty == true
-                    ? Image.network(
-                        resolvedUrl!,
-                        width: 40.r,
-                        height: 40.r,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => fallback,
-                      )
-                    : fallback,
-              ),
-              Positioned(
-                right: 0,
-                bottom: 0,
-                child: ProgramCuratorBadge(size: 14.r),
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 }

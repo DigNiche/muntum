@@ -1,9 +1,9 @@
 import 'dart:async';
+import 'package:muntum/components/profile_avatar.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/api/api_exception.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/button_solid.dart';
@@ -231,8 +231,11 @@ class _CurationReviewScreenState extends State<CurationReviewScreen> {
                           padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 20.h),
                           child: Row(
                             children: [
-                              _ReviewCuratorAvatar(
+                              ProfileAvatar(
+                                userId: detail.curator.id,
                                 imageUrl: detail.curator.profileImageUrl,
+                                role: detail.curator.role,
+                                size: ProfileAvatarSize.medium,
                               ),
                               SizedBox(width: 12.w),
                               Column(
@@ -458,52 +461,6 @@ class _Field extends StatelessWidget {
       ],
     ),
   );
-}
-
-class _ReviewCuratorAvatar extends StatelessWidget {
-  const _ReviewCuratorAvatar({required this.imageUrl});
-
-  final String? imageUrl;
-
-  @override
-  Widget build(BuildContext context) {
-    Widget fallback() => Image.asset(
-      'assets/default_profile_img.jpg',
-      width: 48.r,
-      height: 48.r,
-      fit: BoxFit.cover,
-    );
-
-    return SizedBox(
-      width: 50.r,
-      height: 50.r,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          ClipOval(
-            child: imageUrl?.isNotEmpty == true
-                ? Image.network(
-                    imageUrl!,
-                    width: 48.r,
-                    height: 48.r,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => fallback(),
-                  )
-                : fallback(),
-          ),
-          Positioned(
-            right: 0,
-            bottom: 0,
-            child: SvgPicture.asset(
-              'assets/icons/curator_badge.svg',
-              width: 17.r,
-              height: 17.r,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _SelectedProgram extends StatelessWidget {

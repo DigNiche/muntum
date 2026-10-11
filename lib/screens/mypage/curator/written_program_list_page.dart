@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:muntum/components/profile_avatar.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/api/api_exception.dart';
@@ -147,10 +148,6 @@ class _WrittenProgramListState extends State<WrittenProgramList> {
         ),
       );
       if (mounted && updated == true) await _load();
-      return;
-    }
-    if (curation.status == CurationStatus.approved) {
-      showAppToast(context, '승인된 글은 삭제할 수 없어요.', isError: true);
       return;
     }
     final confirmed = await showConfirmationPopupWidget(
@@ -346,7 +343,12 @@ class _ProfileHeader extends StatelessWidget {
               ],
             ),
           ),
-          _CuratorAvatar(imageUrl: profile?.profileImageUrl, size: 48.r),
+          ProfileAvatar(
+            userId: profile?.curatorId,
+            imageUrl: profile?.profileImageUrl,
+            role: AuthState.instance.role ?? 'CURATOR',
+            size: ProfileAvatarSize.large,
+          ),
         ],
       ),
     );
@@ -766,6 +768,7 @@ class _CurationPostState extends State<_CurationPost> {
               id: curation.id,
               programId: programId,
               curatorId: widget.profile?.curatorId,
+              curatorRole: AuthState.instance.role ?? 'CURATOR',
               curatorName: widget.profile?.nickname ?? '큐레이터',
               curatorImageUrl: CurrentUserProfileImageStore.instance.resolve(
                 userId: widget.profile?.curatorId,
@@ -809,9 +812,11 @@ class _CurationPostState extends State<_CurationPost> {
             ],
             Row(
               children: [
-                _CuratorAvatar(
+                ProfileAvatar(
+                  userId: widget.profile?.curatorId,
                   imageUrl: widget.profile?.profileImageUrl,
-                  size: 36.r,
+                  role: AuthState.instance.role ?? 'CURATOR',
+                  size: ProfileAvatarSize.medium,
                 ),
                 SizedBox(width: 10.w),
                 Expanded(
@@ -1069,61 +1074,6 @@ class _StatusBadge extends StatelessWidget {
         status.label,
         style: AppTypography.badge.copyWith(color: foreground),
       ),
-    );
-  }
-}
-
-class _CuratorAvatar extends StatelessWidget {
-  const _CuratorAvatar({required this.imageUrl, required this.size});
-
-  final String? imageUrl;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: CurrentUserProfileImageStore.instance,
-      builder: (context, _) {
-        final resolvedUrl = CurrentUserProfileImageStore.instance.resolve(
-          userId: AuthState.instance.userId,
-          apiImageUrl: imageUrl,
-        );
-        final fallback = Image.asset(
-          'assets/default_profile_img.jpg',
-          width: size,
-          height: size,
-          fit: BoxFit.cover,
-        );
-        return SizedBox(
-          width: size + 4.r,
-          height: size + 4.r,
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              ClipOval(
-                child: resolvedUrl?.isNotEmpty == true
-                    ? Image.network(
-                        resolvedUrl!,
-                        width: size,
-                        height: size,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => fallback,
-                      )
-                    : fallback,
-              ),
-              Positioned(
-                right: 0,
-                bottom: 0,
-                child: SvgPicture.asset(
-                  'assets/icons/curator_badge.svg',
-                  width: (size * 0.36).clamp(14.r, 20.r),
-                  height: (size * 0.36).clamp(14.r, 20.r),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 }

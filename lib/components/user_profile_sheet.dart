@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:muntum/components/profile_avatar.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/models/admin_user_model.dart';
 import 'package:muntum/models/curator_application_model.dart';
-import 'package:muntum/stores/current_user_profile_image_store.dart';
 
 class UserProfileSheet extends StatelessWidget {
   const UserProfileSheet({super.key, this.user, this.applicant})
@@ -56,11 +55,11 @@ class UserProfileSheet extends StatelessWidget {
               ),
             ),
             SizedBox(height: 16.h),
-            UserAvatar(
+            ProfileAvatar(
               userId: user?.userId ?? applicant?.userId ?? '',
               imageUrl: user?.profileImageUrl ?? applicant?.profileImageUrl,
               role: role,
-              size: 56.r,
+              size: ProfileAvatarSize.large,
             ),
             SizedBox(height: 16.h),
             Text(
@@ -108,75 +107,6 @@ class UserProfileSheet extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class UserAvatar extends StatelessWidget {
-  const UserAvatar({
-    super.key,
-    required this.userId,
-    required this.imageUrl,
-    required this.role,
-    required this.size,
-  });
-
-  final String userId;
-  final String? imageUrl;
-  final String role;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    final isCurator = role.toUpperCase() == 'CURATOR';
-    final isManager = role.toUpperCase() == 'MANAGER';
-    final fallback = Image.asset(
-      'assets/default_profile_img.jpg',
-      width: size,
-      height: size,
-      fit: BoxFit.cover,
-    );
-    return AnimatedBuilder(
-      animation: CurrentUserProfileImageStore.instance,
-      builder: (context, _) {
-        final resolvedUrl = CurrentUserProfileImageStore.instance.resolve(
-          userId: userId,
-          apiImageUrl: imageUrl,
-        );
-        return SizedBox(
-          width: size + 2.r,
-          height: size + 2.r,
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              ClipOval(
-                child: resolvedUrl == null
-                    ? fallback
-                    : Image.network(
-                        resolvedUrl,
-                        width: size,
-                        height: size,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => fallback,
-                      ),
-              ),
-              if (isCurator || isManager)
-                Positioned(
-                  right: 0,
-                  bottom: 0,
-                  child: SvgPicture.asset(
-                    isManager
-                        ? 'assets/icons/manager_badge.svg'
-                        : 'assets/icons/curator_badge.svg',
-                    key: ValueKey('user-role-badge-$userId'),
-                    width: 16.r,
-                    height: 16.r,
-                  ),
-                ),
-            ],
-          ),
-        );
-      },
     );
   }
 }

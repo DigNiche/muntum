@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:muntum/api/api_exception.dart';
 import 'package:muntum/api/api_response.dart';
 import 'package:muntum/models/admin_curation_model.dart';
 import 'package:muntum/models/curation_model.dart';
@@ -122,6 +123,31 @@ void main() {
     },
   );
 
+  testWidgets('deleted detail does not break the remaining manager list', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(
+      ScreenUtilPlusInit(
+        designSize: const Size(390, 844),
+        builder: (_, _) => MaterialApp(
+          home: ProgramCurationsManageScreen(
+            program: ProgramModel.fromJson({'id': 'cloud-9', 'title': '프로그램'}),
+            curationService: _FakeCurationService(),
+            adminService: _MissingAdminCurationService(),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('첫 번째 글'), findsNothing);
+    expect(find.text('두 번째 글'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('one public and one private note both appear for the program', (
     tester,
   ) async {
@@ -151,6 +177,16 @@ void main() {
     expect(find.text('두 번째 글'), findsOneWidget);
     expect(find.text('해당 글은 수정 요청으로 비공개 처리되었습니다.'), findsOneWidget);
   });
+}
+
+class _MissingAdminCurationService extends _FakeAdminCurationService {
+  @override
+  Future<AdminCurationModel> fetchDetail(String id) async {
+    if (id == 'first') {
+      throw const ApiException(statusCode: 404, code: 'CU001', message: '삭제됨');
+    }
+    return super.fetchDetail(id);
+  }
 }
 
 class _FakeCurationService extends CurationService {
