@@ -73,14 +73,13 @@ class _ProgramPosterCarouselState extends State<ProgramPosterCarousel> {
             ),
           ),
         ),
-        Positioned(
-          bottom: 16.h,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(
-              widget.images.isEmpty ? 1 : widget.images.length,
-              (index) {
+        if (widget.images.length > 1)
+          Positioned(
+            bottom: 16.h,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(widget.images.length, (index) {
                 final isSelected = _currentIndex == index;
                 return AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
@@ -95,10 +94,9 @@ class _ProgramPosterCarouselState extends State<ProgramPosterCarousel> {
                     shape: BoxShape.circle,
                   ),
                 );
-              },
+              }),
             ),
           ),
-        ),
       ],
     );
   }

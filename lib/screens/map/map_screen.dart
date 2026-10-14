@@ -13,6 +13,7 @@ import 'package:muntum/screens/home/components/searchbar.dart';
 import 'package:muntum/screens/home/search_screen.dart';
 import 'package:muntum/screens/map/components/findin_current_location.dart';
 import 'package:muntum/screens/map/components/map_bottom_sheet.dart';
+import 'package:muntum/screens/map/map_sheet_layout.dart';
 import 'package:muntum/screens/map/map_clustering.dart';
 import 'package:muntum/screens/map/map_location_overlay_controller.dart';
 import 'package:muntum/screens/map/map_location_service.dart';
@@ -944,11 +945,33 @@ class _MapScreenState extends State<MapScreen> {
       );
     }
 
-    final mapContentPadding = EdgeInsets.only(
-      top: 140.h,
-      bottom: MediaQuery.sizeOf(context).height * _sheetMinSize,
+    return LayoutBuilder(
+      builder: (context, constraints) => AnimatedBuilder(
+        animation: _sheetController,
+        child: _buildBottomSheet(),
+        builder: (context, sheet) => _buildMapContent(
+          context,
+          MapSheetLayout(
+            viewportHeight: constraints.maxHeight,
+            extent: _sheetController.isAttached
+                ? _sheetController.size
+                : _sheetMinSize,
+            initialExtent: _sheetMinSize,
+            initialLocationBottom: 220.h,
+            initialSearchBottom: 210.h,
+            topPadding: 140.h,
+          ),
+          sheet!,
+        ),
+      ),
     );
+  }
 
+  Widget _buildMapContent(
+    BuildContext context,
+    MapSheetLayout layout,
+    Widget bottomSheet,
+  ) {
     return Stack(
       children: [
         NaverMap(
@@ -957,7 +980,7 @@ class _MapScreenState extends State<MapScreen> {
               target: _initialMapCenter!,
               zoom: _initialZoom,
             ),
-            contentPadding: mapContentPadding,
+            contentPadding: layout.contentPadding,
           ),
           onMapReady: (controller) async {
             _mapController = controller;
@@ -1071,7 +1094,7 @@ class _MapScreenState extends State<MapScreen> {
           Positioned(
             left: 0,
             right: 0,
-            bottom: 210.h,
+            bottom: layout.searchBottom,
             child: Center(
               child: GestureDetector(
                 onTap: _isSearchingCurrentArea
@@ -1086,7 +1109,7 @@ class _MapScreenState extends State<MapScreen> {
         if (!_isProgramFocusMode)
           Positioned(
             right: 20.w,
-            bottom: 220.h,
+            bottom: layout.locationBottom,
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: _isLocating ? null : _moveToCurrentLocation,
@@ -1123,34 +1146,47 @@ class _MapScreenState extends State<MapScreen> {
               ),
             ),
           ),
-        Align(
-          alignment: Alignment.bottomCenter,
-          child: DraggableScrollableSheet(
-            controller: _sheetController,
-            initialChildSize: _sheetMinSize,
-            minChildSize: _sheetMinSize,
-            maxChildSize: _sheetMaxSize,
-            snap: true,
-            snapSizes: const [_sheetMinSize, _sheetMaxSize],
-            expand: false,
-            builder: (context, scrollController) {
-              final visiblePrograms = _selectedProgram == null
-                  ? _visiblePrograms
-                  : [_selectedProgram!];
-              return MapProgramBottomPanel(
-                programs: visiblePrograms,
-                scrollController: scrollController,
-                sheetController: _sheetController,
-                minChildSize: _sheetMinSize,
-                maxChildSize: _sheetMaxSize,
-                onProgramTap: _isProgramFocusMode
-                    ? (_) => widget.onBack?.call()
-                    : null,
-              );
-            },
-          ),
-        ),
+        bottomSheet,
       ],
     );
   }
+
+  // Keep the sheet outside the extent listener's rebuilds. Recreating its
+  // extent/snap list during a drag interrupts the ongoing sheet animation.
+  Widget _buildBottomSheet() => LayoutBuilder(
+    builder: (context, constraints) {
+      final collapsedSize = (32.h / constraints.maxHeight).clamp(
+        0.01,
+        _sheetMinSize,
+      );
+      return Align(
+        alignment: Alignment.bottomCenter,
+        child: DraggableScrollableSheet(
+          controller: _sheetController,
+          initialChildSize: _sheetMinSize,
+          minChildSize: collapsedSize,
+          maxChildSize: _sheetMaxSize,
+          snap: true,
+          snapSizes: [collapsedSize, _sheetMinSize, _sheetMaxSize],
+          expand: false,
+          builder: (context, scrollController) {
+            final visiblePrograms = _selectedProgram == null
+                ? _visiblePrograms
+                : [_selectedProgram!];
+            return MapProgramBottomPanel(
+              programs: visiblePrograms,
+              scrollController: scrollController,
+              sheetController: _sheetController,
+              minChildSize: collapsedSize,
+              maxChildSize: _sheetMaxSize,
+              snapSizes: const [_sheetMinSize],
+              onProgramTap: _isProgramFocusMode
+                  ? (_) => widget.onBack?.call()
+                  : null,
+            );
+          },
+        ),
+      );
+    },
+  );
 }

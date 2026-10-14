@@ -11,6 +11,7 @@ class MapProgramBottomPanel extends StatelessWidget {
   final DraggableScrollableController sheetController;
   final double minChildSize;
   final double maxChildSize;
+  final List<double> snapSizes;
   final List<ProgramModel> programs;
   final ValueChanged<ProgramModel>? onProgramTap;
 
@@ -20,6 +21,7 @@ class MapProgramBottomPanel extends StatelessWidget {
     required this.sheetController,
     required this.minChildSize,
     required this.maxChildSize,
+    this.snapSizes = const [],
     required this.programs,
     this.onProgramTap,
   });
@@ -46,29 +48,42 @@ class MapProgramBottomPanel extends StatelessWidget {
         children: [
           GestureDetector(
             behavior: HitTestBehavior.translucent,
+            onTap: () {
+              if (!sheetController.isAttached) return;
+              final sizes = _snapSizes;
+              _animateTo(
+                sheetController.size <= minChildSize + 0.01
+                    ? sizes[1]
+                    : minChildSize,
+              );
+            },
             onVerticalDragUpdate: (details) {
               if (!sheetController.isAttached) {
                 return;
               }
-              final screenHeight = MediaQuery.sizeOf(context).height;
               final nextSize =
-                  sheetController.size - details.primaryDelta! / screenHeight;
+                  sheetController.size -
+                  sheetController.pixelsToSize(details.primaryDelta!);
               sheetController.jumpTo(
                 nextSize.clamp(minChildSize, maxChildSize),
               );
             },
-            onVerticalDragEnd: (_) {
+            onVerticalDragEnd: (details) {
               if (!sheetController.isAttached) {
                 return;
               }
-              final targetSize =
-                  sheetController.size < (minChildSize + maxChildSize) / 2
-                  ? minChildSize
-                  : maxChildSize;
-              sheetController.animateTo(
-                targetSize,
-                duration: const Duration(milliseconds: 220),
-                curve: Curves.easeOut,
+              final sizes = _snapSizes;
+              final current = sheetController.size;
+              final velocity = details.primaryVelocity ?? 0;
+              final targets = velocity > 300
+                  ? sizes.where((size) => size < current - 0.001).toList()
+                  : velocity < -300
+                  ? sizes.where((size) => size > current + 0.001).toList()
+                  : sizes;
+              _animateTo(
+                (targets.isEmpty ? sizes : targets).reduce(
+                  (a, b) => (a - current).abs() <= (b - current).abs() ? a : b,
+                ),
               );
             },
             child: SizedBox(
@@ -137,6 +152,17 @@ class MapProgramBottomPanel extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  List<double> get _snapSizes =>
+      ({minChildSize, ...snapSizes, maxChildSize}.toList()..sort());
+
+  void _animateTo(double size) {
+    sheetController.animateTo(
+      size,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOut,
     );
   }
 }
