@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:muntum/components/update_dialog.dart';
 import 'package:muntum/services/update_service.dart';
 import 'package:muntum/utils/app_toast.dart';

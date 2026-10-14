@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:muntum/constants/colors.dart';
 
 class CurrentLocationPinIcon extends StatelessWidget {

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:muntum/api/token_store.dart';
 import 'package:muntum/services/auth_service.dart';
 import 'package:muntum/gates/role_gate.dart';

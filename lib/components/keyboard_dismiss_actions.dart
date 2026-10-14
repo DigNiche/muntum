@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Makes touch taps outside any editable field dismiss its keyboard as well.
 class KeyboardDismissActions extends StatelessWidget {
