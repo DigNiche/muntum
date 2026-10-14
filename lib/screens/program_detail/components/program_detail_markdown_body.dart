@@ -1,4 +1,5 @@
-import 'package:cupertino_ui/cupertino_ui.dart' show CupertinoTheme;
+import 'package:flutter/cupertino.dart' as legacy_cupertino;
+import 'package:flutter/material.dart' as legacy_material;
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
@@ -26,7 +27,8 @@ class ProgramDetailMarkdownBody extends StatelessWidget {
       r'(^|\n).*프로그램 포인트.*',
       multiLine: true,
     ).firstMatch(fixedMarkdown);
-    final styleSheet = _styleSheet(context);
+    final markdownTheme = _markdownTheme(context);
+    final styleSheet = _styleSheet(markdownTheme);
     final Widget content;
 
     if (pointTitleMatch == null || pointTitleMatch.start <= 0) {
@@ -48,15 +50,22 @@ class ProgramDetailMarkdownBody extends StatelessWidget {
       );
     }
 
-    return CupertinoTheme(
-      data: CupertinoTheme.of(context).copyWith(primaryColor: AppColors.black),
-      child: TextSelectionTheme(
-        data: TextSelectionThemeData(
-          cursorColor: AppColors.black,
-          selectionColor: AppColors.black.withValues(alpha: 0.18),
-          selectionHandleColor: AppColors.black,
+    // flutter_markdown still uses Flutter's built-in design widgets. Keep this
+    // compatibility boundary local until the package migrates to material_ui.
+    return legacy_material.Theme(
+      data: markdownTheme,
+      child: legacy_cupertino.CupertinoTheme(
+        data: legacy_cupertino.CupertinoTheme.of(
+          context,
+        ).copyWith(primaryColor: AppColors.black),
+        child: legacy_material.TextSelectionTheme(
+          data: legacy_material.TextSelectionThemeData(
+            cursorColor: AppColors.black,
+            selectionColor: AppColors.black.withValues(alpha: 0.18),
+            selectionHandleColor: AppColors.black,
+          ),
+          child: content,
         ),
-        child: content,
       ),
     );
   }
@@ -70,8 +79,28 @@ class ProgramDetailMarkdownBody extends StatelessWidget {
     );
   }
 
-  MarkdownStyleSheet _styleSheet(BuildContext context) {
-    return MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+  legacy_material.ThemeData _markdownTheme(BuildContext context) {
+    final theme = Theme.of(context);
+    final text = theme.textTheme;
+    return legacy_material.ThemeData(
+      brightness: theme.brightness,
+      useMaterial3: theme.useMaterial3,
+      primaryColor: theme.primaryColor,
+      dividerColor: theme.dividerColor,
+      cardColor: theme.cardColor,
+      cardTheme: legacy_material.CardThemeData(color: theme.cardTheme.color),
+      textTheme: legacy_material.TextTheme(
+        bodyMedium: text.bodyMedium,
+        bodyLarge: text.bodyLarge,
+        headlineSmall: text.headlineSmall,
+        titleLarge: text.titleLarge,
+        titleMedium: text.titleMedium,
+      ),
+    );
+  }
+
+  MarkdownStyleSheet _styleSheet(legacy_material.ThemeData theme) {
+    return MarkdownStyleSheet.fromTheme(theme).copyWith(
       p: AppTypography.body1.copyWith(color: AppColors.gray900),
       strong: AppTypography.body1.copyWith(
         color: AppColors.gray900,
