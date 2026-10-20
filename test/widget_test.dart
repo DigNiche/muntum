@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/api/api_client.dart';
 import 'package:muntum/api/api_config.dart';
 import 'package:muntum/api/api_endpoints.dart';
@@ -890,21 +891,29 @@ void main() {
       findsOneWidget,
     );
     await tester.pumpAndSettle();
-    final reservationImage = tester.widget<Image>(
+    final reservationImage = tester.widget<SvgPicture>(
       find.descendant(
         of: find.byKey(const ValueKey('program-reservation-link')),
-        matching: find.byType(Image),
+        matching: find.byType(SvgPicture),
       ),
     );
-    expect(reservationImage.image, isA<MemoryImage>());
+    expect(reservationImage.bytesLoader, isA<SvgAssetLoader>());
+    expect(
+      (reservationImage.bytesLoader as SvgAssetLoader).assetName,
+      'assets/icons/reservation_icon.svg',
+    );
+    expect(find.byIcon(Icons.event_available), findsNothing);
+    final websiteImage = tester.widget<SvgPicture>(
+      find.descendant(
+        of: find.byKey(const ValueKey('program-website-link')),
+        matching: find.byType(SvgPicture),
+      ),
+    );
+    expect(reservationImage.colorFilter, websiteImage.colorFilter);
     await tester.runAsync(() async {
-      final codec = await ui.instantiateImageCodec(
-        (reservationImage.image as MemoryImage).bytes,
-      );
-      final frame = await codec.getNextFrame();
-      final pixels = await frame.image.toByteData(
-        format: ui.ImageByteFormat.rawRgba,
-      );
+      final picture = await vg.loadPicture(reservationImage.bytesLoader, null);
+      final image = await picture.picture.toImage(18, 18);
+      final pixels = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
       expect(pixels, isNotNull);
       final alphaValues = List<int>.generate(
         pixels!.lengthInBytes ~/ 4,
@@ -912,8 +921,27 @@ void main() {
       );
       expect(alphaValues.any((alpha) => alpha > 0), isTrue);
       expect(alphaValues.any((alpha) => alpha == 0), isTrue);
-      frame.image.dispose();
-      codec.dispose();
+      expect(
+        alphaValues.reduce((a, b) => a > b ? a : b),
+        greaterThanOrEqualTo(200),
+      );
+      final websitePicture = await vg.loadPicture(
+        websiteImage.bytesLoader,
+        null,
+      );
+      final websiteRaster = await websitePicture.picture.toImage(16, 16);
+      final websitePixels = (await websiteRaster.toByteData(
+        format: ui.ImageByteFormat.rawRgba,
+      ))!;
+      final websiteAlpha = List<int>.generate(
+        websitePixels.lengthInBytes ~/ 4,
+        (index) => websitePixels.getUint8(index * 4 + 3),
+      ).reduce((a, b) => a > b ? a : b);
+      expect(alphaValues.reduce((a, b) => a > b ? a : b), websiteAlpha);
+      websiteRaster.dispose();
+      websitePicture.picture.dispose();
+      image.dispose();
+      picture.picture.dispose();
     });
     await tester.tap(find.byKey(const ValueKey('program-website-link')));
     await tester.tap(find.byKey(const ValueKey('program-reservation-link')));

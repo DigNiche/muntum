@@ -1,8 +1,5 @@
-import 'dart:convert';
-
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/components/program_ended_badge.dart';
 import 'package:muntum/constants/colors.dart';
@@ -191,7 +188,13 @@ class _ProgramLinkDescription extends StatelessWidget {
           _ProgramLinkIcon(
             key: const ValueKey('program-reservation-link'),
             onTap: onTapReservation,
-            icon: const _ReservationIcon(),
+            icon: SvgPicture.asset(
+              'assets/icons/reservation_icon.svg',
+              colorFilter: const ColorFilter.mode(
+                AppColors.black,
+                BlendMode.srcIn,
+              ),
+            ),
           ),
       ],
     );
@@ -219,43 +222,6 @@ class _ProgramLinkIcon extends StatelessWidget {
         ),
         child: icon,
       ),
-    );
-  }
-}
-
-// reservation_icon.svg contains a base64 PNG pattern, which flutter_svg cannot
-// paint. Decode the image in that asset directly so the supplied icon is visible.
-class _ReservationIcon extends StatelessWidget {
-  const _ReservationIcon();
-
-  static final Future<Uint8List> _imageBytes = _loadImageBytes();
-
-  static Future<Uint8List> _loadImageBytes() async {
-    final svg = await rootBundle.loadString(
-      'assets/icons/reservation_icon.svg',
-    );
-    final image = RegExp(r'data:image/png;base64,([^"\s]+)').firstMatch(svg);
-    if (image == null) {
-      throw const FormatException('Reservation icon image is missing');
-    }
-    return base64Decode(image.group(1)!);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<Uint8List>(
-      future: _imageBytes,
-      builder: (context, snapshot) {
-        if (snapshot.hasData) {
-          return Image.memory(
-            snapshot.data!,
-            fit: BoxFit.contain,
-            color: AppColors.black,
-            colorBlendMode: BlendMode.srcIn,
-          );
-        }
-        return const Icon(Icons.event_available, color: AppColors.black);
-      },
     );
   }
 }

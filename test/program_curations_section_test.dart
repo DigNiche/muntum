@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -9,6 +11,129 @@ import 'package:muntum/stores/auth_state.dart';
 import 'package:muntum/stores/current_user_profile_image_store.dart';
 
 void main() {
+  final poster = MemoryImage(
+    base64Decode(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aZ1kAAAAASUVORK5CYII=',
+    ),
+  );
+
+  Future<void> pumpSection(
+    WidgetTester tester, {
+    required CurationService service,
+    ImageProvider? programPoster,
+  }) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(
+      ScreenUtilPlusInit(
+        designSize: const Size(390, 844),
+        builder: (_, _) => MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: ProgramCurationsSection(
+                programId: 'program-id',
+                programTitle: '프로그램명',
+                programPoster: programPoster,
+                service: service,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  for (final staleThumbnail in [null, 'https://example.com/old-note.jpg']) {
+    testWidgets(
+      'imageless note uses poster only on card; stale=$staleThumbnail',
+      (tester) async {
+        await pumpSection(
+          tester,
+          service: _FakePublicCurationService(thumbnailUrl: staleThumbnail),
+          programPoster: poster,
+        );
+        final card = find.byKey(const ValueKey('curation-note-note-id'));
+        expect(
+          tester
+              .widgetList<Image>(
+                find.descendant(of: card, matching: find.byType(Image)),
+              )
+              .where((image) => image.image == poster),
+          hasLength(1),
+        );
+        await tester.tap(card);
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('curation-detail-images')),
+          findsNothing,
+        );
+        expect(
+          tester
+              .widgetList<Image>(find.byType(Image))
+              .where((image) => image.image == poster),
+          isEmpty,
+        );
+        expect(find.text('본문 미리보기'), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('curation-detail-title')),
+          findsOneWidget,
+        );
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
+  testWidgets('uploaded note photos take priority over program poster', (
+    tester,
+  ) async {
+    const imageUrl = 'https://example.com/note.jpg';
+    await pumpSection(
+      tester,
+      service: _FakePublicCurationService(
+        includeImages: true,
+        imageUrl: imageUrl,
+      ),
+      programPoster: poster,
+    );
+    final card = find.byKey(const ValueKey('curation-note-note-id'));
+    final images = tester.widgetList<Image>(
+      find.descendant(of: card, matching: find.byType(Image)),
+    );
+    expect(
+      images.any((image) => image.image == const NetworkImage(imageUrl)),
+      isTrue,
+    );
+    expect(images.any((image) => image.image == poster), isFalse);
+    await tester.tap(card);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('curation-detail-images')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('curation-detail-image-0')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('curation-detail-image-1')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('imageless note with no program poster still opens text detail', (
+    tester,
+  ) async {
+    await pumpSection(tester, service: _FakePublicCurationService());
+    await tester.tap(find.byKey(const ValueKey('curation-note-note-id')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('curation-detail-images')), findsNothing);
+    expect(find.text('본문 미리보기'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets('current author photo appears when public curation omits it', (
     tester,
   ) async {
@@ -248,11 +373,15 @@ class _FakePublicCurationService extends CurationService {
     this.count = 1,
     this.includeImages = false,
     this.detailCreatedAt,
+    this.thumbnailUrl,
+    this.imageUrl = '',
   });
 
   final int count;
   final bool includeImages;
   final String? detailCreatedAt;
+  final String? thumbnailUrl;
+  final String imageUrl;
 
   @override
   Future<PageResponse<PublicCurationModel>> fetchProgramCurations(
@@ -267,7 +396,7 @@ class _FakePublicCurationService extends CurationService {
         'programId': programId,
         'curator': {'curatorId': 'author-id', 'nickname': '문틈 큐레이터'},
         'tagline': '큐레이션 한줄소개',
-        'thumbnailUrl': null,
+        'thumbnailUrl': thumbnailUrl,
       }),
     ),
   );
@@ -285,8 +414,8 @@ class _FakePublicCurationService extends CurationService {
     if (detailCreatedAt != null) 'createdAt': detailCreatedAt,
     'images': includeImages
         ? [
-            {'id': 'image-1', 'imageUrl': '', 'displayOrder': 0},
-            {'id': 'image-2', 'imageUrl': '', 'displayOrder': 1},
+            {'id': 'image-1', 'imageUrl': imageUrl, 'displayOrder': 0},
+            {'id': 'image-2', 'imageUrl': imageUrl, 'displayOrder': 1},
           ]
         : [],
   });

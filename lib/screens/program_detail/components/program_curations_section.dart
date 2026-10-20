@@ -20,11 +20,15 @@ class ProgramCurationsSection extends StatefulWidget {
     super.key,
     required this.programId,
     required this.programTitle,
+    this.programPoster,
     this.service,
   });
 
   final String programId;
   final String programTitle;
+
+  /// The program's main poster, used only as an imageless note's card cover.
+  final ImageProvider? programPoster;
   final CurationService? service;
 
   @override
@@ -124,6 +128,12 @@ class _ProgramCurationsSectionState extends State<ProgramCurationsSection> {
                   curation: detailSnapshot.data == null
                       ? item
                       : item.mergeDetails(detailSnapshot.data!),
+                  // A loaded detail's empty images list is authoritative;
+                  // do not revive an old thumbnail from the list response.
+                  thumbnailUrl: detailSnapshot.hasData
+                      ? detailSnapshot.data!.images.firstOrNull?.imageUrl
+                      : item.thumbnailUrl ?? item.images.firstOrNull?.imageUrl,
+                  programPoster: widget.programPoster,
                   cardHeight: cardHeight,
                   showNextArrow: index < items.length - 1,
                   showPreviousArrow: index > 0,
@@ -220,6 +230,8 @@ class _ProgramCurationsSectionState extends State<ProgramCurationsSection> {
 class _CurationNoteCard extends StatelessWidget {
   const _CurationNoteCard({
     required this.curation,
+    required this.thumbnailUrl,
+    required this.programPoster,
     required this.cardHeight,
     required this.showNextArrow,
     required this.showPreviousArrow,
@@ -229,6 +241,8 @@ class _CurationNoteCard extends StatelessWidget {
   });
 
   final PublicCurationModel curation;
+  final String? thumbnailUrl;
+  final ImageProvider? programPoster;
   final double cardHeight;
   final bool showNextArrow;
   final bool showPreviousArrow;
@@ -256,7 +270,10 @@ class _CurationNoteCard extends StatelessWidget {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      _CurationImage(url: curation.thumbnailUrl),
+                      _CurationImage(
+                        url: thumbnailUrl,
+                        fallback: programPoster,
+                      ),
                       if (showPreviousArrow)
                         Positioned(
                           left: 8.w,
@@ -446,11 +463,10 @@ class _PublicCurationDetailScreenState
           final detail = snapshot.data == null
               ? widget.summary
               : widget.summary.mergeDetails(snapshot.data!);
-          final imageUrls = detail.images.isNotEmpty
-              ? detail.images.map((image) => image.imageUrl).toList()
-              : detail.thumbnailUrl == null
-              ? const <String>[]
-              : <String>[detail.thumbnailUrl!];
+          // Card covers (including the program poster) are never note photos.
+          final imageUrls = detail.images
+              .map((image) => image.imageUrl)
+              .toList();
           return SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -561,12 +577,20 @@ class _PublicCurationDetailScreenState
 }
 
 class _CurationImage extends StatelessWidget {
-  const _CurationImage({required this.url});
+  const _CurationImage({required this.url, this.fallback});
   final String? url;
+  final ImageProvider? fallback;
 
   @override
   Widget build(BuildContext context) {
     if (url == null || url!.isEmpty) {
+      if (fallback != null) {
+        return Image(
+          image: fallback!,
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) => const ColoredBox(color: AppColors.gray100),
+        );
+      }
       return Container(
         color: AppColors.gray100,
         child: Center(

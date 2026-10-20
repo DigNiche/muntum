@@ -247,6 +247,7 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
                       ProgramCurationsSection(
                         programId: program.id,
                         programTitle: program.title,
+                        programPoster: program.images.firstOrNull?.image,
                       ),
                       FutureBuilder<bool>(
                         future: _isLoggedInFuture,
