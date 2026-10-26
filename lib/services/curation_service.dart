@@ -112,7 +112,7 @@ class CurationService {
     required String place,
     required String tagline,
     required String content,
-    required List<String> imagePaths,
+    List<String> imagePaths = const [],
   }) async {
     final response = await _client.postMultipart(
       ApiEndpoints.curations,

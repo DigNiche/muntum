@@ -75,7 +75,6 @@ class _CurationWriteScreenState extends State<CurationWriteScreen> {
       _place != null &&
       _taglineController.text.trim().isNotEmpty &&
       _contentController.text.trim().isNotEmpty &&
-      _imageCount > 0 &&
       (!_isEditing || _hasChanges);
 
   @override
@@ -291,7 +290,7 @@ class _CurationWriteScreenState extends State<CurationWriteScreen> {
                     ),
                     SizedBox(height: 24.h),
                     Text(
-                      '사진',
+                      '사진 (선택)',
                       style: AppTypography.caption1.copyWith(
                         color: AppColors.gray700,
                       ),
