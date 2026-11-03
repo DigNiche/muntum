@@ -1,50 +1,117 @@
 import 'dart:convert';
+import 'dart:ui' as ui;
 
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:muntum/api/api_response.dart';
+import 'package:muntum/components/appbar.dart';
+import 'package:muntum/constants/colors.dart';
 import 'package:muntum/models/curation_model.dart';
 import 'package:muntum/screens/program_detail/components/program_curations_section.dart';
 import 'package:muntum/services/curation_service.dart';
 import 'package:muntum/stores/auth_state.dart';
 import 'package:muntum/stores/current_user_profile_image_store.dart';
 
+Future<void> pumpSection(
+  WidgetTester tester, {
+  required CurationService service,
+  ImageProvider? programPoster,
+}) async {
+  tester.view.physicalSize = const Size(390, 844);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+  await tester.pumpWidget(
+    ScreenUtilPlusInit(
+      designSize: const Size(390, 844),
+      builder: (_, _) => MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: ProgramCurationsSection(
+              programId: 'program-id',
+              programTitle: '프로그램명',
+              programPoster: programPoster,
+              service: service,
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
 void main() {
+  testWidgets(
+    'public note uses shared white app bar before and after scrolling',
+    (tester) async {
+      tester.view.padding = FakeViewPadding(top: 47, bottom: 34);
+      addTearDown(tester.view.resetPadding);
+      await pumpSection(
+        tester,
+        service: _FakePublicCurationService(
+          content: List.filled(80, '스크롤해도 앱바는 흰색으로 유지됩니다.').join('\n'),
+        ),
+      );
+      await tester.tap(find.byKey(const ValueKey('curation-note-note-id')));
+      await tester.pumpAndSettle();
+      final header = find.byType(AppBarWidget);
+      expect(header, findsOneWidget);
+      expect(find.byType(AppBar), findsNothing);
+      expect(tester.widget<AppBarWidget>(header).center, '프로그램명');
+      final initialRect = tester.getRect(header);
+      final surface = find
+          .ancestor(of: header, matching: find.byType(ColoredBox))
+          .first;
+      expect(tester.widget<ColoredBox>(surface).color, AppColors.white);
+
+      Future<void> expectWhitePixels() async {
+        final boundary = tester.renderObject<RenderRepaintBoundary>(
+          find
+              .ancestor(of: header, matching: find.byType(RepaintBoundary))
+              .first,
+        );
+        final point = boundary.globalToLocal(
+          initialRect.topLeft + Offset(3, initialRect.height / 2),
+        );
+        await tester.runAsync(() async {
+          final image = await boundary.toImage(pixelRatio: 1);
+          final bytes = (await image.toByteData(
+            format: ui.ImageByteFormat.rawRgba,
+          ))!;
+          final index = (point.dy.floor() * image.width + point.dx.floor()) * 4;
+          expect(
+            List.generate(4, (channel) => bytes.getUint8(index + channel)),
+            [255, 255, 255, 255],
+          );
+          image.dispose();
+        });
+      }
+
+      await expectWhitePixels();
+      final content = find.byKey(const ValueKey('curation-detail-content'));
+      final contentTop = tester.getTopLeft(content).dy;
+      await tester.drag(
+        find.byType(SingleChildScrollView).last,
+        const Offset(0, -700),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.getTopLeft(content).dy, lessThan(contentTop - 100));
+      expect(tester.getRect(header), initialRect);
+      await expectWhitePixels();
+      expect(tester.takeException(), isNull);
+      await tester.tapAt(initialRect.centerLeft + const Offset(20, 0));
+      await tester.pumpAndSettle();
+      expect(find.byType(PublicCurationDetailScreen), findsNothing);
+    },
+  );
   final poster = MemoryImage(
     base64Decode(
       'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aZ1kAAAAASUVORK5CYII=',
     ),
   );
-
-  Future<void> pumpSection(
-    WidgetTester tester, {
-    required CurationService service,
-    ImageProvider? programPoster,
-  }) async {
-    tester.view.physicalSize = const Size(390, 844);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    await tester.pumpWidget(
-      ScreenUtilPlusInit(
-        designSize: const Size(390, 844),
-        builder: (_, _) => MaterialApp(
-          home: Scaffold(
-            body: SingleChildScrollView(
-              child: ProgramCurationsSection(
-                programId: 'program-id',
-                programTitle: '프로그램명',
-                programPoster: programPoster,
-                service: service,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-  }
 
   for (final staleThumbnail in [null, 'https://example.com/old-note.jpg']) {
     testWidgets(
@@ -375,6 +442,7 @@ class _FakePublicCurationService extends CurationService {
     this.detailCreatedAt,
     this.thumbnailUrl,
     this.imageUrl = '',
+    this.content = '본문 미리보기',
   });
 
   final int count;
@@ -382,6 +450,7 @@ class _FakePublicCurationService extends CurationService {
   final String? detailCreatedAt;
   final String? thumbnailUrl;
   final String imageUrl;
+  final String content;
 
   @override
   Future<PageResponse<PublicCurationModel>> fetchProgramCurations(
@@ -410,7 +479,7 @@ class _FakePublicCurationService extends CurationService {
     'programId': programId,
     'curator': {'curatorId': 'author-id', 'nickname': '문틈 큐레이터'},
     'tagline': '큐레이션 한줄소개',
-    'content': '본문 미리보기',
+    'content': content,
     if (detailCreatedAt != null) 'createdAt': detailCreatedAt,
     'images': includeImages
         ? [

@@ -1,3 +1,4 @@
+import 'package:muntum/components/author_profile.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:muntum/components/profile_avatar.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
@@ -810,52 +811,32 @@ class _CurationPostState extends State<_CurationPost> {
               _StatusBadge(status: curation.status),
               SizedBox(height: 12.h),
             ],
-            Row(
-              children: [
-                ProfileAvatar(
-                  userId: widget.profile?.curatorId,
-                  imageUrl: widget.profile?.profileImageUrl,
-                  role: AuthState.instance.role ?? 'CURATOR',
-                  size: ProfileAvatarSize.medium,
-                ),
-                SizedBox(width: 10.w),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.profile?.nickname ??
-                            AuthState.instance.nickname ??
-                            '큐레이터',
-                        style: AppTypography.headline3.copyWith(
-                          color: AppColors.gray900,
+            AuthorProfile.standard(
+              userId: widget.profile?.curatorId,
+              imageUrl: widget.profile?.profileImageUrl,
+              role: AuthState.instance.role ?? 'CURATOR',
+              name:
+                  widget.profile?.nickname ??
+                  AuthState.instance.nickname ??
+                  '큐레이터',
+              createdAt: curation.formattedCreatedAt,
+              trailing:
+                  widget.profile?.curatorId.isNotEmpty == true &&
+                      widget.profile?.curatorId == AuthState.instance.userId
+                  ? GestureDetector(
+                      key: ValueKey('curation-post-actions-${curation.id}'),
+                      behavior: HitTestBehavior.opaque,
+                      onTap: widget.onOpenActions,
+                      child: Padding(
+                        padding: EdgeInsets.all(6.r),
+                        child: Icon(
+                          Icons.more_vert,
+                          size: 20.r,
+                          color: AppColors.gray400,
                         ),
                       ),
-                      Text(
-                        '작성일 ${curation.formattedCreatedAt}',
-                        style: AppTypography.caption3.copyWith(
-                          color: AppColors.gray500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (widget.profile?.curatorId.isNotEmpty == true &&
-                    widget.profile?.curatorId == AuthState.instance.userId)
-                  GestureDetector(
-                    key: ValueKey('curation-post-actions-${curation.id}'),
-                    behavior: HitTestBehavior.opaque,
-                    onTap: widget.onOpenActions,
-                    child: Padding(
-                      padding: EdgeInsets.all(6.r),
-                      child: Icon(
-                        Icons.more_vert,
-                        size: 20.r,
-                        color: AppColors.gray400,
-                      ),
-                    ),
-                  ),
-              ],
+                    )
+                  : null,
             ),
             SizedBox(height: 18.h),
             Text(

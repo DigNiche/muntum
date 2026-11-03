@@ -29,6 +29,13 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('기록 남기기'), findsOneWidget);
+    final like = tester.getRect(
+      find.byKey(const ValueKey('sheet-like-circle')),
+    );
+    final dislike = tester.getRect(
+      find.byKey(const ValueKey('sheet-dislike-circle')),
+    );
+    expect(dislike.left - like.right, closeTo(20.w, .01));
     expect(find.text('첫 기록'), findsNWidgets(2));
 
     await tester.enterText(

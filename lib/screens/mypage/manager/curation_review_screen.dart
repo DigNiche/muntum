@@ -1,7 +1,7 @@
 import 'dart:async';
-import 'package:muntum/components/profile_avatar.dart';
 import 'dart:math' as math;
 
+import 'package:muntum/components/author_profile.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/api/api_exception.dart';
@@ -229,32 +229,12 @@ class _CurationReviewScreenState extends State<CurationReviewScreen> {
                           ),
                         Padding(
                           padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 20.h),
-                          child: Row(
-                            children: [
-                              ProfileAvatar(
-                                userId: detail.curator.id,
-                                imageUrl: detail.curator.profileImageUrl,
-                                role: detail.curator.role,
-                                size: ProfileAvatarSize.medium,
-                              ),
-                              SizedBox(width: 12.w),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    detail.curator.nickname,
-                                    style: AppTypography.headline3,
-                                  ),
-                                  SizedBox(height: 2.h),
-                                  Text(
-                                    '작성일 ${detail.curation.formattedCreatedAt}',
-                                    style: AppTypography.caption2.copyWith(
-                                      color: AppColors.gray500,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
+                          child: AuthorProfile.large(
+                            userId: detail.curator.id,
+                            imageUrl: detail.curator.profileImageUrl,
+                            role: detail.curator.role,
+                            name: detail.curator.nickname,
+                            createdAt: detail.curation.formattedCreatedAt,
                           ),
                         ),
                         Container(

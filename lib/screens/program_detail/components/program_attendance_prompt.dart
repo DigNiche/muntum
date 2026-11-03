@@ -64,9 +64,8 @@ class _ProgramAttendancePromptState extends State<ProgramAttendancePrompt> {
           ),
           SizedBox(height: 20.h),
           Row(
-            mainAxisSize: MainAxisSize.max,
             mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: 20.w,
             children: [
               _ReactionButton(
                 key: const ValueKey('detail-like'),
@@ -76,7 +75,6 @@ class _ProgramAttendancePromptState extends State<ProgramAttendancePrompt> {
                 isSelected: _reaction == ProgramReaction.like,
                 onTap: () => _openEditor(ProgramReaction.like),
               ),
-              SizedBox(width: 20.w),
               _ReactionButton(
                 key: const ValueKey('detail-dislike'),
                 semanticsLabel: '아쉬웠어요',
@@ -132,7 +130,7 @@ class _ReactionButton extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: SizedBox(
-        width: 64.w,
+        width: 48.r,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -158,14 +156,20 @@ class _ReactionButton extends StatelessWidget {
             SizedBox(height: 6.h),
             SizedBox(
               height: 20.h,
-              child: isSelected
-                  ? Text(
-                      text,
-                      style: AppTypography.caption2.copyWith(
-                        color: AppColors.gray800,
-                      ),
-                    )
-                  : null,
+              child: OverflowBox(
+                minWidth: 64.w,
+                maxWidth: 64.w,
+                child: isSelected
+                    ? Text(
+                        text,
+                        maxLines: 1,
+                        textAlign: TextAlign.center,
+                        style: AppTypography.caption2.copyWith(
+                          color: AppColors.gray800,
+                        ),
+                      )
+                    : null,
+              ),
             ),
           ],
         ),

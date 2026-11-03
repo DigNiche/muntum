@@ -1,5 +1,5 @@
+import 'package:muntum/components/author_profile.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:muntum/components/profile_avatar.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/api/api_exception.dart';
 import 'package:muntum/components/appbar.dart';
@@ -214,47 +214,26 @@ class _ProgramCurationsManageScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  ProfileAvatar(
-                    userId: item.curator.id,
-                    imageUrl: item.curator.profileImageUrl,
-                    role: item.curator.role,
-                    size: ProfileAvatarSize.medium,
-                  ),
-                  SizedBox(width: 10.w),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item.curator.nickname,
-                          style: AppTypography.headline3,
-                        ),
-                        Text(
-                          '작성일 ${curation.formattedCreatedAt}',
-                          style: AppTypography.caption2.copyWith(
-                            color: AppColors.gray500,
-                          ),
-                        ),
-                      ],
+              AuthorProfile.changeRequest(
+                userId: item.curator.id,
+                imageUrl: item.curator.profileImageUrl,
+                role: item.curator.role,
+                name: item.curator.nickname,
+                createdAt: curation.formattedCreatedAt,
+                trailing: TextButton(
+                  key: Key('program-curation-request-${curation.id}'),
+                  onPressed: _working
+                      ? null
+                      : requested
+                      ? () => _openReview(item)
+                      : () => _requestChanges(item),
+                  child: Text(
+                    requested ? '수정요청 1 ›' : '수정요청',
+                    style: AppTypography.caption1.copyWith(
+                      color: AppColors.gray500,
                     ),
                   ),
-                  TextButton(
-                    key: Key('program-curation-request-${curation.id}'),
-                    onPressed: _working
-                        ? null
-                        : requested
-                        ? () => _openReview(item)
-                        : () => _requestChanges(item),
-                    child: Text(
-                      requested ? '수정요청 1 ›' : '수정요청',
-                      style: AppTypography.caption2.copyWith(
-                        color: AppColors.gray500,
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
               SizedBox(height: 24.h),
               Text(curation.tagline, style: AppTypography.headline1),

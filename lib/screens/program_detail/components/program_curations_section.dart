@@ -1,10 +1,12 @@
 import 'dart:math' as math;
 import 'package:muntum/components/profile_avatar.dart';
 
+import 'package:muntum/components/author_profile.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/api/api_exception.dart';
+import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/popup_widget.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
@@ -439,141 +441,121 @@ class _PublicCurationDetailScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.white,
-      appBar: AppBar(
-        backgroundColor: AppColors.white,
-        elevation: 0,
-        foregroundColor: AppColors.gray900,
-        title: Text(
-          widget.programTitle,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: AppTypography.headline1.copyWith(color: AppColors.gray900),
-        ),
-        centerTitle: true,
-      ),
-      body: FutureBuilder<PublicCurationModel>(
-        future: _detail,
-        builder: (context, snapshot) {
-          final error = snapshot.error;
-          if (error is ApiException &&
-              error.statusCode == 404 &&
-              error.code == 'CU001') {
-            return const Center(child: Text('삭제되었거나 조회할 수 없는 큐레이션입니다.'));
-          }
-          final detail = snapshot.data == null
-              ? widget.summary
-              : widget.summary.mergeDetails(snapshot.data!);
-          // Card covers (including the program poster) are never note photos.
-          final imageUrls = detail.images
-              .map((image) => image.imageUrl)
-              .toList();
-          return SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: EdgeInsets.fromLTRB(20.w, 32.h, 20.w, 0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        detail.tagline,
-                        key: const ValueKey('curation-detail-title'),
-                        style: AppTypography.title3.copyWith(
-                          color: AppColors.gray900,
-                        ),
-                      ),
-                      SizedBox(height: 24.h),
-                      Row(
-                        children: [
-                          ProfileAvatar(
-                            userId: detail.curatorId,
-                            role: detail.curatorRole,
-                            size: ProfileAvatarSize.medium,
-                            imageUrl: detail.curatorImageUrl,
-                          ),
-                          SizedBox(width: 16.w),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                detail.curatorName,
-                                style: AppTypography.headline3.copyWith(
-                                  color: AppColors.gray900,
-                                ),
-                              ),
-                              if (detail.formattedCreatedAt.isNotEmpty) ...[
-                                SizedBox(height: 2.h),
-                                Text(
-                                  '작성일 ${detail.formattedCreatedAt}',
-                                  style: AppTypography.caption2.copyWith(
-                                    color: AppColors.gray500,
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                          const Spacer(),
-                          if (detail.curatorId != null &&
-                              detail.curatorId == AuthState.instance.userId)
-                            GestureDetector(
-                              key: const ValueKey('public-curation-actions'),
-                              behavior: HitTestBehavior.opaque,
-                              onTap: _showAuthorActions,
-                              child: Padding(
-                                padding: EdgeInsets.all(8.r),
-                                child: Icon(
-                                  Icons.more_vert,
-                                  size: 20.r,
-                                  color: AppColors.gray400,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                if (imageUrls.isNotEmpty) ...[
-                  SizedBox(height: 28.h),
-                  SizedBox(
-                    height: 320.w,
-                    child: ListView.separated(
-                      key: const ValueKey('curation-detail-images'),
-                      padding: EdgeInsets.symmetric(horizontal: 20.w),
-                      scrollDirection: Axis.horizontal,
-                      itemCount: imageUrls.length,
-                      separatorBuilder: (_, _) => SizedBox(width: 12.w),
-                      itemBuilder: (_, index) => ClipRRect(
-                        key: ValueKey('curation-detail-image-$index'),
-                        borderRadius: BorderRadius.circular(8.r),
-                        child: SizedBox(
-                          width: 240.w,
-                          child: _CurationImage(url: imageUrls[index]),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-                Padding(
-                  padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 50.h),
-                  child: Text(
-                    snapshot.hasError && detail.content.isEmpty
-                        ? '큐레이션 내용을 불러오지 못했어요.'
-                        : detail.content,
-                    key: const ValueKey('curation-detail-content'),
-                    style: AppTypography.body3.copyWith(
-                      color: AppColors.gray900,
-                    ),
-                  ),
-                ),
-              ],
+      body: SafeArea(
+        top: false,
+        child: Column(
+          children: [
+            SizedBox(height: 50.h),
+            ColoredBox(
+              color: AppColors.white,
+              child: AppBarWidget(
+                centerType: AppBarCenterType.text,
+                center: widget.programTitle,
+                leadingIcon: 'arrow_left.svg',
+                onLeadingTap: () => Navigator.pop(context),
+              ),
             ),
-          );
-        },
+            Expanded(child: _buildContent()),
+          ],
+        ),
       ),
     );
   }
+
+  Widget _buildContent() => FutureBuilder<PublicCurationModel>(
+    future: _detail,
+    builder: (context, snapshot) {
+      final error = snapshot.error;
+      if (error is ApiException &&
+          error.statusCode == 404 &&
+          error.code == 'CU001') {
+        return const Center(child: Text('삭제되었거나 조회할 수 없는 큐레이션입니다.'));
+      }
+      final detail = snapshot.data == null
+          ? widget.summary
+          : widget.summary.mergeDetails(snapshot.data!);
+      // Card covers (including the program poster) are never note photos.
+      final imageUrls = detail.images.map((image) => image.imageUrl).toList();
+      return SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: EdgeInsets.fromLTRB(20.w, 32.h, 20.w, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    detail.tagline,
+                    key: const ValueKey('curation-detail-title'),
+                    style: AppTypography.title2.copyWith(
+                      color: AppColors.gray900,
+                    ),
+                  ),
+                  SizedBox(height: 24.h),
+                  AuthorProfile.standard(
+                    userId: detail.curatorId,
+                    role: detail.curatorRole,
+                    imageUrl: detail.curatorImageUrl,
+                    name: detail.curatorName,
+                    createdAt: detail.formattedCreatedAt,
+                    trailing:
+                        detail.curatorId != null &&
+                            detail.curatorId == AuthState.instance.userId
+                        ? GestureDetector(
+                            key: const ValueKey('public-curation-actions'),
+                            behavior: HitTestBehavior.opaque,
+                            onTap: _showAuthorActions,
+                            child: Padding(
+                              padding: EdgeInsets.all(8.r),
+                              child: Icon(
+                                Icons.more_vert,
+                                size: 20.r,
+                                color: AppColors.gray400,
+                              ),
+                            ),
+                          )
+                        : null,
+                  ),
+                ],
+              ),
+            ),
+            if (imageUrls.isNotEmpty) ...[
+              SizedBox(height: 28.h),
+              SizedBox(
+                height: 320.w,
+                child: ListView.separated(
+                  key: const ValueKey('curation-detail-images'),
+                  padding: EdgeInsets.symmetric(horizontal: 20.w),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: imageUrls.length,
+                  separatorBuilder: (_, _) => SizedBox(width: 12.w),
+                  itemBuilder: (_, index) => ClipRRect(
+                    key: ValueKey('curation-detail-image-$index'),
+                    borderRadius: BorderRadius.circular(8.r),
+                    child: SizedBox(
+                      width: 240.w,
+                      child: _CurationImage(url: imageUrls[index]),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+            Padding(
+              padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 50.h),
+              child: Text(
+                snapshot.hasError && detail.content.isEmpty
+                    ? '큐레이션 내용을 불러오지 못했어요.'
+                    : detail.content,
+                key: const ValueKey('curation-detail-content'),
+                style: AppTypography.body1.copyWith(color: AppColors.gray900),
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
 }
 
 class _CurationImage extends StatelessWidget {

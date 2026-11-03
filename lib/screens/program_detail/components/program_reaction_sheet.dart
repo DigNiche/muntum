@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter/rendering.dart' show OverflowBoxFit;
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/components/button_solid.dart';
@@ -107,7 +108,7 @@ class _ProgramReactionSheetState extends State<_ProgramReactionSheet> {
                 children: [
                   Text(
                     '기록 남기기',
-                    style: AppTypography.headline1.copyWith(
+                    style: AppTypography.title4.copyWith(
                       color: AppColors.gray900,
                     ),
                   ),
@@ -119,7 +120,7 @@ class _ProgramReactionSheetState extends State<_ProgramReactionSheet> {
                         : () => _submit(delete: true),
                     child: Text(
                       '기록 삭제',
-                      style: AppTypography.caption1.copyWith(
+                      style: AppTypography.button2.copyWith(
                         color: AppColors.gray500,
                       ),
                     ),
@@ -244,10 +245,13 @@ class _SheetReactionButton extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: SizedBox(
-        width: 64.w,
+        width: 44.r,
         child: Column(
           children: [
             Container(
+              key: ValueKey(
+                liked ? 'sheet-like-circle' : 'sheet-dislike-circle',
+              ),
               width: 44.r,
               height: 44.r,
               alignment: Alignment.center,
@@ -261,18 +265,22 @@ class _SheetReactionButton extends StatelessWidget {
                     : 'assets/icons/thumb_down_filled.svg',
                 width: 23.r,
                 height: 23.r,
-                colorFilter: const ColorFilter.mode(
-                  AppColors.white,
-                  BlendMode.srcIn,
-                ),
+                color: AppColors.white,
               ),
             ),
             SizedBox(height: 6.h),
             if (selected)
-              Text(
-                label,
-                style: AppTypography.caption2.copyWith(
-                  color: AppColors.gray900,
+              OverflowBox(
+                fit: OverflowBoxFit.deferToChild,
+                minWidth: 64.w,
+                maxWidth: 64.w,
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  textAlign: TextAlign.center,
+                  style: AppTypography.caption2.copyWith(
+                    color: AppColors.gray900,
+                  ),
                 ),
               ),
           ],
