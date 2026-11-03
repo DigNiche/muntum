@@ -11,7 +11,27 @@
 .svn/
 .swiftpm/
 migrate_working_dir/
+# Local environment values (keep placeholder templates shareable).
 .env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+
+# Release artifacts, including version-labelled copies moved out of build/.
+*.apk
+*.aab
+*.ipa
+*.xcarchive/
+
+# Signing credentials must stay local, regardless of their directory.
+key.properties
+*.jks
+*.keystore
+*.p8
+*.p12
+*.pfx
+*.mobileprovision
 # IntelliJ related
 *.iml
 *.ipr
