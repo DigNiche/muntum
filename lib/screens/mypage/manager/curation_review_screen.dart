@@ -23,18 +23,9 @@ class CurationReviewScreen extends StatefulWidget {
     required this.summary,
     this.service,
     this.programService,
-  }) : curationId = null;
+  });
 
-  /// Loads manager-only review state for an unlinked submission or review link.
-  const CurationReviewScreen.byId({
-    super.key,
-    required String this.curationId,
-    this.service,
-    this.programService,
-  }) : summary = null;
-
-  final AdminCurationModel? summary;
-  final String? curationId;
+  final AdminCurationModel summary;
   final AdminCurationService? service;
   final ProgramService? programService;
 
@@ -70,9 +61,7 @@ class _CurationReviewScreenState extends State<CurationReviewScreen> {
       _error = null;
     });
     try {
-      final detail = await _service.fetchDetail(
-        widget.summary?.curation.id ?? widget.curationId!,
-      );
+      final detail = await _service.fetchDetail(widget.summary.curation.id);
       final linkedId = detail.curation.programId;
       ProgramModel? linkedProgram;
       if (linkedId != null && linkedId.isNotEmpty) {

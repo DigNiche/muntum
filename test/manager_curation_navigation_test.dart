@@ -32,16 +32,6 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  ProgramCurationsSection section(
-    _PublicService public,
-    _ManagerService manager,
-  ) => ProgramCurationsSection(
-    programId: 'program',
-    programTitle: '프로그램',
-    service: public,
-    adminService: manager,
-  );
-
   void expectNoLikes(WidgetTester tester) {
     expect(find.byType(CurationLikeBar), findsNothing);
     expect(find.text('77'), findsNothing);
@@ -54,33 +44,29 @@ void main() {
     );
   }
 
-  for (final status in ['APPROVED', 'PENDING', 'CHANGES_REQUESTED']) {
+  for (final role in ['MANAGER', 'AUDIENCE', 'CURATOR']) {
     testWidgets(
-      'manager opens $status program curation management from the note card',
+      '$role opens the same public reader; manager alone has no like UI',
       (tester) async {
-        final manager = _ManagerService(status: status);
+        AuthState.instance.replace(accessToken: 'test', role: role);
         final public = _PublicService();
-        await show(tester, section(public, manager));
-        final publicReadsBeforeOpen = public.detailReads;
+        await show(
+          tester,
+          ProgramCurationsSection(
+            programId: 'program',
+            programTitle: '프로그램',
+            service: public,
+          ),
+        );
         await tester.tap(find.byKey(const ValueKey('curation-note-note')));
         await tester.pumpAndSettle();
-        expect(find.byType(ProgramCurationsManageScreen), findsOneWidget);
+        expect(find.byType(PublicCurationDetailScreen), findsOneWidget);
+        expect(find.byType(ProgramCurationsManageScreen), findsNothing);
         expect(find.byType(CurationReviewScreen), findsNothing);
-        expect(find.byType(PublicCurationDetailScreen), findsNothing);
-        expectNoLikes(tester);
-        expect(manager.readIds, ['note']);
-        expect(public.detailReads, publicReadsBeforeOpen);
-        expect(
-          find.text('수정요청'),
-          status == 'CHANGES_REQUESTED' ? findsNothing : findsOneWidget,
-        );
-        if (status == 'CHANGES_REQUESTED') {
-          expect(find.text('수정요청 1 ›'), findsOneWidget);
-          await tester.tap(find.text('수정요청 1 ›'));
-          await tester.pumpAndSettle();
-          expect(find.byType(CurationReviewScreen), findsOneWidget);
-          expect(find.textContaining('기존 요청 사유'), findsOneWidget);
+        if (role == 'MANAGER') {
           expectNoLikes(tester);
+        } else {
+          expect(find.byType(CurationLikeBar), findsOneWidget);
         }
         expect(tester.takeException(), isNull);
       },
@@ -88,51 +74,37 @@ void main() {
   }
 
   testWidgets(
-    'program curation management stays on its own page when reading a post',
+    'program curation management remains a separate page with no likes',
     (tester) async {
-      final manager = _ManagerService();
       await show(
         tester,
         ProgramCurationsManageScreen(
           program: ProgramModel.fromJson({'id': 'program', 'title': '프로그램'}),
           curationService: _PublicService(),
-          adminService: manager,
+          adminService: _ManagerService(),
         ),
       );
-      expect(find.byType(ProgramCurationsManageScreen), findsOneWidget);
       await tester.tap(find.text('관리자 상세 한줄'));
       await tester.pumpAndSettle();
-      expect(find.byType(CurationReviewScreen), findsNothing);
       expect(find.byType(ProgramCurationsManageScreen), findsOneWidget);
-      expectNoLikes(tester);
+      expect(find.byType(PublicCurationDetailScreen), findsNothing);
+      expect(find.byType(CurationReviewScreen), findsNothing);
       expect(find.text('수정요청'), findsOneWidget);
+      expectNoLikes(tester);
     },
   );
 
-  for (final role in ['AUDIENCE', 'CURATOR']) {
-    testWidgets(
-      '$role still opens the public reader and interactive like bar',
-      (tester) async {
-        AuthState.instance.replace(accessToken: 'test', role: role);
-        final manager = _ManagerService();
-        await show(tester, section(_PublicService(), manager));
-        await tester.tap(find.byKey(const ValueKey('curation-note-note')));
-        await tester.pumpAndSettle();
-        expect(find.byType(PublicCurationDetailScreen), findsOneWidget);
-        expect(find.byType(CurationReviewScreen), findsNothing);
-        expect(find.byType(CurationLikeBar), findsOneWidget);
-        expect(manager.readIds, isEmpty);
-      },
-    );
-  }
-
   testWidgets(
-    'published resubmitted PENDING note keeps selected publication state',
+    'published resubmitted PENDING review keeps selected publication state',
     (tester) async {
       final manager = _ManagerService(status: 'PENDING');
-      await show(tester, section(_PublicService(), manager));
-      await tester.tap(find.byKey(const ValueKey('curation-note-note')));
-      await tester.pumpAndSettle();
+      await show(
+        tester,
+        CurationReviewScreen(
+          summary: await manager.fetchDetail('note'),
+          service: manager,
+        ),
+      );
       await tester.tap(find.text('수정요청'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('글 내 오탈자 및 맞춤법, 띄어쓰기를 확인해주세요.'));
@@ -141,21 +113,31 @@ void main() {
       await tester.pumpAndSettle();
       expect(manager.requestedPublication, 'PUBLISHED');
       expect(manager.requestedId, 'note');
-      expect(find.byType(CurationReviewScreen), findsNothing);
-      expect(find.byType(ProgramCurationsManageScreen), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
 
-  testWidgets('curation review itself never displays likes', (tester) async {
-    await show(
-      tester,
-      CurationReviewScreen.byId(curationId: 'note', service: _ManagerService()),
+  for (final status in ['PENDING', 'APPROVED', 'CHANGES_REQUESTED']) {
+    testWidgets(
+      '$status review has no likes and respects request permissions',
+      (tester) async {
+        final manager = _ManagerService(status: status);
+        await show(
+          tester,
+          CurationReviewScreen(
+            summary: await manager.fetchDetail('note'),
+            service: manager,
+          ),
+        );
+        expect(
+          find.text('수정요청'),
+          status == 'CHANGES_REQUESTED' ? findsNothing : findsOneWidget,
+        );
+        expectNoLikes(tester);
+        expect(tester.takeException(), isNull);
+      },
     );
-    expect(find.text('수정요청'), findsOneWidget);
-    expectNoLikes(tester);
-    expect(tester.takeException(), isNull);
-  });
+  }
 }
 
 class _PublicService extends CurationService {
