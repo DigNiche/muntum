@@ -1,4 +1,5 @@
 import 'package:muntum/utils/image_url.dart' as image_url;
+import 'package:muntum/models/curation_like_model.dart';
 
 /// Public program curation responses intentionally exclude review state.
 class PublicCurationModel {
@@ -14,6 +15,7 @@ class PublicCurationModel {
     required this.content,
     required this.images,
     this.createdAt,
+    this.like = const CurationLikeModel(),
   });
 
   final String id;
@@ -27,6 +29,9 @@ class PublicCurationModel {
   final String content;
   final List<CurationImageModel> images;
   final DateTime? createdAt;
+
+  /// Total likes and this viewer's selection from the public API response.
+  final CurationLikeModel like;
 
   String get formattedCreatedAt {
     final date = createdAt;
@@ -53,6 +58,7 @@ class PublicCurationModel {
         content: details.content,
         images: details.images,
         createdAt: details.createdAt ?? createdAt,
+        like: details.like,
       );
 
   factory PublicCurationModel.fromJson(Map<String, dynamic> json) {
@@ -83,6 +89,9 @@ class PublicCurationModel {
       content: json['content']?.toString() ?? '',
       images: images,
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? ''),
+      like: CurationLikeModel.fromJson(
+        Map<String, dynamic>.from(json['like'] as Map? ?? const {}),
+      ),
     );
   }
 }
@@ -144,6 +153,7 @@ class CurationModel {
     required this.reviewedAt,
     required this.createdAt,
     required this.updatedAt,
+    this.like = const CurationLikeModel(),
   });
 
   final String id;
@@ -159,6 +169,9 @@ class CurationModel {
   final DateTime? reviewedAt;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+
+  /// Like state returned by curator and manager queries and write responses.
+  final CurationLikeModel like;
 
   // The resubmit API keeps the previous reason after moving back to PENDING.
   // This distinguishes a revised submission from a first-time submission.
@@ -200,6 +213,9 @@ class CurationModel {
       reviewedAt: DateTime.tryParse(json['reviewedAt']?.toString() ?? ''),
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? ''),
       updatedAt: DateTime.tryParse(json['updatedAt']?.toString() ?? ''),
+      like: CurationLikeModel.fromJson(
+        Map<String, dynamic>.from(json['like'] as Map? ?? const {}),
+      ),
     );
   }
 
@@ -225,6 +241,7 @@ class CurationModel {
       reviewedAt: details.reviewedAt,
       createdAt: details.createdAt ?? createdAt,
       updatedAt: details.updatedAt ?? updatedAt,
+      like: details.like,
     );
   }
 }

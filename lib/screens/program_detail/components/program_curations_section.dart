@@ -7,6 +7,7 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/api/api_exception.dart';
 import 'package:muntum/components/appbar.dart';
+import 'package:muntum/components/curation_like_bar.dart';
 import 'package:muntum/components/popup_widget.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
@@ -14,6 +15,8 @@ import 'package:muntum/models/curation_model.dart';
 import 'package:muntum/screens/mypage/curator/curation_action_sheet.dart';
 import 'package:muntum/screens/mypage/curator/curation_write_screen.dart';
 import 'package:muntum/services/curation_service.dart';
+import 'package:muntum/services/admin_curation_service.dart';
+import 'package:muntum/screens/curation/open_curation_detail.dart';
 import 'package:muntum/stores/auth_state.dart';
 import 'package:muntum/utils/app_toast.dart';
 
@@ -24,6 +27,7 @@ class ProgramCurationsSection extends StatefulWidget {
     required this.programTitle,
     this.programPoster,
     this.service,
+    this.adminService,
   });
 
   final String programId;
@@ -32,6 +36,9 @@ class ProgramCurationsSection extends StatefulWidget {
   /// The program's main poster, used only as an imageless note's card cover.
   final ImageProvider? programPoster;
   final CurationService? service;
+
+  /// Optional manager API dependency for role-aware curation navigation.
+  final AdminCurationService? adminService;
 
   @override
   State<ProgramCurationsSection> createState() =>
@@ -142,15 +149,19 @@ class _ProgramCurationsSectionState extends State<ProgramCurationsSection> {
                   onNextArrowTap: () => _scrollToCard(index + 1, cardWidth),
                   onPreviousArrowTap: () => _scrollToCard(index - 1, cardWidth),
                   onTap: () async {
-                    final result = await Navigator.push<String>(
+                    final result = await openCurationDetail(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => PublicCurationDetailScreen(
-                          programId: widget.programId,
-                          programTitle: widget.programTitle,
-                          summary: item,
-                          service: _service,
-                        ),
+                      curationId: item.id,
+                      programId: widget.programId,
+                      programTitle: widget.programTitle,
+                      curationService: _service,
+                      adminService: widget.adminService,
+                      publicBuilder: (_) => PublicCurationDetailScreen(
+                        programId: widget.programId,
+                        programTitle: widget.programTitle,
+                        summary: item,
+                        showLikeBar: true,
+                        service: _service,
                       ),
                     );
                     if (!mounted || result == null) return;
@@ -383,12 +394,16 @@ class PublicCurationDetailScreen extends StatefulWidget {
     required this.programTitle,
     required this.summary,
     this.service,
+    this.showLikeBar = false,
   });
 
   final String programId;
   final String programTitle;
   final PublicCurationModel summary;
   final CurationService? service;
+
+  /// Enabled only by the program-detail note entry, not by the author's list.
+  final bool showLikeBar;
 
   @override
   State<PublicCurationDetailScreen> createState() =>
@@ -441,6 +456,21 @@ class _PublicCurationDetailScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.white,
+      bottomNavigationBar: widget.showLikeBar
+          ? FutureBuilder<PublicCurationModel>(
+              future: _detail,
+              builder: (context, snapshot) => CurationLikeBar(
+                curationId: widget.summary.id,
+                initialLike: snapshot.data?.like ?? widget.summary.like,
+                service: _service,
+                available: snapshot.hasData && !snapshot.hasError,
+                reload: () async => (await _service.fetchProgramCurationDetail(
+                  widget.programId,
+                  widget.summary.id,
+                )).like,
+              ),
+            )
+          : null,
       body: SafeArea(
         top: false,
         child: Column(

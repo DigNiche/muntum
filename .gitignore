@@ -52,7 +52,21 @@ key.properties
 .pub/
 /build/
 /coverage/
+# Local implementation notes and agent context (not repository documentation).
 /docs/
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+.codex/
+.claude/
+.cursor/
+.agent/
+.agents/
+.gemini/
+.serena/
+.opencode/
+.aider*
+.mcp.json
 # Symbolication related
 app.*.symbols
 

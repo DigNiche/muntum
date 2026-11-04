@@ -23,9 +23,18 @@ class CurationReviewScreen extends StatefulWidget {
     required this.summary,
     this.service,
     this.programService,
-  });
+  }) : curationId = null;
 
-  final AdminCurationModel summary;
+  /// Loads manager-only review state for an unlinked submission or review link.
+  const CurationReviewScreen.byId({
+    super.key,
+    required String this.curationId,
+    this.service,
+    this.programService,
+  }) : summary = null;
+
+  final AdminCurationModel? summary;
+  final String? curationId;
   final AdminCurationService? service;
   final ProgramService? programService;
 
@@ -61,7 +70,9 @@ class _CurationReviewScreenState extends State<CurationReviewScreen> {
       _error = null;
     });
     try {
-      final detail = await _service.fetchDetail(widget.summary.curation.id);
+      final detail = await _service.fetchDetail(
+        widget.summary?.curation.id ?? widget.curationId!,
+      );
       final linkedId = detail.curation.programId;
       ProgramModel? linkedProgram;
       if (linkedId != null && linkedId.isNotEmpty) {
@@ -168,9 +179,9 @@ class _CurationReviewScreenState extends State<CurationReviewScreen> {
       await _service.requestChanges(
         curationId: _detail!.curation.id,
         reason: selection.reason,
-        publicationStatus: _pending
-            ? 'UNPUBLISHED'
-            : selection.publicationStatus,
+        publicationStatus: _detail!.curation.publicationStatus == 'PUBLISHED'
+            ? selection.publicationStatus
+            : 'UNPUBLISHED',
       );
       if (mounted) Navigator.pop(context, 'changes');
     } on ApiException catch (error) {
@@ -358,7 +369,10 @@ class _CurationReviewScreenState extends State<CurationReviewScreen> {
                       ],
                     ),
             ),
-            if (detail != null && _canRequestChanges)
+            if (detail != null &&
+                !_loading &&
+                _error == null &&
+                _canRequestChanges)
               Padding(
                 padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 16.h),
                 child: Row(

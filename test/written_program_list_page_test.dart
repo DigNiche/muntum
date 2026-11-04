@@ -194,6 +194,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(PublicCurationDetailScreen), findsOneWidget);
+    expect(find.byKey(const ValueKey('curation-like-bar')), findsNothing);
     expect(find.byType(CurationDetailScreen), findsNothing);
     expect(find.text('실제 프로그램 제목'), findsOneWidget);
     expect(

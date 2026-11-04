@@ -33,6 +33,9 @@ class ApiEndpoints {
   static const myCurations = '/api/v1/curations/me';
   static String myCuration(String id) => '/api/v1/curations/me/$id';
   static String curation(String id) => '/api/v1/curations/$id';
+
+  /// The idempotent PUT/DELETE endpoint for a curation's viewer like.
+  static String curationLike(String id) => '${curation(id)}/like';
   static String resubmitCuration(String id) => '/api/v1/curations/$id/resubmit';
   static const managerCurations = '/api/v1/manager/curations';
   static String managerCuration(String id) => '$managerCurations/$id';

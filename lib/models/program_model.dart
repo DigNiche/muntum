@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:muntum/models/keyword_model.dart';
+import 'package:muntum/models/curation_model.dart';
 import 'package:muntum/models/program_filter.dart';
 import 'package:muntum/models/program_reaction.dart';
 import 'package:muntum/models/program_reservation_type.dart';
@@ -68,6 +69,9 @@ class ProgramModel {
   final String endDate;
   final ProgramReactionSummary reaction;
 
+  /// Public curation summaries, including authenticated viewer like states.
+  final List<PublicCurationModel> curations;
+
   ProgramModel({
     this.id = '',
     this.programType,
@@ -108,6 +112,7 @@ class ProgramModel {
     this.startDate = '',
     this.endDate = '',
     this.reaction = const ProgramReactionSummary(),
+    this.curations = const [],
   }) : reservationType =
            reservationType ??
            (isReservationNeeded
@@ -195,6 +200,13 @@ class ProgramModel {
       createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
       updatedAt: DateTime.tryParse(json['updatedAt'] as String? ?? ''),
       reaction: ProgramReactionSummary.fromJson(json['reaction']),
+      curations: ((json['curations'] as List?) ?? const [])
+          .whereType<Map>()
+          .map(
+            (item) =>
+                PublicCurationModel.fromJson(Map<String, dynamic>.from(item)),
+          )
+          .toList(),
     );
   }
 

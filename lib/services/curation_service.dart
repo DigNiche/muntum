@@ -3,6 +3,8 @@ import 'package:muntum/api/api_exception.dart';
 import 'package:muntum/api/api_endpoints.dart';
 import 'package:muntum/api/api_response.dart';
 import 'package:muntum/models/curation_model.dart';
+import 'package:muntum/models/curation_like_model.dart';
+import 'package:muntum/stores/auth_state.dart';
 import 'package:muntum/utils/single_line_text.dart';
 
 class CurationService {
@@ -17,6 +19,7 @@ class CurationService {
   }) async {
     final response = await _client.get(
       ApiEndpoints.programCurations(programId),
+      authorized: AuthState.instance.isLoggedIn,
       queryParameters: {'page': page, 'size': size},
     );
     return ApiResponse.fromJson(
@@ -31,6 +34,7 @@ class CurationService {
   ) async {
     final response = await _client.get(
       ApiEndpoints.programCuration(programId, curationId),
+      authorized: AuthState.instance.isLoggedIn,
     );
     return ApiResponse.fromJson(
       response,
@@ -164,6 +168,18 @@ class CurationService {
 
   Future<void> delete(String id) async {
     await _client.delete(ApiEndpoints.curation(id), authorized: true);
+  }
+
+  /// Sets a desired state instead of toggling, so retries remain idempotent.
+  Future<CurationLikeModel> setLiked(String id, {required bool liked}) async {
+    final path = ApiEndpoints.curationLike(id);
+    final response = liked
+        ? await _client.put(path, authorized: true)
+        : await _client.delete(path, authorized: true);
+    return ApiResponse.fromJson(
+      response,
+      (data) => CurationLikeModel.fromJson(data as Map<String, dynamic>),
+    ).data;
   }
 
   CurationModel _parseCuration(Map<String, dynamic> response) {

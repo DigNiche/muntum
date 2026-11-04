@@ -2,6 +2,7 @@ import 'package:muntum/api/api_client.dart';
 import 'package:muntum/api/api_endpoints.dart';
 import 'package:muntum/api/api_response.dart';
 import 'package:muntum/models/program_model.dart';
+import 'package:muntum/stores/auth_state.dart';
 
 enum ProgramSort { latest, startDate, endDate, view }
 
@@ -283,7 +284,7 @@ class ProgramService {
   }) async {
     final response = await _client.get(
       ApiEndpoints.program(id),
-      authorized: authorized,
+      authorized: authorized || AuthState.instance.isLoggedIn,
     );
     return ApiResponse.fromJson(
       response,

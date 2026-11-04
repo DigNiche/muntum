@@ -1,4 +1,5 @@
 import 'package:muntum/components/author_profile.dart';
+import 'package:muntum/screens/curation/open_curation_detail.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:muntum/components/profile_avatar.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
@@ -111,14 +112,16 @@ class _WrittenProgramListState extends State<WrittenProgramList> {
   }
 
   Future<void> _openDetail(CurationModel curation) async {
-    final result = await Navigator.push<String>(
+    final result = await openCurationDetail(
       context,
-      MaterialPageRoute(
-        builder: (_) => CurationDetailScreen(
-          curation: curation,
-          service: _service,
-          programService: _programService,
-        ),
+      curationId: curation.id,
+      programId: curation.programId,
+      programTitle: curation.programTitle,
+      curationService: _service,
+      publicBuilder: (_) => CurationDetailScreen(
+        curation: curation,
+        service: _service,
+        programService: _programService,
       ),
     );
     if (!mounted || result == null) return;
@@ -759,30 +762,33 @@ class _CurationPostState extends State<_CurationPost> {
       final program =
           _linkedProgram ?? await widget.programService.fetchProgram(programId);
       if (!mounted) return;
-      final result = await Navigator.push<String>(
+      final result = await openCurationDetail(
         context,
-        MaterialPageRoute(
-          builder: (_) => PublicCurationDetailScreen(
+        curationId: curation.id,
+        programId: programId,
+        programTitle: program.title,
+        curationService: widget.curationService,
+        publicBuilder: (_) => PublicCurationDetailScreen(
+          programId: programId,
+          programTitle: program.title,
+          summary: PublicCurationModel(
+            id: curation.id,
             programId: programId,
-            programTitle: program.title,
-            summary: PublicCurationModel(
-              id: curation.id,
-              programId: programId,
-              curatorId: widget.profile?.curatorId,
-              curatorRole: AuthState.instance.role ?? 'CURATOR',
-              curatorName: widget.profile?.nickname ?? '큐레이터',
-              curatorImageUrl: CurrentUserProfileImageStore.instance.resolve(
-                userId: widget.profile?.curatorId,
-                apiImageUrl: widget.profile?.profileImageUrl,
-              ),
-              tagline: curation.tagline,
-              thumbnailUrl: curation.images.firstOrNull?.imageUrl,
-              content: curation.content,
-              images: curation.images,
-              createdAt: curation.createdAt,
+            curatorId: widget.profile?.curatorId,
+            curatorRole: AuthState.instance.role ?? 'CURATOR',
+            curatorName: widget.profile?.nickname ?? '큐레이터',
+            curatorImageUrl: CurrentUserProfileImageStore.instance.resolve(
+              userId: widget.profile?.curatorId,
+              apiImageUrl: widget.profile?.profileImageUrl,
             ),
-            service: widget.curationService,
+            tagline: curation.tagline,
+            thumbnailUrl: curation.images.firstOrNull?.imageUrl,
+            content: curation.content,
+            images: curation.images,
+            createdAt: curation.createdAt,
+            like: curation.like,
           ),
+          service: widget.curationService,
         ),
       );
       if (mounted && result != null) widget.onChanged();

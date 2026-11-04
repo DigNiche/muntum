@@ -247,6 +247,10 @@ class _ProgramCurationsManageScreenState
               if (!expanded && curation.content.length > 140)
                 TextButton(
                   key: Key('program-curation-more-${curation.id}'),
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    alignment: Alignment.centerLeft,
+                  ),
                   onPressed: () => setState(() => _expanded.add(curation.id)),
                   child: Text(
                     '더보기',

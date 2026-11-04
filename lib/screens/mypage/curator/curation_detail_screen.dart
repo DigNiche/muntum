@@ -45,12 +45,10 @@ class _CurationDetailScreenState extends State<CurationDetailScreen> {
     _service = widget.service ?? CurationService();
     _curation = widget.curation;
     _loadLinkedProgram();
-    // The list already contains details; avoid a second request during navigation.
-    if (_curation.content.isEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _refreshDetail();
-      });
-    }
+    // Publication and review state can change after the list was loaded.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _refreshDetail();
+    });
   }
 
   Future<void> _loadLinkedProgram() async {

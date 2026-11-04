@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/rendering.dart';
 import 'package:muntum/api/api_exception.dart';
 import 'package:muntum/api/api_response.dart';
 import 'package:muntum/models/admin_curation_model.dart';
@@ -11,6 +12,57 @@ import 'package:muntum/services/admin_curation_service.dart';
 import 'package:muntum/services/curation_service.dart';
 
 void main() {
+  for (final width in [390.0, 430.0, 1024.0]) {
+    testWidgets('more label aligns with the body and expands at width $width', (
+      tester,
+    ) async {
+      tester.view.physicalSize = Size(width, 1366);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(
+        ScreenUtilPlusInit(
+          designSize: const Size(390, 844),
+          builder: (_, _) => MaterialApp(
+            home: ProgramCurationsManageScreen(
+              program: ProgramModel.fromJson({
+                'id': 'cloud-9',
+                'title': '프로그램',
+              }),
+              curationService: _FakeCurationService(count: 1),
+              adminService: _LongPostService(),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final body = find.text(_LongPostService.content);
+      final more = find.text('더보기');
+      double firstGlyphLeft(Finder finder) {
+        final paragraph = tester.renderObject<RenderParagraph>(finder);
+        final box = paragraph
+            .getBoxesForSelection(
+              const TextSelection(baseOffset: 0, extentOffset: 1),
+            )
+            .first;
+        return paragraph.localToGlobal(Offset(box.left, box.top)).dx;
+      }
+
+      expect(
+        tester.getTopLeft(more).dx,
+        closeTo(tester.getTopLeft(body).dx, 0.01),
+      );
+      expect(firstGlyphLeft(more), closeTo(firstGlyphLeft(body), 0.1));
+      expect(tester.widget<Text>(body).maxLines, 8);
+      await tester.ensureVisible(more);
+      await tester.tap(more);
+      await tester.pumpAndSettle();
+      expect(find.text('더보기'), findsNothing);
+      expect(tester.widget<Text>(body).maxLines, isNull);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('manager sees posts and requests a public typo correction', (
     tester,
   ) async {
@@ -187,6 +239,21 @@ class _MissingAdminCurationService extends _FakeAdminCurationService {
     }
     return super.fetchDetail(id);
   }
+}
+
+class _LongPostService extends _FakeAdminCurationService {
+  static final content = List.filled(25, '본문 정렬과 더보기 펼치기를 확인합니다.').join('\n');
+
+  @override
+  Future<AdminCurationModel> fetchDetail(String id) async =>
+      AdminCurationModel.fromJson({
+        'id': id,
+        'programId': 'cloud-9',
+        'tagline': '첫 번째 글',
+        'content': content,
+        'status': 'APPROVED',
+        'publicationStatus': 'PUBLISHED',
+      });
 }
 
 class _FakeCurationService extends CurationService {

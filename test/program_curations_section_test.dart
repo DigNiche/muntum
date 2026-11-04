@@ -62,6 +62,8 @@ void main() {
       expect(find.byType(AppBar), findsNothing);
       expect(tester.widget<AppBarWidget>(header).center, '프로그램명');
       final initialRect = tester.getRect(header);
+      final likeBar = find.byKey(const ValueKey('curation-like-bar'));
+      final initialLikeBarRect = tester.getRect(likeBar);
       final surface = find
           .ancestor(of: header, matching: find.byType(ColoredBox))
           .first;
@@ -100,6 +102,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.getTopLeft(content).dy, lessThan(contentTop - 100));
       expect(tester.getRect(header), initialRect);
+      expect(tester.getRect(likeBar), initialLikeBarRect);
       await expectWhitePixels();
       expect(tester.takeException(), isNull);
       await tester.tapAt(initialRect.centerLeft + const Offset(20, 0));
