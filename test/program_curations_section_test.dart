@@ -290,9 +290,62 @@ void main() {
     final cardRect = tester.getRect(
       find.byKey(const ValueKey('curation-note-note-id')),
     );
-    expect(cardRect.width / cardRect.height, closeTo(300 / 395, 0.001));
+    expect(cardRect.height, lessThan(395.h + 20.h + 16.r));
     expect(cardRect.center.dx, closeTo(195, 0.1));
     expect(tester.takeException(), isNull);
+  });
+
+  for (final role in ['AUDIENCE', 'CURATOR', 'MANAGER']) {
+    testWidgets('card like row visibility and spacing for $role', (
+      tester,
+    ) async {
+      AuthState.instance.replace(accessToken: 'test', role: role);
+      addTearDown(AuthState.instance.clear);
+      await pumpSection(tester, service: _FakePublicCurationService());
+
+      final card = find.byKey(const ValueKey('curation-note-note-id'));
+      final row = find.byKey(const ValueKey('curation-card-likes-note-id'));
+      final author = find.byKey(const ValueKey('curator-by-font-svg'));
+      final authorRow = find
+          .ancestor(of: author, matching: find.byType(Row))
+          .first;
+      final title = find.text('큐레이션 한줄소개');
+      expect(
+        tester.getRect(title).top - tester.getRect(authorRow).bottom,
+        closeTo(12.h, 0.1),
+      );
+      if (role == 'MANAGER') {
+        expect(row, findsNothing);
+        expect(tester.getSize(card).height, closeTo(395, 0.1));
+      } else {
+        final cardRect = tester.getRect(card);
+        final rowRect = tester.getRect(row);
+        final body = tester.getRect(find.text('본문 미리보기'));
+        expect(rowRect.top - body.bottom, closeTo(10.h, 0.1));
+        expect(rowRect.left - cardRect.left, closeTo(20.w, 0.1));
+        expect(cardRect.right - rowRect.right, closeTo(20.w, 0.1));
+        expect(cardRect.bottom - rowRect.bottom, closeTo(24.h, 0.1));
+        expect(
+          find.descendant(of: row, matching: find.text('7')),
+          findsOneWidget,
+        );
+      }
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets('card reloads the like count after returning from detail', (
+    tester,
+  ) async {
+    final service = _FakePublicCurationService();
+    await pumpSection(tester, service: service);
+    final row = find.byKey(const ValueKey('curation-card-likes-note-id'));
+    await tester.tap(find.byKey(const ValueKey('curation-note-note-id')));
+    await tester.pumpAndSettle();
+    service.likeCount = 8;
+    Navigator.of(tester.element(find.byType(PublicCurationDetailScreen))).pop();
+    await tester.pumpAndSettle();
+    expect(find.descendant(of: row, matching: find.text('8')), findsOneWidget);
   });
 
   testWidgets('curator card arrows move between next and previous notes', (
@@ -334,7 +387,7 @@ void main() {
     );
     expect(first.left, closeTo(20, 0.1));
     expect(second.left - first.right, closeTo(12, 0.1));
-    expect(first.width / first.height, closeTo(300 / 395, 0.001));
+    expect(first.top, closeTo(second.top, 0.1));
     await tester.tap(find.byKey(const ValueKey('curator-note-next-arrow')));
     await tester.pumpAndSettle();
     expect(
@@ -454,6 +507,7 @@ class _FakePublicCurationService extends CurationService {
   final String? thumbnailUrl;
   final String imageUrl;
   final String content;
+  int likeCount = 7;
 
   @override
   Future<PageResponse<PublicCurationModel>> fetchProgramCurations(
@@ -483,6 +537,7 @@ class _FakePublicCurationService extends CurationService {
     'curator': {'curatorId': 'author-id', 'nickname': '문틈 큐레이터'},
     'tagline': '큐레이션 한줄소개',
     'content': content,
+    'like': {'count': likeCount, 'liked': true},
     if (detailCreatedAt != null) 'createdAt': detailCreatedAt,
     'images': includeImages
         ? [

@@ -122,46 +122,62 @@ class _ProgramCurationsSectionState extends State<ProgramCurationsSection> {
           MediaQuery.sizeOf(context).width - 40.w,
         );
         final cardHeight = cardWidth * 395 / 300;
+        final showLikes = !AuthState.instance.isAdmin;
+        final carouselHeight = cardHeight + (showLikes ? 20.h + 16.r : 0);
         Widget cardFor(PublicCurationModel item, {required int index}) =>
             SizedBox(
               width: cardWidth,
-              child: FutureBuilder<PublicCurationModel>(
-                future: _detailFor(item),
-                builder: (context, detailSnapshot) => _CurationNoteCard(
-                  curation: detailSnapshot.data == null
-                      ? item
-                      : item.mergeDetails(detailSnapshot.data!),
-                  // A loaded detail's empty images list is authoritative;
-                  // do not revive an old thumbnail from the list response.
-                  thumbnailUrl: detailSnapshot.hasData
-                      ? detailSnapshot.data!.images.firstOrNull?.imageUrl
-                      : item.thumbnailUrl ?? item.images.firstOrNull?.imageUrl,
-                  programPoster: widget.programPoster,
-                  cardHeight: cardHeight,
-                  showNextArrow: index < items.length - 1,
-                  showPreviousArrow: index > 0,
-                  onNextArrowTap: () => _scrollToCard(index + 1, cardWidth),
-                  onPreviousArrowTap: () => _scrollToCard(index - 1, cardWidth),
-                  onTap: () async {
-                    final result = await Navigator.push<String>(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => PublicCurationDetailScreen(
-                          programId: widget.programId,
-                          programTitle: widget.programTitle,
-                          summary: item,
-                          showLikeBar: true,
-                          service: _service,
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: FutureBuilder<PublicCurationModel>(
+                  future: _detailFor(item),
+                  builder: (context, detailSnapshot) => _CurationNoteCard(
+                    curation: detailSnapshot.data == null
+                        ? item
+                        : item.mergeDetails(detailSnapshot.data!),
+                    // A loaded detail's empty images list is authoritative;
+                    // do not revive an old thumbnail from the list response.
+                    thumbnailUrl: detailSnapshot.hasData
+                        ? detailSnapshot.data!.images.firstOrNull?.imageUrl
+                        : item.thumbnailUrl ??
+                              item.images.firstOrNull?.imageUrl,
+                    programPoster: widget.programPoster,
+                    cardHeight: cardHeight,
+                    showLikes: showLikes,
+                    showNextArrow: index < items.length - 1,
+                    showPreviousArrow: index > 0,
+                    onNextArrowTap: () => _scrollToCard(index + 1, cardWidth),
+                    onPreviousArrowTap: () =>
+                        _scrollToCard(index - 1, cardWidth),
+                    onTap: () async {
+                      final result = await Navigator.push<String>(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => PublicCurationDetailScreen(
+                            programId: widget.programId,
+                            programTitle: widget.programTitle,
+                            summary: item,
+                            showLikeBar: true,
+                            service: _service,
+                          ),
                         ),
-                      ),
-                    );
-                    if (!mounted || result == null) return;
-                    setState(() {
-                      if (result == 'deleted') _removedIds.add(item.id);
-                      _details.clear();
-                      _curations = _load();
-                    });
-                  },
+                      );
+                      if (!mounted) return;
+                      if (result == null) {
+                        if (showLikes) {
+                          setState(() {
+                            _details.remove(item.id);
+                          });
+                        }
+                        return;
+                      }
+                      setState(() {
+                        if (result == 'deleted') _removedIds.add(item.id);
+                        _details.clear();
+                        _curations = _load();
+                      });
+                    },
+                  ),
                 ),
               ),
             );
@@ -199,7 +215,7 @@ class _ProgramCurationsSectionState extends State<ProgramCurationsSection> {
                     ),
                   ),
                   SizedBox(
-                    height: cardHeight,
+                    height: carouselHeight,
                     child: items.length == 1
                         ? Center(child: cardFor(items.single, index: 0))
                         : ListView.separated(
@@ -237,6 +253,7 @@ class _CurationNoteCard extends StatelessWidget {
     required this.thumbnailUrl,
     required this.programPoster,
     required this.cardHeight,
+    required this.showLikes,
     required this.showNextArrow,
     required this.showPreviousArrow,
     required this.onNextArrowTap,
@@ -248,6 +265,7 @@ class _CurationNoteCard extends StatelessWidget {
   final String? thumbnailUrl;
   final ImageProvider? programPoster;
   final double cardHeight;
+  final bool showLikes;
   final bool showNextArrow;
   final bool showPreviousArrow;
   final VoidCallback onNextArrowTap;
@@ -267,6 +285,7 @@ class _CurationNoteCard extends StatelessWidget {
         child: Stack(
           children: [
             Column(
+              mainAxisSize: showLikes ? MainAxisSize.min : MainAxisSize.max,
               children: [
                 SizedBox(
                   height: imageHeight,
@@ -308,10 +327,16 @@ class _CurationNoteCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                Expanded(
+                Flexible(
+                  fit: showLikes ? FlexFit.loose : FlexFit.tight,
                   child: Container(
                     width: double.infinity,
-                    padding: EdgeInsets.fromLTRB(18.w, 28.h, 18.w, 14.h),
+                    padding: EdgeInsets.fromLTRB(
+                      showLikes ? 20.w : 18.w,
+                      28.h,
+                      showLikes ? 20.w : 18.w,
+                      showLikes ? 24.h : 14.h,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.gray900,
                       borderRadius: BorderRadius.vertical(
@@ -319,6 +344,9 @@ class _CurationNoteCard extends StatelessWidget {
                       ),
                     ),
                     child: Column(
+                      mainAxisSize: showLikes
+                          ? MainAxisSize.min
+                          : MainAxisSize.max,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
@@ -341,7 +369,7 @@ class _CurationNoteCard extends StatelessWidget {
                           curation.tagline,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: AppTypography.headline1.copyWith(
+                          style: AppTypography.title4.copyWith(
                             color: AppColors.white,
                           ),
                         ),
@@ -352,9 +380,34 @@ class _CurationNoteCard extends StatelessWidget {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: AppTypography.caption1.copyWith(
-                              color: AppColors.gray500,
+                              color: AppColors.white.withValues(alpha: 0.6),
                             ),
                           ),
+                        if (showLikes) ...[
+                          SizedBox(height: 10.h),
+                          SizedBox(
+                            key: ValueKey('curation-card-likes-${curation.id}'),
+                            height: 16.r,
+                            child: Row(
+                              children: [
+                                SvgPicture.asset(
+                                  curation.like.liked
+                                      ? 'assets/icons/heart_filled.svg'
+                                      : 'assets/icons/heart_unfilled.svg',
+                                  width: 16.r,
+                                  height: 16.r,
+                                ),
+                                SizedBox(width: 6.w),
+                                Text(
+                                  '${curation.like.count}',
+                                  style: AppTypography.caption1.copyWith(
+                                    color: AppColors.gray500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
