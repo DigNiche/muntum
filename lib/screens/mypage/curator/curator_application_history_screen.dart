@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:muntum/components/content_skeleton.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
@@ -75,9 +76,7 @@ class _CuratorApplicationHistoryScreenState
               future: _applicationsFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState != ConnectionState.done) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: AppColors.gray900),
-                  );
+                  return const PageLoadingSkeleton.rows();
                 }
                 if (snapshot.hasError) {
                   return _HistoryMessage(

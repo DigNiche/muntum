@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:muntum/components/content_skeleton.dart';
 import 'package:muntum/api/token_store.dart';
 import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
@@ -223,11 +224,7 @@ class _SearchScreenState extends State<SearchScreen> {
                             final keywords = snapshot.data ?? const <String>[];
                             if (snapshot.connectionState !=
                                 ConnectionState.done) {
-                              return const Center(
-                                child: CircularProgressIndicator(
-                                  color: AppColors.gray900,
-                                ),
-                              );
+                              return const PageLoadingSkeleton.rows();
                             }
                             if (keywords.isEmpty) {
                               return Center(
@@ -462,12 +459,18 @@ class _SearchScreenState extends State<SearchScreen> {
                 builder: (context, snapshot) {
                   final keywords = snapshot.data ?? const <String>[];
                   if (snapshot.connectionState != ConnectionState.done) {
-                    return const SizedBox(
-                      height: 36,
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          color: AppColors.gray900,
-                        ),
+                    return Semantics(
+                      label: '인기 키워드 불러오는 중',
+                      child: Wrap(
+                        spacing: 8.w,
+                        children: [
+                          for (final width in [76, 95, 82])
+                            SkeletonBlock(
+                              width: width.w,
+                              height: 36.h,
+                              radius: 20.r,
+                            ),
+                        ],
                       ),
                     );
                   }
@@ -640,9 +643,7 @@ class _SearchScreenState extends State<SearchScreen> {
         builder: (context) {
           final results = _searchResults;
           if (_isLoadingSearch && results.isEmpty) {
-            return const Center(
-              child: CircularProgressIndicator(color: AppColors.gray900),
-            );
+            return const PageLoadingSkeleton.programs();
           }
           if (results.isEmpty) {
             return Center(
@@ -671,11 +672,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 if (resultIndex == results.length) {
                   return Padding(
                     padding: EdgeInsets.symmetric(vertical: 16.h),
-                    child: const Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.gray900,
-                      ),
-                    ),
+                    child: const ProgramListSkeleton(count: 1),
                   );
                 }
                 final isLast = resultIndex == results.length - 1;

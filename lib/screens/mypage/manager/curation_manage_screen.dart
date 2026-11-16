@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
+import 'package:muntum/components/content_skeleton.dart';
 import 'package:muntum/api/api_exception.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/constants/colors.dart';
@@ -168,7 +169,7 @@ class _CurationManageScreenState extends State<CurationManageScreen> {
               child: ColoredBox(
                 color: AppColors.backgroundNormal,
                 child: _loading
-                    ? const Center(child: CircularProgressIndicator())
+                    ? const PageLoadingSkeleton.programs()
                     : _error != null
                     ? Center(
                         child: TextButton(
@@ -213,9 +214,7 @@ class _CurationManageScreenState extends State<CurationManageScreen> {
                                 );
                               }
                               if (index == items.length) {
-                                return const Center(
-                                  child: CircularProgressIndicator(),
-                                );
+                                return const ProgramListSkeleton(count: 1);
                               }
                               return Padding(
                                 padding: EdgeInsets.only(bottom: 12.h),

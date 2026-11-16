@@ -1,3 +1,4 @@
+import 'package:muntum/components/content_skeleton.dart';
 import 'package:muntum/components/author_profile.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:muntum/components/profile_avatar.dart';
@@ -242,11 +243,9 @@ class _WrittenProgramListState extends State<WrittenProgramList> {
 
   Widget _buildSliverBody() {
     if (_isLoading) {
-      return const SliverFillRemaining(
-        hasScrollBody: false,
-        child: Center(
-          child: CircularProgressIndicator(color: AppColors.gray900),
-        ),
+      return SliverPadding(
+        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
+        sliver: const SliverToBoxAdapter(child: ProgramListSkeleton()),
       );
     }
     if (_errorMessage != null) {

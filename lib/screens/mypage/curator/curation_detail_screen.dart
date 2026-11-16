@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:muntum/components/content_skeleton.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/api/api_exception.dart';
 import 'package:muntum/components/appbar.dart';
@@ -170,10 +171,9 @@ class _CurationDetailScreenState extends State<CurationDetailScreen> {
                 padding: EdgeInsets.only(bottom: 28.h),
                 children: [
                   if (_isRefreshingDetail)
-                    const LinearProgressIndicator(
-                      minHeight: 2,
-                      color: AppColors.primary500,
-                      backgroundColor: AppColors.white,
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 4.h),
+                      child: const TextListSkeleton(count: 1),
                     ),
                   if (_detailError != null)
                     _DetailLoadError(

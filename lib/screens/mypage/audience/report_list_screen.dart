@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:lottie/lottie.dart';
+import 'package:muntum/components/content_skeleton.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/button_solid.dart';
 import 'package:muntum/api/token_store.dart';
@@ -114,9 +115,7 @@ class _ReportListScreenState extends State<ReportListScreen> {
             child: Builder(
               builder: (context) {
                 if (!_loadedOnce && _isLoading) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: AppColors.gray900),
-                  );
+                  return const PageLoadingSkeleton.programs();
                 }
                 if (_reports.isEmpty) {
                   return _EmptyReportContent(onReportTap: _openReportSubmit);
@@ -183,9 +182,7 @@ class _ReportListContent extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 24.h),
       itemBuilder: (context, index) {
         if (index == reports.length) {
-          return const Center(
-            child: CircularProgressIndicator(color: AppColors.gray900),
-          );
+          return const ProgramListSkeleton(count: 1);
         }
         if (index == 0) {
           return Column(

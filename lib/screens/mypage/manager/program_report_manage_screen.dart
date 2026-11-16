@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:muntum/components/content_skeleton.dart';
 import 'package:muntum/api/api_exception.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/constants/colors.dart';
@@ -176,9 +177,7 @@ class _ProgramReportManageScreenState extends State<ProgramReportManageScreen> {
 
   Widget _buildContent() {
     if (_isLoading && _reports.isEmpty) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.gray900),
-      );
+      return const PageLoadingSkeleton.programs();
     }
 
     if (_errorMessage != null && _reports.isEmpty) {
@@ -211,11 +210,7 @@ class _ProgramReportManageScreenState extends State<ProgramReportManageScreen> {
             return _isLoadingMore
                 ? Padding(
                     padding: EdgeInsets.symmetric(vertical: 20.h),
-                    child: const Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.gray900,
-                      ),
-                    ),
+                    child: const ProgramListSkeleton(count: 1),
                   )
                 : const SizedBox.shrink();
           }

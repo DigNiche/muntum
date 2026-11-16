@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+import 'package:muntum/components/content_skeleton.dart';
 import 'package:muntum/api/token_store.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/button_solid.dart';
@@ -30,7 +31,7 @@ class WithdrawScreen extends StatelessWidget {
         if (snapshot.connectionState != ConnectionState.done) {
           return const Scaffold(
             backgroundColor: AppColors.white,
-            body: Center(child: CircularProgressIndicator()),
+            body: SafeArea(child: PageLoadingSkeleton.detail()),
           );
         }
         return snapshot.data == 'APPLE'

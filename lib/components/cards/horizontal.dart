@@ -16,11 +16,15 @@ class HorizontalCard extends StatelessWidget {
   final String entrySource;
   final VoidCallback? onTap;
 
+  /// Keywords shown with a dark badge in personalized lists.
+  final Set<String> highlightedKeywords;
+
   const HorizontalCard({
     super.key,
     required this.program,
     this.entrySource = 'unknown',
     this.onTap,
+    this.highlightedKeywords = const {},
   });
 
   @override
@@ -44,7 +48,12 @@ class HorizontalCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _HorizontalCardImage(program: program, entrySource: entrySource),
-          Expanded(child: _HorizontalCardDetails(program: program)),
+          Expanded(
+            child: _HorizontalCardDetails(
+              program: program,
+              highlightedKeywords: highlightedKeywords,
+            ),
+          ),
         ],
       ),
     );
@@ -131,8 +140,12 @@ class _HorizontalCardImage extends StatelessWidget {
 
 class _HorizontalCardDetails extends StatelessWidget {
   final ProgramModel program;
+  final Set<String> highlightedKeywords;
 
-  const _HorizontalCardDetails({required this.program});
+  const _HorizontalCardDetails({
+    required this.program,
+    required this.highlightedKeywords,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -175,6 +188,7 @@ class _HorizontalCardDetails extends StatelessWidget {
           _HorizontalCardKeywords(
             keywords: program.keywords,
             textColor: keywordColor,
+            highlightedKeywords: highlightedKeywords,
           ),
         ],
       ),
@@ -185,10 +199,12 @@ class _HorizontalCardDetails extends StatelessWidget {
 class _HorizontalCardKeywords extends StatelessWidget {
   final List<String> keywords;
   final Color textColor;
+  final Set<String> highlightedKeywords;
 
   const _HorizontalCardKeywords({
     required this.keywords,
     required this.textColor,
+    required this.highlightedKeywords,
   });
 
   @override
@@ -196,7 +212,15 @@ class _HorizontalCardKeywords extends StatelessWidget {
     if (keywords.isEmpty) return const SizedBox.shrink();
 
     final textStyle = AppTypography.badge.copyWith(color: textColor);
-    final firstThreeKeywords = keywords.take(3).toList();
+    final orderedKeywords = highlightedKeywords.isEmpty
+        ? keywords
+        : [
+            ...keywords.where(highlightedKeywords.contains),
+            ...keywords.where(
+              (keyword) => !highlightedKeywords.contains(keyword),
+            ),
+          ];
+    final firstThreeKeywords = orderedKeywords.take(3).toList();
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -210,7 +234,9 @@ class _HorizontalCardKeywords extends StatelessWidget {
             textDirection: Directionality.of(context),
             textScaler: MediaQuery.textScalerOf(context),
           )..layout();
-          return width + painter.width + 8.w;
+          final measuredWidth = painter.width;
+          painter.dispose();
+          return width + measuredWidth + 8.w;
         });
         final canShowAllThree =
             keywords.length <= 3 &&
@@ -218,7 +244,7 @@ class _HorizontalCardKeywords extends StatelessWidget {
                 constraints.maxWidth;
         final visibleKeywords = canShowAllThree
             ? firstThreeKeywords
-            : keywords.take(2).toList();
+            : orderedKeywords.take(2).toList();
         final remainingCount = keywords.length - visibleKeywords.length;
         final labels = [
           ...visibleKeywords,
@@ -228,13 +254,22 @@ class _HorizontalCardKeywords extends StatelessWidget {
         return Row(
           spacing: 5.w,
           children: labels.map((label) {
+            final isHighlighted = highlightedKeywords.contains(label);
             return Container(
               padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 3.h),
               decoration: BoxDecoration(
-                color: const Color(0xfff7f7f7),
+                color: isHighlighted
+                    ? AppColors.gray900
+                    : const Color(0xfff7f7f7),
                 borderRadius: BorderRadius.circular(6.r),
               ),
-              child: Text(label, maxLines: 1, style: textStyle),
+              child: Text(
+                label,
+                maxLines: 1,
+                style: isHighlighted
+                    ? textStyle.copyWith(color: AppColors.white)
+                    : textStyle,
+              ),
             );
           }).toList(),
         );

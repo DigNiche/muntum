@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:muntum/components/content_skeleton.dart';
 import 'package:muntum/api/api_exception.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/filter_chip.dart';
@@ -546,9 +547,7 @@ class _ProgramManageScreenState extends State<ProgramManageScreen> {
     }
     final visiblePrograms = _visiblePrograms;
     if (_isLoading && _programs.isEmpty) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.gray900),
-      );
+      return const PageLoadingSkeleton.programs();
     }
 
     if (_errorMessage != null && _programs.isEmpty) {
@@ -588,11 +587,7 @@ class _ProgramManageScreenState extends State<ProgramManageScreen> {
             return _isLoadingMore
                 ? Padding(
                     padding: EdgeInsets.symmetric(vertical: 20.h),
-                    child: const Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.gray900,
-                      ),
-                    ),
+                    child: const ProgramListSkeleton(count: 1),
                   )
                 : const SizedBox.shrink();
           }

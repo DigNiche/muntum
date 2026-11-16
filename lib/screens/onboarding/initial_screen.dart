@@ -112,6 +112,7 @@ class _InitialScreenState extends State<InitialScreen> {
                     );
                   },
                 ),
+                // TODO: 카카오 로그인 적용
                 if (defaultTargetPlatform == TargetPlatform.iOS) ...[
                   SizedBox(height: 12.h),
                   ButtonSolid(

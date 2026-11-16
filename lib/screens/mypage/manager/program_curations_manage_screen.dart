@@ -1,3 +1,4 @@
+import 'package:muntum/components/content_skeleton.dart';
 import 'package:muntum/components/author_profile.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
@@ -164,7 +165,7 @@ class _ProgramCurationsManageScreenState
               future: _curations,
               builder: (context, snapshot) {
                 if (snapshot.connectionState != ConnectionState.done) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const PageLoadingSkeleton.rows();
                 }
                 if (snapshot.hasError) {
                   return Center(

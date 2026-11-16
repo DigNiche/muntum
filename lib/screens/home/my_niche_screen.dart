@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart' hide FilterChip;
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:muntum/components/content_skeleton.dart';
 import 'package:muntum/api/api_exception.dart';
 import 'package:muntum/api/api_response.dart';
 import 'package:muntum/api/token_store.dart';
@@ -563,9 +564,7 @@ class _MyNicheScreenState extends State<MyNicheScreen> {
       future: _isLoggedInFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(
-            child: CircularProgressIndicator(color: AppColors.primary400),
-          );
+          return const PageLoadingSkeleton.programs();
         }
         if (snapshot.data != true) return _buildGuestContent();
         return _buildAuthenticatedContent();
@@ -638,9 +637,7 @@ class _MyNicheScreenState extends State<MyNicheScreen> {
 
   Widget _buildProgramArea() {
     if (_isLoadingPrograms && _programs.isEmpty) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.primary400),
-      );
+      return const PageLoadingSkeleton.programs();
     }
     if (_programs.isEmpty) return _buildEmptyPrograms();
 

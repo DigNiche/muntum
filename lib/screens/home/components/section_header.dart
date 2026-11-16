@@ -7,14 +7,14 @@ import 'package:muntum/utils/tablet_text_layout.dart';
 class SectionHeader1 extends StatelessWidget {
   final String text;
   final String buttonName;
-  final VoidCallback onButtonTap;
+  final VoidCallback? onButtonTap;
   final double? horizontalPadding;
   final double? verticalPadding;
   const SectionHeader1({
     super.key,
     required this.text,
     required this.buttonName,
-    required this.onButtonTap,
+    this.onButtonTap,
     this.horizontalPadding,
     this.verticalPadding,
   });
@@ -34,13 +34,14 @@ class SectionHeader1 extends StatelessWidget {
             text,
             style: AppTypography.title3.copyWith(color: AppColors.gray900),
           ),
-          GestureDetector(
-            onTap: onButtonTap,
-            child: Text(
-              buttonName,
-              style: AppTypography.button3.copyWith(color: AppColors.gray500),
+          if (buttonName.isNotEmpty)
+            GestureDetector(
+              onTap: onButtonTap,
+              child: Text(
+                buttonName,
+                style: AppTypography.button3.copyWith(color: AppColors.gray500),
+              ),
             ),
-          ),
         ],
       ),
     );

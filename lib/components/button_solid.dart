@@ -11,6 +11,8 @@ class ButtonSolid extends StatelessWidget {
   final EdgeInsetsGeometry? padding;
   final BoxBorder? border;
   final Widget? leading;
+  final TextStyle? textStyle;
+
   const ButtonSolid({
     super.key,
     required this.text,
@@ -20,6 +22,7 @@ class ButtonSolid extends StatelessWidget {
     this.padding,
     this.border,
     this.leading,
+    this.textStyle,
   });
 
   @override
@@ -50,7 +53,7 @@ class ButtonSolid extends StatelessWidget {
   Widget _buildText() {
     return Text(
       text,
-      style: AppTypography.button1.copyWith(color: textColor),
+      style: (textStyle ?? AppTypography.button1).copyWith(color: textColor),
       maxLines: 1,
     );
   }

@@ -5,6 +5,7 @@ import 'package:flutter_naver_map/flutter_naver_map.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:muntum/components/content_skeleton.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/components/filter_chip.dart';
 import 'package:muntum/components/popup_widget.dart';
@@ -937,10 +938,32 @@ class _MapScreenState extends State<MapScreen> {
   @override
   Widget build(BuildContext context) {
     if (!_initialLocationResolved || _initialMapCenter == null) {
-      return const ColoredBox(
-        color: AppColors.white,
-        child: Center(
-          child: CircularProgressIndicator(color: AppColors.gray900),
+      return Semantics(
+        label: '지도 불러오는 중',
+        child: ColoredBox(
+          color: AppColors.gray100,
+          child: SafeArea(
+            child: Column(
+              children: [
+                Padding(
+                  padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 0),
+                  child: SkeletonBlock(
+                    width: double.infinity,
+                    height: 44.h,
+                    radius: 8.r,
+                  ),
+                ),
+                const Spacer(),
+                ColoredBox(
+                  color: AppColors.white,
+                  child: Padding(
+                    padding: EdgeInsets.all(20.r),
+                    child: const ProgramListSkeleton(count: 1),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       );
     }

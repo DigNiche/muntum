@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:muntum/components/content_skeleton.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/popup_widget.dart';
 import 'package:muntum/constants/colors.dart';
@@ -214,9 +215,7 @@ class _AnnouncementManageScreenState extends State<AnnouncementManageScreen> {
 
   Widget _buildContent() {
     if (_isLoading && _announcements.isEmpty) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.gray900),
-      );
+      return const PageLoadingSkeleton.rows();
     }
     if (_errorMessage != null && _announcements.isEmpty) {
       return _AnnouncementMessage(
@@ -239,9 +238,7 @@ class _AnnouncementManageScreenState extends State<AnnouncementManageScreen> {
           if (index == _announcements.length) {
             return Padding(
               padding: EdgeInsets.all(16.r),
-              child: const Center(
-                child: CircularProgressIndicator(color: AppColors.gray900),
-              ),
+              child: const TextListSkeleton(count: 1),
             );
           }
           final announcement = _announcements[index];

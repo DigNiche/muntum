@@ -283,6 +283,12 @@ class _FakeProgramService extends ProgramService {
 
 class _FakeCurationService extends CurationService {
   @override
+  Future<CurationModel> fetchMyDetail(String id) async =>
+      (await fetchAllMineWithDetails()).firstWhere(
+        (curation) => curation.id == id,
+      );
+
+  @override
   Future<CuratorProfileModel> fetchMyProfile() async {
     return const CuratorProfileModel(
       curatorId: 'curator-id',

@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
+import 'package:muntum/components/content_skeleton.dart';
 import 'package:muntum/components/app_color_transition.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/cards/horizontal.dart';
@@ -167,9 +168,7 @@ class _WentToScreenState extends State<WentToScreen> {
 
   Widget _buildPrograms(_ReactionProgramsState state) {
     if (state.isLoading && state.programs.isEmpty) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.gray900),
-      );
+      return const PageLoadingSkeleton.programs();
     }
     if (state.errorMessage != null && state.programs.isEmpty) {
       return Center(
@@ -214,9 +213,7 @@ class _WentToScreenState extends State<WentToScreen> {
           if (index == state.programs.length) {
             return Padding(
               padding: EdgeInsets.symmetric(vertical: 16.h),
-              child: const Center(
-                child: CircularProgressIndicator(color: AppColors.gray900),
-              ),
+              child: const ProgramListSkeleton(count: 1),
             );
           }
           final program = state.programs[index];

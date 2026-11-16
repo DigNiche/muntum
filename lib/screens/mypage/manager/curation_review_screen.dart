@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:muntum/components/content_skeleton.dart';
 import 'package:muntum/components/author_profile.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
@@ -201,7 +202,7 @@ class _CurationReviewScreenState extends State<CurationReviewScreen> {
             ),
             Expanded(
               child: _loading
-                  ? const Center(child: CircularProgressIndicator())
+                  ? const PageLoadingSkeleton.detail()
                   : _error != null
                   ? Center(
                       child: TextButton(
@@ -676,7 +677,7 @@ class _ProgramSearchSheetState extends State<_ProgramSearchSheet> {
             SizedBox(height: 12.h),
             Expanded(
               child: _loading
-                  ? const Center(child: CircularProgressIndicator())
+                  ? const PageLoadingSkeleton.programs()
                   : _error != null
                   ? Center(
                       child: TextButton(

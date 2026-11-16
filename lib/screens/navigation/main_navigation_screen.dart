@@ -9,8 +9,7 @@ import 'package:muntum/constants/typography.dart';
 import 'package:muntum/models/program_model.dart';
 import 'package:muntum/models/report_model.dart';
 import 'package:muntum/screens/bookmark/bookmark_screen.dart';
-import 'package:muntum/screens/home/entire_screen.dart';
-import 'package:muntum/screens/home/my_niche_screen.dart';
+import 'package:muntum/screens/home/explore_screen.dart';
 import 'package:muntum/screens/map/map_screen.dart';
 import 'package:muntum/screens/mypage/audience/report_list_screen.dart';
 import 'package:muntum/screens/mypage/common/profile_screen.dart';
@@ -119,14 +118,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 children: [
                   NavTab(
                     icon: 'interests.svg',
-                    text: '내취향',
+                    text: '탐색',
                     isActive: _selectedIndex == 0,
                     useDarkTheme: useDarkTheme,
                     onTap: () => _onTabTap(0),
                   ),
                   NavTab(
                     icon: 'page_menu_ios.svg',
-                    text: '전체',
+                    text: '피드',
                     isActive: _selectedIndex == 1,
                     useDarkTheme: useDarkTheme,
                     onTap: () => _onTabTap(1),
@@ -163,20 +162,21 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final useDarkBottomNavigation = _selectedIndex == 0;
+    const useDarkBottomNavigation = false;
 
     return Scaffold(
       body: AnimatedContainer(
         duration: AppColorTransition.duration,
         curve: AppColorTransition.curve,
-        color: useDarkBottomNavigation
-            ? AppColors.backgroundDark
-            : AppColors.white,
+        color: AppColors.white,
         child: Stack(
           children: [
             _buildTab(
               index: 0,
-              child: MyNicheScreen(isActive: _selectedIndex == 0),
+              child: EntireScreen(
+                isActive: _selectedIndex == 0,
+                isExplore: true,
+              ),
             ),
             _buildTab(
               index: 1,

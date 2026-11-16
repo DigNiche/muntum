@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:muntum/components/content_skeleton.dart';
 import 'package:muntum/components/profile_avatar.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -169,7 +170,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
               ),
-              if (!isLoggedIn)
+              if (snapshot.connectionState != ConnectionState.done)
+                const Expanded(child: PageLoadingSkeleton.detail())
+              else if (!isLoggedIn)
                 const Expanded(child: _GuestProfileContent())
               else
                 Expanded(

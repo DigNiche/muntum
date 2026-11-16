@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
+import 'package:muntum/components/content_skeleton.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/button_solid.dart';
 import 'package:muntum/constants/colors.dart';
@@ -91,11 +92,7 @@ class _CuratorApplicationDetailScreenState
                   final application = snapshot.data;
                   if (application == null &&
                       snapshot.connectionState != ConnectionState.done) {
-                    return const Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.gray900,
-                      ),
-                    );
+                    return const PageLoadingSkeleton.detail();
                   }
                   if (application == null || snapshot.hasError) {
                     return Center(

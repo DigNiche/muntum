@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:muntum/components/content_skeleton.dart';
 import 'package:muntum/api/api_response.dart';
 import 'package:muntum/constants/border_radius.dart';
 import 'package:muntum/constants/colors.dart';
@@ -234,9 +235,7 @@ class _WentToRecordsViewState extends State<WentToRecordsView> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading && !_hasLoaded) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.gray900),
-      );
+      return const PageLoadingSkeleton.rows();
     }
     if (_errorMessage != null && _records.isEmpty) {
       return _WentToMessage(
@@ -261,9 +260,7 @@ class _WentToRecordsViewState extends State<WentToRecordsView> {
           if (index == _records.length) {
             return Padding(
               padding: EdgeInsets.symmetric(vertical: 16.h),
-              child: const Center(
-                child: CircularProgressIndicator(color: AppColors.gray900),
-              ),
+              child: const TextListSkeleton(count: 1),
             );
           }
           return _WentToRecordCard(

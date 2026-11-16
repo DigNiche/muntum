@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:muntum/components/content_skeleton.dart';
 import 'package:muntum/components/profile_avatar.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/api/api_exception.dart';
@@ -113,9 +114,7 @@ class _CuratorApplicationManageScreenState
 
   Widget _buildContent() {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.gray900),
-      );
+      return const PageLoadingSkeleton.rows();
     }
     if (_errorMessage != null) {
       return _MessageState(message: _errorMessage!, onTap: _loadApplications);

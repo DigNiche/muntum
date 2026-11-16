@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
+import 'package:muntum/components/content_skeleton.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
@@ -81,9 +82,7 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
             child: Builder(
               builder: (context) {
                 if (!_loadedOnce && _isLoading) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: AppColors.gray900),
-                  );
+                  return const PageLoadingSkeleton.rows();
                 }
                 if (_announcements.isEmpty) {
                   return Center(
@@ -100,11 +99,7 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
                   padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 32.h),
                   itemBuilder: (context, index) {
                     if (index == _announcements.length) {
-                      return const Center(
-                        child: CircularProgressIndicator(
-                          color: AppColors.gray900,
-                        ),
-                      );
+                      return const TextListSkeleton(count: 1);
                     }
                     final announcement = _announcements[index];
                     return GestureDetector(

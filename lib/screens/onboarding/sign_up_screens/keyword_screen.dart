@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
+import 'package:muntum/components/content_skeleton.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/button_solid.dart';
 import 'package:muntum/components/keyword_chip.dart';
@@ -168,11 +169,7 @@ class _KeywordScreenState extends State<KeywordScreen> {
                       SizedBox(height: 20.h),
                       Expanded(
                         child: _isKeywordLoading
-                            ? const Center(
-                                child: CircularProgressIndicator(
-                                  color: AppColors.gray900,
-                                ),
-                              )
+                            ? const PageLoadingSkeleton.rows()
                             : _keywordLoadError != null
                             ? _KeywordLoadError(
                                 message: _keywordLoadError!,

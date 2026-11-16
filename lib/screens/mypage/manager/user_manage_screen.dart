@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:muntum/components/content_skeleton.dart';
 import 'package:muntum/components/profile_avatar.dart';
 
 import 'package:material_ui/material_ui.dart';
@@ -343,9 +344,7 @@ class _UserManageScreenState extends State<UserManageScreen> {
 
   Widget _buildContent() {
     if (_isLoading && _users.isEmpty) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.gray900),
-      );
+      return const PageLoadingSkeleton.rows();
     }
 
     if (_errorMessage != null && _users.isEmpty) {
@@ -388,11 +387,7 @@ class _UserManageScreenState extends State<UserManageScreen> {
             return _isLoadingMore
                 ? Padding(
                     padding: EdgeInsets.symmetric(vertical: 20.h),
-                    child: const Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.gray900,
-                      ),
-                    ),
+                    child: const TextListSkeleton(count: 1),
                   )
                 : const SizedBox.shrink();
           }

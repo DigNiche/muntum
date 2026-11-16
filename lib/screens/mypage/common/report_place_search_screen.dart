@@ -3,6 +3,7 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/components/appbar.dart';
 import 'package:muntum/components/button_solid.dart';
+import 'package:muntum/components/content_skeleton.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/data/report_place_search_repository.dart';
@@ -269,16 +270,7 @@ class _SearchResultBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (isSearching) {
-      return Center(
-        child: SizedBox(
-          width: 22.w,
-          height: 22.w,
-          child: const CircularProgressIndicator(
-            strokeWidth: 2,
-            color: AppColors.gray900,
-          ),
-        ),
-      );
+      return const PageLoadingSkeleton.rows();
     }
 
     if (hasNoResult) {

@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:muntum/components/content_skeleton.dart';
 import 'package:muntum/api/token_store.dart';
 import 'package:muntum/components/app_color_transition.dart';
 import 'package:muntum/components/button_solid.dart';
@@ -170,17 +171,13 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
               builder: (context, loginSnapshot) {
                 final isLoggedIn = loginSnapshot.data ?? false;
                 if (loginSnapshot.connectionState != ConnectionState.done) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: AppColors.gray900),
-                  );
+                  return const PageLoadingSkeleton.programs();
                 }
                 if (!isLoggedIn) {
                   return const _GuestBookmarkView();
                 }
                 if (!_loadedOnce && _isLoading) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: AppColors.gray900),
-                  );
+                  return const PageLoadingSkeleton.programs();
                 }
                 return IndexedStack(
                   index: _selectedSection.index,
@@ -338,9 +335,7 @@ class _BookmarkGrid extends StatelessWidget {
             if (isLoading)
               Padding(
                 padding: EdgeInsets.symmetric(vertical: 24.h),
-                child: const Center(
-                  child: CircularProgressIndicator(color: AppColors.gray900),
-                ),
+                child: const ProgramListSkeleton(count: 1),
               ),
           ],
         ),

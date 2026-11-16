@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/components/appbar.dart';
+import 'package:muntum/components/content_skeleton.dart';
 import 'package:muntum/components/popup_widget.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
@@ -260,20 +261,42 @@ class _KeywordChangeScreenState extends State<KeywordChangeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    isEdit
-                        ? "내 키워드(${_selectedKeywords.length}/${_allKeywords.length})"
-                        : "내 키워드(${_selectedKeywords.length})",
-                    style: AppTypography.headline2.copyWith(
-                      color: AppColors.gray900,
+                  if (_isLoading)
+                    SkeletonBlock(width: 110.w, height: 18.h)
+                  else
+                    Text(
+                      isEdit
+                          ? "내 키워드(${_selectedKeywords.length}/${_allKeywords.length})"
+                          : "내 키워드(${_selectedKeywords.length})",
+                      style: AppTypography.headline2.copyWith(
+                        color: AppColors.gray900,
+                      ),
                     ),
-                  ),
                   SizedBox(height: 20.h),
                   Expanded(
                     child: _isLoading
-                        ? const Center(
-                            child: CircularProgressIndicator(
-                              color: AppColors.gray900,
+                        ? Semantics(
+                            label: '키워드 불러오는 중',
+                            child: ListView.builder(
+                              padding: EdgeInsets.zero,
+                              itemCount: 10,
+                              itemBuilder: (context, index) => Padding(
+                                padding: EdgeInsets.symmetric(vertical: 12.h),
+                                child: Row(
+                                  spacing: 12.w,
+                                  children: [
+                                    SkeletonBlock(
+                                      width: 20.w,
+                                      height: 20.h,
+                                      radius: 999,
+                                    ),
+                                    SkeletonBlock(
+                                      width: (index.isEven ? 120 : 145).w,
+                                      height: 15.h,
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                           )
                         : SingleChildScrollView(
