@@ -123,6 +123,7 @@ class TextFieldWidget extends StatelessWidget {
               SizedBox(height: 8.h),
               Row(
                 mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 spacing: 4.w,
                 children: [
                   Transform.translate(
@@ -136,10 +137,12 @@ class TextFieldWidget extends StatelessWidget {
                       ),
                     ),
                   ),
-                  Text(
-                    errorText,
-                    style: AppTypography.caption2.copyWith(
-                      color: AppColors.error,
+                  Expanded(
+                    child: Text(
+                      errorText,
+                      style: AppTypography.caption2.copyWith(
+                        color: AppColors.error,
+                      ),
                     ),
                   ),
                 ],

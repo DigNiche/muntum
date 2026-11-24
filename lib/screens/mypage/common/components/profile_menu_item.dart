@@ -5,7 +5,7 @@ import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 
 class ProfileMenuItem extends StatelessWidget {
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final String text;
   final bool showDivider;
   final Widget? trailing;

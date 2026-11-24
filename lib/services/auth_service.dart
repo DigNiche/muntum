@@ -3,6 +3,8 @@ import 'package:muntum/api/api_endpoints.dart';
 import 'package:muntum/api/api_response.dart';
 import 'package:muntum/api/token_store.dart';
 import 'package:muntum/models/auth_models.dart';
+import 'package:muntum/models/terms_model.dart';
+import 'package:muntum/api/api_exception.dart';
 
 class AuthService {
   AuthService({ApiClient? client, TokenStore? tokenStore})
@@ -16,8 +18,7 @@ class AuthService {
     required String email,
     required String password,
     required String signupToken,
-    String role = 'AUDIENCE',
-    String userTermsAgreementVersion = '1.0',
+    required SignupConsent signupConsent,
   }) async {
     final response = await _client.post(
       ApiEndpoints.signup,
@@ -25,15 +26,23 @@ class AuthService {
         'email': email,
         'password': password,
         'signupToken': signupToken,
-        'role': role,
-        'userTermsAgreementVersion': userTermsAgreementVersion,
+        'signupConsent': signupConsent.toJson(),
       },
     );
-    return ApiResponse.fromJson(
+    final result = ApiResponse.fromJson(
       response,
       (data) =>
           SignupResult.fromJson(data as Map<String, dynamic>? ?? const {}),
     ).data;
+    final session = result.authentication;
+    if (session == null) {
+      throw const ApiException(
+        code: 'SIGNUP_SESSION_MISSING',
+        message: '회원가입 인증 결과를 확인하지 못했어요. 가입을 반복하지 말고 로그인해주세요.',
+      );
+    }
+    await _saveSession(session, authProvider: 'EMAIL');
+    return result;
   }
 
   Future<SignupEmailCodeResult> requestSignupEmailCode(String email) async {
@@ -81,16 +90,41 @@ class AuthService {
     return session;
   }
 
-  Future<AuthSession> socialLogin(SocialLoginRequest request) async {
+  /// Prepares social authentication without creating an unconsented account.
+  Future<SocialPrepareResult> prepareSocial(SocialLoginRequest request) async {
     final response = await _client.post(
-      ApiEndpoints.socialLogin,
+      ApiEndpoints.socialPrepare,
       body: request.toJson(),
     );
-    final session = ApiResponse.fromJson(
+    final result = ApiResponse.fromJson(
       response,
-      (data) => AuthSession.fromJson(data as Map<String, dynamic>? ?? const {}),
+      (data) =>
+          SocialPrepareResult.fromJson(Map<String, dynamic>.from(data as Map)),
     ).data;
-    await _saveSession(session, authProvider: request.provider.apiValue);
+    final session = result.authentication;
+    if (session != null) {
+      await _saveSession(session, authProvider: request.provider.apiValue);
+    }
+    return result;
+  }
+
+  /// Consumes a prepared ticket after explicit agreement to published terms.
+  Future<AuthSession> signupSocial({
+    required String signupTicket,
+    required SocialAuthProvider provider,
+    required SignupConsent signupConsent,
+  }) async {
+    final response = await _client.post(
+      ApiEndpoints.socialSignup,
+      body: {
+        'signupTicket': signupTicket,
+        'signupConsent': signupConsent.toJson(),
+      },
+    );
+    final session = AuthSession.fromJson(
+      Map<String, dynamic>.from(response['data'] as Map),
+    );
+    await _saveSession(session, authProvider: provider.apiValue);
     return session;
   }
 
@@ -98,10 +132,19 @@ class AuthService {
     final refreshToken = await _tokenStore.readRefreshToken();
     if (refreshToken == null || refreshToken.isEmpty) return null;
 
-    final response = await _client.post(
-      ApiEndpoints.refresh,
-      body: {'refreshToken': refreshToken},
-    );
+    final Map<String, dynamic> response;
+    try {
+      response = await _client.post(
+        ApiEndpoints.refresh,
+        body: {'refreshToken': refreshToken},
+      );
+    } on ApiException catch (error) {
+      if (error.statusCode == 401 ||
+          (error.statusCode == 404 && error.code == 'A002')) {
+        await _tokenStore.clear();
+      }
+      rethrow;
+    }
     final session = ApiResponse.fromJson(
       response,
       (data) => AuthSession.fromJson(data as Map<String, dynamic>? ?? const {}),
@@ -111,6 +154,9 @@ class AuthService {
   }
 
   Future<void> _saveSession(AuthSession session, {String? authProvider}) {
+    if (session.accessToken.isEmpty || session.refreshToken.isEmpty) {
+      throw const FormatException('로그인 인증 정보를 확인할 수 없습니다.');
+    }
     return _tokenStore.saveTokens(
       accessToken: session.accessToken,
       refreshToken: session.refreshToken,
@@ -125,12 +171,11 @@ class AuthService {
   Future<void> logout() async {
     try {
       await _client.post(ApiEndpoints.logout, authorized: true);
-    } catch (_) {
-      // Even when the server rejects logout because the token is expired,
-      // deleted, or no longer authorized, the local session must be cleared.
-    } finally {
-      await _tokenStore.clear();
+    } on ApiException catch (error) {
+      if (error.statusCode == 401) await _tokenStore.clear();
+      rethrow;
     }
+    await _tokenStore.clear();
   }
 
   Future<PasswordFindResult> requestPasswordCode(String email) async {

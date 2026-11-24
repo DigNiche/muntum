@@ -12,12 +12,20 @@ import 'package:muntum/constants/typography.dart';
 import 'package:muntum/screens/onboarding/components/text_field_widget.dart';
 import 'package:muntum/screens/onboarding/sign_up_screens/sign_up_password_screen.dart';
 import 'package:muntum/services/auth_service.dart';
+import 'package:muntum/models/terms_model.dart';
 import 'package:muntum/utils/app_toast.dart';
 
 class SignUpScreen extends StatefulWidget {
   final AuthService? authService;
 
-  const SignUpScreen({super.key, this.authService});
+  /// The explicit versioned decisions collected before email verification.
+  final SignupConsent signupConsent;
+
+  const SignUpScreen({
+    super.key,
+    this.authService,
+    required this.signupConsent,
+  });
 
   @override
   State<SignUpScreen> createState() => _SignUpScreenState();
@@ -460,6 +468,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             email: _emailController.text.trim(),
             signupToken: result.signupToken,
             authService: _authService,
+            signupConsent: widget.signupConsent,
           ),
         ),
       );

@@ -15,10 +15,18 @@ class KeywordChangeScreen extends StatefulWidget {
   final bool initiallyEditing;
   final bool popAfterSave;
 
+  /// Supplies the keyword catalog, for example in widget tests.
+  final KeywordService? keywordService;
+
+  /// Supplies and saves the user's selected keywords.
+  final TasteService? tasteService;
+
   const KeywordChangeScreen({
     super.key,
     this.initiallyEditing = false,
     this.popAfterSave = false,
+    this.keywordService,
+    this.tasteService,
   });
 
   @override
@@ -32,6 +40,7 @@ class _KeywordChangeScreenState extends State<KeywordChangeScreen> {
   List<String> _allKeywords = const [];
   final Set<String> _savedKeywords = {};
   final Set<String> _selectedKeywords = {};
+  late final _tasteService = widget.tasteService ?? TasteService();
 
   bool get _hasChanges => !_isSameKeywords(_savedKeywords, _selectedKeywords);
   bool get _canSave =>
@@ -47,8 +56,9 @@ class _KeywordChangeScreenState extends State<KeywordChangeScreen> {
   Future<void> _loadKeywords() async {
     setState(() => _isLoading = true);
     try {
-      final allResult = await KeywordService().fetchTaggedKeywords();
-      final selectedResult = await TasteService().fetchMyKeywords();
+      final allResult = await (widget.keywordService ?? KeywordService())
+          .fetchTaggedKeywords();
+      final selectedResult = await _tasteService.fetchMyKeywords();
       final selected = selectedResult.selectedKeywords
           .map((keyword) => keyword.name)
           .toList();
@@ -102,7 +112,7 @@ class _KeywordChangeScreenState extends State<KeywordChangeScreen> {
   Future<void> _saveAndExitEdit() async {
     setState(() => _isSaving = true);
     try {
-      await TasteService().saveMyKeywords(_selectedKeywords.toList());
+      await _tasteService.saveMyKeywords(_selectedKeywords.toList());
       UserPreferenceStore.instance.updateKeywords(_selectedKeywords);
       if (!mounted) return;
       if (widget.popAfterSave) {
@@ -140,7 +150,7 @@ class _KeywordChangeScreenState extends State<KeywordChangeScreen> {
     }
 
     if (!_hasChanges) {
-      setState(() => isEdit = false);
+      _leaveEditWithoutSaving();
       return;
     }
 
@@ -151,13 +161,8 @@ class _KeywordChangeScreenState extends State<KeywordChangeScreen> {
       text1: '나가기',
       text2: '저장하기',
       onText1Tap: () {
-        Navigator.pop(context);
-        setState(() {
-          _selectedKeywords
-            ..clear()
-            ..addAll(_savedKeywords);
-          isEdit = false;
-        });
+        Navigator.of(context, rootNavigator: true).pop();
+        _leaveEditWithoutSaving();
       },
       onText2Tap: () async {
         if (_selectedKeywords.length < 3) {
@@ -169,6 +174,19 @@ class _KeywordChangeScreenState extends State<KeywordChangeScreen> {
         await _saveAndExitEdit();
       },
     );
+  }
+
+  void _leaveEditWithoutSaving() {
+    if (widget.initiallyEditing && widget.popAfterSave) {
+      Navigator.pop(context);
+      return;
+    }
+    setState(() {
+      _selectedKeywords
+        ..clear()
+        ..addAll(_savedKeywords);
+      isEdit = false;
+    });
   }
 
   Future<void> _confirmDeleteKeyword(String keyword) async {
@@ -200,7 +218,7 @@ class _KeywordChangeScreenState extends State<KeywordChangeScreen> {
     });
     try {
       showAppToast(context, "'$keyword' 키워드가 삭제되었습니다.", showIcon: false);
-      await TasteService().saveMyKeywords(_selectedKeywords.toList());
+      await _tasteService.saveMyKeywords(_selectedKeywords.toList());
       UserPreferenceStore.instance.updateKeywords(_selectedKeywords);
     } catch (error) {
       if (!mounted) return;

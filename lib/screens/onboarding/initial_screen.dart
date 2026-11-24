@@ -5,15 +5,17 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:muntum/api/api_exception.dart';
 import 'package:muntum/api/token_store.dart';
+import 'package:muntum/models/auth_models.dart';
+import 'package:muntum/services/terms_service.dart';
 import 'package:muntum/components/button_solid.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
-import 'package:muntum/screens/mypage/common/terms_detail_screen.dart';
 import 'package:muntum/screens/navigation/main_navigation_screen.dart';
 import 'package:muntum/screens/onboarding/login_screen.dart';
 import 'package:muntum/screens/onboarding/sign_up_screens/keyword_screen.dart';
 import 'package:muntum/screens/onboarding/sign_up_screens/nickname_screen.dart';
 import 'package:muntum/screens/onboarding/sign_up_screens/sign_up.dart';
+import 'package:muntum/screens/onboarding/sign_up_screens/sign_up_terms_sheet.dart';
 import 'package:muntum/services/apple_auth_service.dart';
 import 'package:muntum/services/auth_service.dart';
 import 'package:muntum/services/taste_service.dart';
@@ -28,11 +30,15 @@ class InitialScreen extends StatefulWidget {
   final AppleAuthService? appleAuthService;
   final AuthService? authService;
 
+  /// The injectable published-terms service used before account creation.
+  final TermsService? termsService;
+
   const InitialScreen({
     super.key,
     this.showBackButton = false,
     this.appleAuthService,
     this.authService,
+    this.termsService,
   });
 
   @override
@@ -112,7 +118,6 @@ class _InitialScreenState extends State<InitialScreen> {
                     );
                   },
                 ),
-                // TODO: 카카오 로그인 적용
                 if (defaultTargetPlatform == TargetPlatform.iOS) ...[
                   SizedBox(height: 12.h),
                   ButtonSolid(
@@ -131,6 +136,18 @@ class _InitialScreenState extends State<InitialScreen> {
                     onTap: _loginWithApple,
                   ),
                 ],
+                SizedBox(height: 12.h),
+                // 로그인 API가 준비되면 동작을 연결한다.
+                ButtonSolid(
+                  text: '카카오 로그인',
+                  textColor: AppColors.black,
+                  boxColor: const Color(0xFFFEE500),
+                  leading: SvgPicture.asset(
+                    'assets/icons/kakao_login.svg',
+                    width: 16.r,
+                    height: 16.r,
+                  ),
+                ),
                 SizedBox(height: 24.h),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -142,37 +159,10 @@ class _InitialScreenState extends State<InitialScreen> {
                       margin: EdgeInsets.symmetric(horizontal: 24.w),
                       color: AppColors.gray700,
                     ),
-                    _TextAction(
-                      text: '회원가입',
-                      onTap: () => _push(const SignUpScreen()),
-                    ),
+                    _TextAction(text: '회원가입', onTap: _startSignUp),
                   ],
                 ),
-                SizedBox(height: 32.h),
-                Text(
-                  '회원가입 시 문틈의 정책 및 약관에 동의합니다.',
-                  style: AppTypography.caption1.copyWith(
-                    color: AppColors.gray600,
-                  ),
-                ),
-                SizedBox(height: 4.h),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _TermsLink(
-                      text: '서비스 이용약관',
-                      onTap: () =>
-                          _push(const TermsDetailScreen(title: '서비스 이용약관')),
-                    ),
-                    SizedBox(width: 12.w),
-                    _TermsLink(
-                      text: '개인정보 처리방침',
-                      onTap: () =>
-                          _push(const TermsDetailScreen(title: '개인정보 처리방침')),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 24.h),
+                SizedBox(height: 48.h),
               ],
             ),
           ),
@@ -183,6 +173,15 @@ class _InitialScreenState extends State<InitialScreen> {
 
   void _push(Widget screen) {
     Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+  }
+
+  Future<void> _startSignUp() async {
+    final consent = await showSignUpTermsSheet(
+      context,
+      service: widget.termsService,
+    );
+    if (!mounted || consent == null) return;
+    _push(SignUpScreen(signupConsent: consent));
   }
 
   Future<void> _browseWithoutLogin() async {
@@ -197,9 +196,7 @@ class _InitialScreenState extends State<InitialScreen> {
     if (!mounted) return;
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
-        builder: (_) => const MainNavigationScreen(initialIndex: 1),
-      ),
+      MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
     );
   }
 
@@ -212,11 +209,15 @@ class _InitialScreenState extends State<InitialScreen> {
       final request = await (widget.appleAuthService ?? AppleAuthService())
           .authorize();
       appleDiagnostics = appleIdentityDiagnostics(request.token);
-      stage = 'social_login';
-      final session = await (widget.authService ?? AuthService()).socialLogin(
-        request,
-      );
+      stage = 'social_prepare';
+      final auth = widget.authService ?? AuthService();
+      final prepared = await auth.prepareSocial(request);
       if (!mounted) return;
+      if (prepared.authentication == null) stage = 'social_signup';
+      final session =
+          prepared.authentication ??
+          await _completeSocialSignup(auth, request.provider, prepared);
+      if (!mounted || session == null) return;
       stage = 'post_login';
       await _routeAfterLogin(session.nickname);
     } on SignInWithAppleAuthorizationException catch (error) {
@@ -237,6 +238,7 @@ class _InitialScreenState extends State<InitialScreen> {
         ApiException(code: 'A004') => '비활성화된 계정입니다.',
         ApiException(code: 'A001') => '이미 사용 중인 이메일입니다.',
         ApiException(code: 'T005') => '게시된 약관이 존재하지 않습니다.',
+        ApiException(message: final message) when message.isNotEmpty => message,
         ApiException(code: 'E001') => '서버 오류가 발생했습니다.',
         _ => 'Apple 로그인에 실패했습니다. 다시 시도해주세요.',
       };
@@ -250,6 +252,42 @@ class _InitialScreenState extends State<InitialScreen> {
     } finally {
       if (mounted) setState(() => _isAppleLoading = false);
     }
+  }
+
+  Future<AuthSession?> _completeSocialSignup(
+    AuthService auth,
+    SocialAuthProvider provider,
+    SocialPrepareResult prepared,
+  ) async {
+    final deadline = DateTime.now().add(Duration(seconds: prepared.expiresIn!));
+    while (mounted) {
+      final consent = await showSignUpTermsSheet(
+        context,
+        service: widget.termsService,
+      );
+      if (!mounted || consent == null) return null;
+      if (!DateTime.now().isBefore(deadline)) {
+        throw const ApiException(
+          code: 'A026',
+          message: '소셜 회원가입 인증이 만료되었어요. Apple 로그인부터 다시 시도해주세요.',
+        );
+      }
+      try {
+        return await auth.signupSocial(
+          signupTicket: prepared.signupTicket!,
+          provider: provider,
+          signupConsent: consent,
+        );
+      } on ApiException catch (error) {
+        if (!mounted || error.code != 'T007') rethrow;
+        showAppToast(
+          context,
+          '약관이 변경되었어요. 최신 약관을 확인하고 다시 동의해주세요.',
+          isError: true,
+        );
+      }
+    }
+    return null;
   }
 
   void _showAppleLoginFailure({
@@ -321,28 +359,6 @@ class _TextAction extends StatelessWidget {
       child: Text(
         text,
         style: AppTypography.button3.copyWith(color: AppColors.gray400),
-      ),
-    );
-  }
-}
-
-class _TermsLink extends StatelessWidget {
-  final String text;
-  final VoidCallback onTap;
-
-  const _TermsLink({required this.text, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Text(
-        text,
-        style: AppTypography.caption1.copyWith(
-          color: AppColors.gray700,
-          decoration: TextDecoration.underline,
-          decorationColor: AppColors.gray600,
-        ),
       ),
     );
   }

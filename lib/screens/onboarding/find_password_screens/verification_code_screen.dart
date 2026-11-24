@@ -20,11 +20,15 @@ class VerificationCodeScreen extends StatefulWidget {
   final int expiresIn;
   final int resendAfter;
 
+  /// The injectable password-verification service.
+  final AuthService? authService;
+
   const VerificationCodeScreen({
     super.key,
     required this.email,
     required this.expiresIn,
     this.resendAfter = 0,
+    this.authService,
   });
 
   @override
@@ -38,6 +42,7 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen>
   bool _isError = false;
   bool _isLoading = false;
   bool _isResending = false;
+  bool _isAttemptLimitReached = false;
   String _errorText = '인증번호가 일치하지 않습니다.';
   Timer? _ticker;
   late DateTime _expiresAt;
@@ -90,6 +95,7 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen>
     required int resendAfter,
     bool notify = false,
   }) {
+    _isAttemptLimitReached = false;
     final now = DateTime.now();
     _expiresAt = now.add(Duration(seconds: expiresIn.clamp(0, 86400)));
     _resendAvailableAt = resendAfter > 0
@@ -195,7 +201,7 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen>
                         hintText: '인증번호를 입력해주세요.',
                         controller: _controller,
                         obscureText: false,
-                        isError: _isError,
+                        isError: _isError || _isAttemptLimitReached,
                         focusNode: _focusNode,
                         suffixIcon:
                             _focusNode.hasFocus && _controller.text != ''
@@ -206,11 +212,18 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen>
                                 child: SvgPicture.asset(
                                   'assets/icons/circle_close.svg',
                                   width: 20.w,
-                                  color: AppColors.gray600,
+                                  colorFilter: const ColorFilter.mode(
+                                    AppColors.gray600,
+                                    BlendMode.srcIn,
+                                  ),
                                 ),
                               )
                             : null,
-                        errorText: _isExpired ? '인증번호가 만료되었습니다.' : _errorText,
+                        errorText: _isAttemptLimitReached
+                            ? '인증 시도 횟수를 초과했습니다. 인증번호를 다시 요청해주세요.'
+                            : _isExpired
+                            ? '인증번호가 만료되었습니다.'
+                            : _errorText,
                         keyboardType: TextInputType.number,
                         inputFormatters: [
                           FilteringTextInputFormatter.digitsOnly,
@@ -292,21 +305,23 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen>
       _isError = false;
     });
     try {
-      final result = await AuthService().verifyPasswordCode(
-        email: widget.email,
-        code: code,
-      );
+      final result = await (widget.authService ?? AuthService())
+          .verifyPasswordCode(email: widget.email, code: code);
       if (!mounted) return;
       pushToScreen(context, ResetPasswordScreen(resetToken: result.resetToken));
     } catch (error) {
       if (!mounted) return;
       setState(() {
         _isError = true;
-        if (error is ApiException && error.code == 'A011') {
+        if (error is ApiException &&
+            (error.code == 'A011' || error.code == 'A013')) {
+          _isAttemptLimitReached = error.code == 'A013';
           _remainingSeconds = 0;
           _expiresAt = DateTime.now();
           _ticker?.cancel();
-          _errorText = '인증번호가 만료되었습니다.';
+          _errorText = error.code == 'A013'
+              ? '인증 시도 횟수를 초과했습니다. 인증번호를 다시 요청해주세요.'
+              : '인증번호가 만료되었습니다.';
         } else if (error is ApiException && error.message.isNotEmpty) {
           _errorText = error.message;
         }
@@ -327,7 +342,8 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen>
       _controller.clear();
     });
     try {
-      final result = await AuthService().requestPasswordCode(widget.email);
+      final result = await (widget.authService ?? AuthService())
+          .requestPasswordCode(widget.email);
       if (!mounted) return;
       _applyServerTiming(
         expiresIn: result.expiresIn,

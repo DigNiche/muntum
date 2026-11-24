@@ -46,6 +46,7 @@ class _CuratorApplicationReviewScreenState
   }
 
   void _showApplicantProfile(CuratorApplicantModel applicant) {
+    if (applicant.userId.isEmpty) return;
     final userFuture = _userService
         .findUserById(userId: applicant.userId, email: applicant.email)
         .catchError((Object _) => null);
@@ -229,7 +230,8 @@ class _CuratorApplicationReviewScreenState
                   padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 32.h),
                   child: _ApplicationDetails(
                     application: application,
-                    onApplicantTap: application.applicant == null
+                    onApplicantTap:
+                        application.applicant?.userId.isNotEmpty != true
                         ? null
                         : () => _showApplicantProfile(application.applicant!),
                   ),

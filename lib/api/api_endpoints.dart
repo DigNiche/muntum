@@ -5,7 +5,8 @@ class ApiEndpoints {
   static const signupEmailSendCode = '/api/v1/auth/email/send-code';
   static const signupEmailVerifyCode = '/api/v1/auth/email/verify-code';
   static const login = '/api/v1/auth/login';
-  static const socialLogin = '/api/v1/auth/social/login';
+  static const socialPrepare = '/api/v1/auth/social/prepare';
+  static const socialSignup = '/api/v1/auth/social/signup';
   static const refresh = '/api/v1/auth/refresh';
   static const logout = '/api/v1/auth/logout';
   static const passwordFind = '/api/v1/auth/password/find';
@@ -15,6 +16,7 @@ class ApiEndpoints {
   static const nickname = '/api/v1/users/me/nickname';
   static const password = '/api/v1/users/me/password';
   static const termsConsent = '/api/v1/users/me/terms';
+  static const activeTerms = '/api/v1/terms/active';
   static const me = '/api/v1/users/me';
   static const profileImage = '/api/v1/users/me/profile-image';
   static const adminUsers = '/api/v1/admin/users';

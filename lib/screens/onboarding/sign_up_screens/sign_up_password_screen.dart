@@ -10,6 +10,9 @@ import 'package:muntum/constants/typography.dart';
 import 'package:muntum/screens/onboarding/components/text_field_widget.dart';
 import 'package:muntum/screens/onboarding/sign_up_screens/sign_up_complete_screen.dart';
 import 'package:muntum/services/auth_service.dart';
+import 'package:muntum/models/terms_model.dart';
+import 'package:muntum/services/terms_service.dart';
+import 'package:muntum/screens/onboarding/sign_up_screens/sign_up_terms_sheet.dart';
 import 'package:muntum/utils/app_toast.dart';
 
 enum SignUpPasswordResult { restartEmailVerification }
@@ -19,11 +22,19 @@ class SignUpPasswordScreen extends StatefulWidget {
   final String signupToken;
   final AuthService? authService;
 
+  /// The explicit consent collected before email verification.
+  final SignupConsent signupConsent;
+
+  /// The injectable terms service used if the version changes during signup.
+  final TermsService? termsService;
+
   const SignUpPasswordScreen({
     super.key,
     required this.email,
     required this.signupToken,
     this.authService,
+    required this.signupConsent,
+    this.termsService,
   });
 
   @override
@@ -42,6 +53,7 @@ class _SignUpPasswordScreenState extends State<SignUpPasswordScreen> {
   bool _isPasswordError = false;
   bool _isConfirmPasswordError = false;
   bool _isLoading = false;
+  SignupConsent? _signupConsent;
 
   bool get _isValidPassword => RegExp(
     r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$',
@@ -55,6 +67,7 @@ class _SignUpPasswordScreenState extends State<SignUpPasswordScreen> {
   void initState() {
     super.initState();
     _authService = widget.authService ?? AuthService();
+    _signupConsent = widget.signupConsent;
     _passwordController.addListener(_handlePasswordChanged);
     _confirmPasswordController.addListener(_handlePasswordChanged);
     _passwordFocusNode.addListener(_refresh);
@@ -193,10 +206,18 @@ class _SignUpPasswordScreenState extends State<SignUpPasswordScreen> {
 
     setState(() => _isLoading = true);
     try {
+      if (_signupConsent == null) {
+        _signupConsent = await showSignUpTermsSheet(
+          context,
+          service: widget.termsService,
+        );
+        if (!mounted || _signupConsent == null) return;
+      }
       await _authService.signup(
         email: widget.email,
         password: _passwordController.text,
         signupToken: widget.signupToken,
+        signupConsent: _signupConsent!,
       );
       if (!mounted) return;
       Navigator.pushAndRemoveUntil(
@@ -208,6 +229,19 @@ class _SignUpPasswordScreenState extends State<SignUpPasswordScreen> {
       if (!mounted) return;
       if (error is ApiException && error.code == 'A022') {
         Navigator.pop(context, SignUpPasswordResult.restartEmailVerification);
+        return;
+      }
+      if (error is ApiException &&
+          ['T003', 'T006', 'T007'].contains(error.code)) {
+        _signupConsent = null;
+        showAppToast(context, '최신 약관을 확인하고 다시 동의해주세요.', isError: true);
+        final consent = await showSignUpTermsSheet(
+          context,
+          service: widget.termsService,
+        );
+        if (!mounted) return;
+        if (consent != null) _signupConsent = consent;
+        // Consent refresh never automatically repeats an account-creation request.
         return;
       }
       final message = switch (error) {

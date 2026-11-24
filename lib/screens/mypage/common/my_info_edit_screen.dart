@@ -12,6 +12,8 @@ import 'package:muntum/screens/mypage/common/password_change_screen.dart';
 import 'package:muntum/screens/mypage/common/withdraw_screen.dart';
 import 'package:muntum/screens/onboarding/initial_screen.dart';
 import 'package:muntum/services/auth_service.dart';
+import 'package:muntum/api/api_exception.dart';
+import 'package:muntum/utils/app_toast.dart';
 import 'package:muntum/stores/program_scrap_store.dart';
 import 'package:muntum/stores/user_preference_store.dart';
 
@@ -61,8 +63,15 @@ class _MyInfoEditScreenState extends State<MyInfoEditScreen> {
         Navigator.pop(context);
         try {
           await AuthService().logout();
-        } catch (_) {
-          // 서버 세션이 이미 만료되어도 기기에 남은 로그인 정보는 정리한다.
+        } catch (error) {
+          if (mounted) {
+            showAppToast(
+              context,
+              '서버 로그아웃을 확인하지 못했어요. 다시 시도해주세요.',
+              isError: true,
+            );
+          }
+          if (error is! ApiException || error.statusCode != 401) return;
         }
         await TokenStore.instance.clear();
         ProgramScrapStore.instance.clear(notify: false);
@@ -130,7 +139,8 @@ class _MyInfoEditScreenState extends State<MyInfoEditScreen> {
                     future: _authProviderFuture,
                     builder: (context, snapshot) {
                       if (snapshot.connectionState != ConnectionState.done ||
-                          snapshot.data == 'APPLE') {
+                          snapshot.data == 'APPLE' ||
+                          snapshot.data == 'KAKAO') {
                         return const SizedBox.shrink();
                       }
                       return ProfileMenuItem(

@@ -8,6 +8,7 @@ import 'package:flutter_naver_map/flutter_naver_map.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:muntum/components/keyboard_dismiss_actions.dart';
 import 'package:muntum/constants/app_theme.dart';
+import 'package:muntum/constants/app_scroll_behavior.dart';
 import 'package:muntum/gates/auth_gate.dart';
 import 'package:muntum/gates/update_gate.dart';
 import 'package:muntum/firebase_options.dart';
@@ -54,6 +55,7 @@ class MuntumApp extends StatelessWidget {
       builder: (context, child) => MaterialApp(
         title: 'Mumtum',
         theme: AppTheme.light,
+        scrollBehavior: const AppScrollBehavior(),
         home: child,
         builder: (context, child) =>
             KeyboardDismissActions(child: child ?? const SizedBox.shrink()),

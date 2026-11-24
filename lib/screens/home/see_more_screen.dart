@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -258,136 +259,142 @@ class _SeeMoreScreenState extends State<SeeMoreScreen> {
       ),
       child: Scaffold(
         backgroundColor: AppColors.white,
-        body: Stack(
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(height: 50.h),
-                AppBarWidget(
-                  centerType: AppBarCenterType.text,
-                  leadingIcon: 'arrow_left.svg',
-                  onLeadingTap: () => Navigator.pop(context),
-                  center: widget.title,
-                ),
-                if (showTypeTabs)
-                  ProgramTypeTabs(
-                    selectedFilter: _selectedFilter,
-                    onSelected: _selectFilter,
+        body: SafeArea(
+          top: false,
+          left: false,
+          right: false,
+          bottom: defaultTargetPlatform == TargetPlatform.android,
+          child: Stack(
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: 50.h),
+                  AppBarWidget(
+                    centerType: AppBarCenterType.text,
+                    leadingIcon: 'arrow_left.svg',
+                    onLeadingTap: () => Navigator.pop(context),
+                    center: widget.title,
                   ),
-                if (_isTaste) _buildTasteFilters(),
-                Expanded(
-                  child: Builder(
-                    builder: (context) {
-                      final programs = _programs;
-                      return CustomScrollView(
-                        controller: _scrollController,
-                        slivers: [
-                          SliverPadding(
-                            padding: EdgeInsets.fromLTRB(
-                              20.w,
-                              showTypeTabs
-                                  ? 12.h
-                                  : _isTaste
-                                  ? 0
-                                  : 14.h,
-                              20.w,
-                              programs.isEmpty ? 0 : 24.h,
-                            ),
-                            sliver: SliverList(
-                              delegate: SliverChildListDelegate([
-                                if (showTypeTabs) ...[
-                                  ProgramDetailFilterChips(
-                                    selectedFilter: _selectedDetailFilter,
-                                    onSelected: _selectDetailFilter,
-                                  ),
-                                  SizedBox(height: 12.h),
-                                ],
-                                if (_isTaste) _buildTasteKeywords(),
-                                if (!showTypeTabs && !_isTaste)
-                                  Text(
-                                    '프로그램 ${_totalElements > 0 ? _totalElements : programs.length}개',
-                                    style: AppTypography.headline2.copyWith(
-                                      color: AppColors.gray900,
+                  if (showTypeTabs)
+                    ProgramTypeTabs(
+                      selectedFilter: _selectedFilter,
+                      onSelected: _selectFilter,
+                    ),
+                  if (_isTaste) _buildTasteFilters(),
+                  Expanded(
+                    child: Builder(
+                      builder: (context) {
+                        final programs = _programs;
+                        return CustomScrollView(
+                          controller: _scrollController,
+                          slivers: [
+                            SliverPadding(
+                              padding: EdgeInsets.fromLTRB(
+                                20.w,
+                                showTypeTabs
+                                    ? 12.h
+                                    : _isTaste
+                                    ? 0
+                                    : 14.h,
+                                20.w,
+                                programs.isEmpty ? 0 : 24.h,
+                              ),
+                              sliver: SliverList(
+                                delegate: SliverChildListDelegate([
+                                  if (showTypeTabs) ...[
+                                    ProgramDetailFilterChips(
+                                      selectedFilter: _selectedDetailFilter,
+                                      onSelected: _selectDetailFilter,
                                     ),
-                                  ),
-                                SizedBox(
-                                  height: _isTaste
-                                      ? 20.h
-                                      : showTypeTabs
-                                      ? 12.h
-                                      : 16.h,
-                                ),
-                                for (
-                                  var index = 0;
-                                  index < programs.length;
-                                  index++
-                                ) ...[
-                                  HorizontalCard(
-                                    program: programs[index],
-                                    highlightedKeywords: _isTaste
-                                        ? UserPreferenceStore
-                                              .instance
-                                              .selectedKeywords
-                                        : const {},
-                                    entrySource: switch (widget.type) {
-                                      SeeMoreType.myTaste => 'my_taste',
-                                      SeeMoreType.allPrograms =>
-                                        'all_collection',
-                                      SeeMoreType.endingThisMonth =>
-                                        'all_closing_soon',
-                                    },
-                                  ),
-                                  if (index != programs.length - 1)
-                                    SizedBox(height: _isTaste ? 20.h : 16.h),
-                                ],
-                                if (_loadFailed && programs.isNotEmpty)
-                                  TextButton(
-                                    onPressed: () =>
-                                        _loadPrograms(reset: false),
-                                    child: const Text('다시 시도'),
-                                  ),
-                                if (_isLoading && programs.isNotEmpty) ...[
-                                  SizedBox(height: 16.h),
-                                  const ProgramListSkeleton(count: 1),
-                                ],
-                                if (_isLoading && programs.isEmpty)
-                                  const ProgramListSkeleton(),
-                              ]),
-                            ),
-                          ),
-                          if (programs.isEmpty && !_isLoading)
-                            SliverFillRemaining(
-                              hasScrollBody: false,
-                              child: Center(
-                                child: _loadFailed
-                                    ? TextButton(
-                                        onPressed: () =>
-                                            _loadPrograms(reset: true),
-                                        child: const Text('다시 시도'),
-                                      )
-                                    : Text(
-                                        '조건에 맞는 프로그램이 없어요.',
-                                        style: AppTypography.body2.copyWith(
-                                          color: AppColors.gray500,
-                                        ),
+                                    SizedBox(height: 12.h),
+                                  ],
+                                  if (_isTaste) _buildTasteKeywords(),
+                                  if (!showTypeTabs && !_isTaste)
+                                    Text(
+                                      '프로그램 ${_totalElements > 0 ? _totalElements : programs.length}개',
+                                      style: AppTypography.headline2.copyWith(
+                                        color: AppColors.gray900,
                                       ),
+                                    ),
+                                  SizedBox(
+                                    height: _isTaste
+                                        ? 20.h
+                                        : showTypeTabs
+                                        ? 12.h
+                                        : 16.h,
+                                  ),
+                                  for (
+                                    var index = 0;
+                                    index < programs.length;
+                                    index++
+                                  ) ...[
+                                    HorizontalCard(
+                                      program: programs[index],
+                                      highlightedKeywords: _isTaste
+                                          ? UserPreferenceStore
+                                                .instance
+                                                .selectedKeywords
+                                          : const {},
+                                      entrySource: switch (widget.type) {
+                                        SeeMoreType.myTaste => 'my_taste',
+                                        SeeMoreType.allPrograms =>
+                                          'all_collection',
+                                        SeeMoreType.endingThisMonth =>
+                                          'all_closing_soon',
+                                      },
+                                    ),
+                                    if (index != programs.length - 1)
+                                      SizedBox(height: _isTaste ? 20.h : 16.h),
+                                  ],
+                                  if (_loadFailed && programs.isNotEmpty)
+                                    TextButton(
+                                      onPressed: () =>
+                                          _loadPrograms(reset: false),
+                                      child: const Text('다시 시도'),
+                                    ),
+                                  if (_isLoading && programs.isNotEmpty) ...[
+                                    SizedBox(height: 16.h),
+                                    const ProgramListSkeleton(count: 1),
+                                  ],
+                                  if (_isLoading && programs.isEmpty)
+                                    const ProgramListSkeleton(),
+                                ]),
                               ),
                             ),
-                        ],
-                      );
-                    },
+                            if (programs.isEmpty && !_isLoading)
+                              SliverFillRemaining(
+                                hasScrollBody: false,
+                                child: Center(
+                                  child: _loadFailed
+                                      ? TextButton(
+                                          onPressed: () =>
+                                              _loadPrograms(reset: true),
+                                          child: const Text('다시 시도'),
+                                        )
+                                      : Text(
+                                          '조건에 맞는 프로그램이 없어요.',
+                                          style: AppTypography.body2.copyWith(
+                                            color: AppColors.gray500,
+                                          ),
+                                        ),
+                                ),
+                              ),
+                          ],
+                        );
+                      },
+                    ),
                   ),
-                ),
-              ],
-            ),
-            if (_showScrollToTopButton)
-              Positioned(
-                right: 20.w,
-                bottom: 24.h,
-                child: ScrollToTopButton(onTap: _scrollToTop),
+                ],
               ),
-          ],
+              if (_showScrollToTopButton)
+                Positioned(
+                  right: 20.w,
+                  bottom: 24.h,
+                  child: ScrollToTopButton(onTap: _scrollToTop),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -520,11 +527,7 @@ class _SeeMoreScreenState extends State<SeeMoreScreen> {
                     children: [
                       for (final keyword
                           in UserPreferenceStore.instance.selectedKeywords)
-                        FilterChipWidget(
-                          text: keyword,
-                          textColor: AppColors.gray800,
-                          backgroundColor: AppColors.white,
-                        ),
+                        _TasteKeywordChip(label: keyword),
                     ],
                   ),
                   SizedBox(height: 20.h),
@@ -543,4 +546,23 @@ class _SeeMoreScreenState extends State<SeeMoreScreen> {
       ),
     );
   }
+}
+
+class _TasteKeywordChip extends StatelessWidget {
+  const _TasteKeywordChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+    decoration: BoxDecoration(
+      color: AppColors.white,
+      borderRadius: BorderRadius.circular(999),
+    ),
+    child: Text(
+      label,
+      style: AppTypography.button3.copyWith(color: AppColors.gray800),
+    ),
+  );
 }

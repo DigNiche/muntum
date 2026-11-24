@@ -11,7 +11,7 @@ class AnalyticsService {
 
   static final AnalyticsService instance = AnalyticsService._();
 
-  final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
+  FirebaseAnalytics get _analytics => FirebaseAnalytics.instance;
 
   Future<void> logHomeTabView(String tabName) {
     return _ignoreErrors(

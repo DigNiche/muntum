@@ -10,6 +10,7 @@ import 'package:muntum/models/program_model.dart';
 import 'package:muntum/models/report_model.dart';
 import 'package:muntum/screens/bookmark/bookmark_screen.dart';
 import 'package:muntum/screens/home/explore_screen.dart';
+import 'package:muntum/screens/home/feed_screen.dart';
 import 'package:muntum/screens/map/map_screen.dart';
 import 'package:muntum/screens/mypage/audience/report_list_screen.dart';
 import 'package:muntum/screens/mypage/common/profile_screen.dart';
@@ -79,7 +80,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     );
   }
 
-  Widget _buildBottomNavigationBar(bool useDarkTheme) {
+  Widget _buildBottomNavigationBar() {
     final androidBottomInset = defaultTargetPlatform == TargetPlatform.android
         ? MediaQuery.viewPaddingOf(context).bottom
         : 0.0;
@@ -92,21 +93,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       child: ClipRect(
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-          child: AnimatedContainer(
-            duration: AppColorTransition.duration,
-            curve: AppColorTransition.curve,
+          child: DecoratedBox(
             decoration: BoxDecoration(
               border: Border(
-                top: BorderSide(
-                  color: useDarkTheme
-                      ? AppColors.gray900
-                      : AppColors.lineNormal,
-                  width: 1.sp,
-                ),
+                top: BorderSide(color: AppColors.lineNormal, width: 1.sp),
               ),
-              color: useDarkTheme
-                  ? const Color(0xFF181818)
-                  : AppColors.white.withValues(alpha: 0.93),
+              color: AppColors.white.withValues(alpha: 0.93),
             ),
             child: SafeArea(
               top: false,
@@ -120,35 +112,30 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                     icon: 'interests.svg',
                     text: '탐색',
                     isActive: _selectedIndex == 0,
-                    useDarkTheme: useDarkTheme,
                     onTap: () => _onTabTap(0),
                   ),
                   NavTab(
                     icon: 'page_menu_ios.svg',
                     text: '피드',
                     isActive: _selectedIndex == 1,
-                    useDarkTheme: useDarkTheme,
                     onTap: () => _onTabTap(1),
                   ),
                   NavTab(
                     icon: 'location-filled.svg',
                     text: '지도',
                     isActive: _selectedIndex == 2,
-                    useDarkTheme: useDarkTheme,
                     onTap: () => _onTabTap(2),
                   ),
                   NavTab(
                     icon: 'scrap-filled.svg',
                     text: '보관함',
                     isActive: _selectedIndex == 3,
-                    useDarkTheme: useDarkTheme,
                     onTap: () => _onTabTap(3),
                   ),
                   NavTab(
                     icon: 'profile-filled.svg',
                     text: '프로필',
                     isActive: _selectedIndex == 4,
-                    useDarkTheme: useDarkTheme,
                     onTap: () => _onTabTap(4),
                   ),
                 ],
@@ -162,25 +149,18 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const useDarkBottomNavigation = false;
-
     return Scaffold(
-      body: AnimatedContainer(
-        duration: AppColorTransition.duration,
-        curve: AppColorTransition.curve,
+      body: ColoredBox(
         color: AppColors.white,
         child: Stack(
           children: [
             _buildTab(
               index: 0,
-              child: EntireScreen(
-                isActive: _selectedIndex == 0,
-                isExplore: true,
-              ),
+              child: ExploreScreen(isActive: _selectedIndex == 0),
             ),
             _buildTab(
               index: 1,
-              child: EntireScreen(isActive: _selectedIndex == 1),
+              child: FeedScreen(isActive: _selectedIndex == 1),
             ),
             _buildTab(
               index: 2,
@@ -201,7 +181,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         ),
       ),
       bottomNavigationBar: widget.initialMapProgram == null
-          ? _buildBottomNavigationBar(useDarkBottomNavigation)
+          ? _buildBottomNavigationBar()
           : null,
     );
   }
@@ -211,7 +191,6 @@ class NavTab extends StatelessWidget {
   final String icon;
   final String text;
   final bool isActive;
-  final bool useDarkTheme;
   final VoidCallback onTap;
 
   const NavTab({
@@ -219,15 +198,12 @@ class NavTab extends StatelessWidget {
     required this.icon,
     required this.text,
     required this.isActive,
-    required this.useDarkTheme,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final targetColor = isActive
-        ? (useDarkTheme ? AppColors.white : AppColors.black)
-        : (useDarkTheme ? AppColors.gray600 : AppColors.gray500);
+    final targetColor = isActive ? AppColors.black : AppColors.gray500;
 
     return Expanded(
       child: GestureDetector(

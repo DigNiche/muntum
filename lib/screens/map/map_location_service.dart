@@ -1,14 +1,8 @@
 import 'dart:async';
 
 import 'package:geolocator/geolocator.dart';
-import 'package:muntum/services/user_service.dart';
 
 class MapLocationService {
-  MapLocationService({UserService? userService})
-    : _userService = userService ?? UserService();
-
-  final UserService _userService;
-
   Future<Position> determineCurrentPosition() async {
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
@@ -22,11 +16,10 @@ class MapLocationService {
 
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
-      await _syncTermsConsent(false);
       throw const PermissionDeniedException('Location permission denied');
     }
 
-    await _syncTermsConsent(true);
+    // 기기 권한은 위치 약관에 명시적으로 동의한 기록이 아니다.
     try {
       return await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
@@ -40,14 +33,6 @@ class MapLocationService {
         return lastKnownPosition;
       }
       rethrow;
-    }
-  }
-
-  Future<void> _syncTermsConsent(bool agreed) async {
-    try {
-      await _userService.updateLocationTermsConsent(agreed);
-    } catch (_) {
-      // Auth or network availability must not block the map location flow.
     }
   }
 }

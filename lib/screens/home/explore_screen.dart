@@ -10,7 +10,6 @@ import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/models/program_model.dart';
 import 'package:muntum/utils/program_card_layout.dart';
-import 'package:muntum/screens/home/components/banner_carousel.dart';
 import 'package:muntum/screens/home/components/explore_taste_section.dart';
 import 'package:muntum/screens/home/components/program_type_tabs.dart';
 import 'package:muntum/screens/home/components/section_header.dart';
@@ -21,26 +20,19 @@ import 'package:muntum/screens/home/see_more_screen.dart';
 import 'package:muntum/services/analytics_service.dart';
 import 'package:muntum/services/program_service.dart';
 
-class EntireScreen extends StatefulWidget {
+class ExploreScreen extends StatefulWidget {
   final bool isActive;
 
-  /// Whether to show Explore instead of the existing second-tab content.
-  final bool isExplore;
-
-  const EntireScreen({
-    super.key,
-    required this.isActive,
-    this.isExplore = false,
-  });
+  const ExploreScreen({super.key, required this.isActive});
 
   @override
-  State<EntireScreen> createState() => _EntireScreenState();
+  State<ExploreScreen> createState() => _ExploreScreenState();
 }
 
-class _EntireScreenState extends State<EntireScreen> {
+class _ExploreScreenState extends State<ExploreScreen> {
   static const double _collectionProgramsHeight = 370;
 
-  Future<_EntireScreenPrograms>? _programsFuture;
+  Future<_ExplorePrograms>? _programsFuture;
   Filter? _selectedCollectionFilter;
   List<ProgramModel> _filteredCollectionPrograms = const [];
   bool _isLoadingCollection = false;
@@ -53,18 +45,14 @@ class _EntireScreenState extends State<EntireScreen> {
   }
 
   @override
-  void didUpdateWidget(covariant EntireScreen oldWidget) {
+  void didUpdateWidget(covariant ExploreScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!oldWidget.isActive && widget.isActive) _activate();
   }
 
   void _activate() {
     _programsFuture ??= _loadPrograms();
-    unawaited(
-      AnalyticsService.instance.logHomeTabView(
-        widget.isExplore ? 'explore' : 'all',
-      ),
-    );
+    unawaited(AnalyticsService.instance.logHomeTabView('explore'));
   }
 
   Future<void> _selectCollectionFilter(Filter? filter) async {
@@ -116,19 +104,19 @@ class _EntireScreenState extends State<EntireScreen> {
     );
   }
 
-  Future<_EntireScreenPrograms> _loadPrograms() async {
+  Future<_ExplorePrograms> _loadPrograms() async {
     final service = ProgramService();
     final results = await Future.wait([
-      if (!widget.isExplore) service.fetchBannerPrograms(),
+      service.fetchBannerPrograms(),
       service.fetchHotKeywordPrograms(includeEnded: false, size: 8),
       service.fetchHotPrograms(size: 8),
       service.fetchClosingSoon(size: 8),
     ]);
-    return _EntireScreenPrograms(
-      banners: widget.isExplore ? const [] : results.first.content,
-      all: results[results.length - 3].content,
-      hot: results[results.length - 2].content,
-      closingSoon: results.last.content,
+    return _ExplorePrograms(
+      banners: results[0].content,
+      all: results[1].content,
+      hot: results[2].content,
+      closingSoon: results[3].content,
     );
   }
 
@@ -144,17 +132,11 @@ class _EntireScreenState extends State<EntireScreen> {
         color: Colors.transparent,
         child: Column(
           children: [
-            SizedBox(
-              height: widget.isExplore
-                  ? MediaQuery.paddingOf(context).top
-                  : 50.h,
-            ),
+            SizedBox(height: MediaQuery.paddingOf(context).top),
             PageHeader(
               title: Text(
-                widget.isExplore ? '탐색' : '전체',
-                style: AppTypography.title2.copyWith(
-                  color: widget.isExplore ? AppColors.gray900 : AppColors.black,
-                ),
+                '탐색',
+                style: AppTypography.title2.copyWith(color: AppColors.gray900),
               ),
               icon: GestureDetector(
                 onTap: () {
@@ -172,8 +154,8 @@ class _EntireScreenState extends State<EntireScreen> {
                     'assets/icons/search.svg',
                     width: 18.sp,
                     height: 18.sp,
-                    colorFilter: ColorFilter.mode(
-                      widget.isExplore ? AppColors.gray900 : AppColors.gray600,
+                    colorFilter: const ColorFilter.mode(
+                      AppColors.gray900,
                       BlendMode.srcIn,
                     ),
                   ),
@@ -181,56 +163,24 @@ class _EntireScreenState extends State<EntireScreen> {
               ),
             ),
             Expanded(
-              child: FutureBuilder<_EntireScreenPrograms>(
+              child: FutureBuilder<_ExplorePrograms>(
                 future: _programsFuture,
                 builder: (context, snapshot) {
                   final data = snapshot.data;
-                  if (widget.isExplore) {
-                    return ListView(
-                      padding: EdgeInsets.zero,
-                      children: [
-                        if (_programsFuture != null)
-                          const ExploreTasteSection(),
-                        SizedBox(height: 32.h),
-                        Divider(
-                          height: 8.h,
-                          thickness: 8.h,
-                          color: AppColors.lineNormal,
-                        ),
-                        SizedBox(height: 24.h),
-                        if (data != null) _buildProgramSections(context, data),
-                        if (snapshot.connectionState == ConnectionState.waiting)
-                          _buildExploreCollectionSkeleton(),
-                      ],
-                    );
-                  }
-                  if (snapshot.connectionState != ConnectionState.done) {
-                    return ListView(
-                      padding: EdgeInsets.only(top: 8.h),
-                      children: [
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 20.w),
-                          child: Semantics(
-                            label: '추천 프로그램 불러오는 중',
-                            child: SkeletonBlock(height: 467.h, radius: 8.r),
-                          ),
-                        ),
-                        SizedBox(height: 56.h),
-                        _buildExploreCollectionSkeleton(),
-                      ],
-                    );
-                  }
-                  if (data == null) return const SizedBox.shrink();
                   return ListView(
                     padding: EdgeInsets.zero,
                     children: [
-                      SizedBox(height: 8.h),
-                      BannerCarousel(
-                        programs: data.banners,
-                        entrySource: 'all_banner',
+                      if (_programsFuture != null) const ExploreTasteSection(),
+                      SizedBox(height: 32.h),
+                      Divider(
+                        height: 8.h,
+                        thickness: 8.h,
+                        color: AppColors.lineNormal,
                       ),
-                      SizedBox(height: 56.h),
-                      _buildProgramSections(context, data),
+                      SizedBox(height: 24.h),
+                      if (data != null) _buildProgramSections(context, data),
+                      if (snapshot.connectionState == ConnectionState.waiting)
+                        _buildExploreCollectionSkeleton(),
                     ],
                   );
                 },
@@ -273,16 +223,13 @@ class _EntireScreenState extends State<EntireScreen> {
     );
   }
 
-  Widget _buildProgramSections(
-    BuildContext context,
-    _EntireScreenPrograms data,
-  ) {
+  Widget _buildProgramSections(BuildContext context, _ExplorePrograms data) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SectionHeader1(
           text: '유형별 모아보기',
-          buttonName: widget.isExplore ? '' : '전체보기',
+          buttonName: '전체보기',
           onButtonTap: () {
             Navigator.push(
               context,
@@ -301,15 +248,23 @@ class _EntireScreenState extends State<EntireScreen> {
         ),
         SizedBox(height: 16.h),
         _buildCollectionPrograms(data.all),
-        SectionHeader1(text: '🔥인기 있는', buttonName: '', onButtonTap: () {}),
+        const SectionHeader1(text: '🔥인기 있는', buttonName: ''),
         SizedBox(height: 8.h),
         TwoRowHorizontalCardCarousel(
           programs: data.hot,
           entrySource: 'all_hot',
         ),
+        if (data.banners.isNotEmpty) ...[
+          const SectionHeader1(text: '✨새롭게 소개된', buttonName: ''),
+          SizedBox(height: 8.h),
+          VerticalCardCarousel(
+            programs: data.banners,
+            entrySource: 'explore_newly_introduced',
+          ),
+        ],
         SectionHeader1(
-          text: '이번달에 끝나는',
-          buttonName: widget.isExplore ? '' : '전체보기',
+          text: '⏰ 이번달에 끝나는',
+          buttonName: '전체보기',
           onButtonTap: () {
             Navigator.push(
               context,
@@ -330,13 +285,13 @@ class _EntireScreenState extends State<EntireScreen> {
   }
 }
 
-class _EntireScreenPrograms {
+class _ExplorePrograms {
   final List<ProgramModel> banners;
   final List<ProgramModel> all;
   final List<ProgramModel> hot;
   final List<ProgramModel> closingSoon;
 
-  const _EntireScreenPrograms({
+  const _ExplorePrograms({
     required this.banners,
     required this.all,
     required this.hot,

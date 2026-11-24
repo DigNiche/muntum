@@ -1,4 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:muntum/stores/auth_state.dart';
 import 'package:muntum/stores/current_user_profile_image_store.dart';
 import 'package:muntum/services/analytics_service.dart';
@@ -9,6 +10,9 @@ class TokenStore {
   static final TokenStore instance = TokenStore._();
 
   String? _accessToken;
+  static const _secureStorage = FlutterSecureStorage(
+    mOptions: MacOsOptions(usesDataProtectionKeychain: false),
+  );
 
   String? get accessToken => _accessToken;
 
@@ -21,6 +25,10 @@ class TokenStore {
     String? role,
     String? authProvider,
   }) async {
+    // Only publish a session after its refresh token is stored successfully.
+    await _secureStorage.write(key: 'refreshToken', value: refreshToken);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('refreshToken');
     _accessToken = accessToken;
     AuthState.instance.replace(
       accessToken: accessToken,
@@ -29,8 +37,6 @@ class TokenStore {
       nickname: nickname,
       role: role,
     );
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('refreshToken', refreshToken);
     if (userId != null) {
       await prefs.setString('userId', userId);
     } else {
@@ -58,8 +64,15 @@ class TokenStore {
   }
 
   Future<String?> readRefreshToken() async {
+    final stored = await _secureStorage.read(key: 'refreshToken');
+    if (stored != null && stored.isNotEmpty) return stored;
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('refreshToken');
+    final legacy = prefs.getString('refreshToken');
+    if (legacy == null || legacy.isEmpty) return null;
+    // Upgrade existing installations without requiring another login.
+    await _secureStorage.write(key: 'refreshToken', value: legacy);
+    await prefs.remove('refreshToken');
+    return legacy;
   }
 
   Future<String?> readEmail() async {
@@ -102,6 +115,7 @@ class TokenStore {
   }
 
   Future<void> clear() async {
+    await _secureStorage.delete(key: 'refreshToken');
     _accessToken = null;
     AuthState.instance.clear();
     CurrentUserProfileImageStore.instance.clear();

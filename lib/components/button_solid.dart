@@ -11,6 +11,9 @@ class ButtonSolid extends StatelessWidget {
   final EdgeInsetsGeometry? padding;
   final BoxBorder? border;
   final Widget? leading;
+
+  /// Whether the leading widget is centered together with the label.
+  final bool centerLeading;
   final TextStyle? textStyle;
 
   const ButtonSolid({
@@ -22,11 +25,13 @@ class ButtonSolid extends StatelessWidget {
     this.padding,
     this.border,
     this.leading,
+    this.centerLeading = false,
     this.textStyle,
   });
 
   @override
   Widget build(BuildContext context) {
+    final icon = leading;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -36,14 +41,23 @@ class ButtonSolid extends StatelessWidget {
           color: boxColor,
           border: border,
         ),
-        child: leading == null
+        child: icon == null
             ? Center(child: _buildText())
+            : centerLeading
+            ? Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  icon,
+                  SizedBox(width: 6.w),
+                  Flexible(child: _buildText()),
+                ],
+              )
             : Stack(
                 alignment: Alignment.center,
                 clipBehavior: Clip.none,
                 children: [
                   Center(child: _buildText()),
-                  Positioned(left: 0, child: leading!),
+                  Positioned(left: 0, child: icon),
                 ],
               ),
       ),

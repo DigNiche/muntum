@@ -1,15 +1,20 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:muntum/api/api_response.dart';
 import 'package:muntum/components/content_skeleton.dart';
+import 'package:muntum/components/cards/horizontal.dart';
+import 'package:muntum/components/appbar.dart';
+import 'package:muntum/components/scroll_to_top_button.dart';
 import 'package:muntum/models/program_model.dart';
 import 'package:muntum/screens/home/components/explore_taste_section.dart';
 import 'package:muntum/screens/home/see_more_screen.dart';
 import 'package:muntum/screens/mypage/audience/keyword_change_screen.dart';
 import 'package:muntum/models/keyword_model.dart';
+import 'package:muntum/services/keyword_service.dart';
 import 'package:muntum/services/taste_service.dart';
 import 'package:muntum/stores/auth_state.dart';
 import 'package:muntum/stores/user_preference_store.dart';
@@ -19,7 +24,10 @@ Future<void> _pumpSection(
   PageResponse<ProgramModel> programs, {
   Future<PageResponse<ProgramModel>> Function()? loadPrograms,
   NavigatorObserver? observer,
+  bool loggedIn = true,
 }) async {
+  AuthState.instance.replace(accessToken: loggedIn ? 'test' : null);
+  addTearDown(AuthState.instance.clear);
   tester.view.physicalSize = const Size(390, 844);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
@@ -58,9 +66,10 @@ class _RouteObserver extends NavigatorObserver {
 }
 
 class _TasteService extends TasteService {
-  _TasteService({this.ready});
+  _TasteService({this.ready, this.programCount = 1});
 
   final Future<void>? ready;
+  final int programCount;
   final chips = <String?>[];
 
   @override
@@ -77,6 +86,12 @@ class _TasteService extends TasteService {
   }) async {
     chips.add(chip);
     await ready;
+    if (programCount > 1) {
+      return PageResponse.fromList([
+        for (var index = 1; index <= programCount; index++)
+          ProgramModel.fromJson({'id': index, 'title': '프로그램 $index'}),
+      ]);
+    }
     return PageResponse.fromList([
       ProgramModel.fromJson({
         'id': 1,
@@ -89,7 +104,180 @@ class _TasteService extends TasteService {
   }
 }
 
+class _KeywordService extends KeywordService {
+  @override
+  Future<List<KeywordModel>> fetchTaggedKeywords() async => const [
+    KeywordModel(id: '1', name: '사진맛집'),
+    KeywordModel(id: '2', name: '새로 고른 키워드'),
+  ];
+}
+
 void main() {
+  testWidgets(
+    'guest preview keeps its space without requesting recommendations',
+    (tester) async {
+      final programs = PageResponse.fromList([
+        ProgramModel.fromJson({'id': 1, 'title': '취향 프로그램'}),
+      ]);
+      var requests = 0;
+      await _pumpSection(
+        tester,
+        programs,
+        loggedIn: false,
+        loadPrograms: () async {
+          requests++;
+          return programs;
+        },
+      );
+
+      final section = find.byType(ExploreTasteSection);
+      final guestHeight = tester.getSize(section).height;
+      expect(guestHeight, greaterThanOrEqualTo(430));
+      expect(find.text('내 취향 모아보기'), findsNothing);
+      expect(find.text('전체보기'), findsNothing);
+      expect(find.byType(PageView), findsNothing);
+      expect(find.byType(SkeletonBlock), findsNothing);
+      expect(requests, 0);
+
+      AuthState.instance.update(accessToken: 'test');
+      await tester.pumpAndSettle();
+      expect(requests, 1);
+      expect(find.text('취향 프로그램'), findsOneWidget);
+      expect(find.text('전체보기'), findsOneWidget);
+      expect(tester.getSize(section).height, closeTo(guestHeight, 1));
+
+      AuthState.instance.clear();
+      await tester.pumpAndSettle();
+      expect(requests, 1);
+      expect(find.text('전체보기'), findsNothing);
+      expect(find.byType(PageView), findsNothing);
+      expect(tester.getSize(section).height, closeTo(guestHeight, 1));
+    },
+  );
+
+  for (final directEdit in [true, false]) {
+    for (final hasChanges in [true, false]) {
+      testWidgets(
+        'keyword back preserves the entry flow: direct=$directEdit, changed=$hasChanges',
+        (tester) async {
+          tester.view.physicalSize = const Size(390, 844);
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.resetPhysicalSize);
+          addTearDown(tester.view.resetDevicePixelRatio);
+          await tester.pumpWidget(
+            ScreenUtilPlusInit(
+              designSize: const Size(390, 844),
+              builder: (_, _) => MaterialApp(
+                home: Builder(
+                  builder: (context) => Scaffold(
+                    body: TextButton(
+                      onPressed: () => Navigator.of(context).push<void>(
+                        MaterialPageRoute(
+                          builder: (_) => KeywordChangeScreen(
+                            initiallyEditing: directEdit,
+                            popAfterSave: directEdit,
+                            keywordService: _KeywordService(),
+                            tasteService: _TasteService(),
+                          ),
+                        ),
+                      ),
+                      child: const Text('목록으로 복귀'),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+          addTearDown(UserPreferenceStore.instance.clear);
+          await tester.tap(find.text('목록으로 복귀'));
+          await tester.pumpAndSettle();
+
+          if (!directEdit) {
+            await tester.tap(find.text('편집'));
+            await tester.pumpAndSettle();
+          }
+          expect(find.text('키워드 편집'), findsOneWidget);
+          if (hasChanges) {
+            final keyword = tester.getRect(find.text('새로 고른 키워드'));
+            await tester.tapAt(Offset(keyword.left - 22, keyword.center.dy));
+            await tester.pumpAndSettle();
+          }
+          final appBar = tester.getRect(find.byType(AppBarWidget));
+          await tester.tapAt(Offset(appBar.left + 32, appBar.center.dy));
+          await tester.pumpAndSettle();
+          if (hasChanges) {
+            expect(find.text('변경사항을 저장할까요?'), findsOneWidget);
+            await tester.tap(find.text('나가기'));
+            await tester.pumpAndSettle();
+            expect(UserPreferenceStore.instance.selectedKeywords, {'사진맛집'});
+          }
+
+          expect(find.text('키워드 편집'), findsNothing);
+          expect(find.text(directEdit ? '목록으로 복귀' : '키워드'), findsOneWidget);
+        },
+      );
+    }
+  }
+
+  testWidgets(
+    'only Android reserves the system bar inset for the list and scroll button',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      tester.view.padding = const FakeViewPadding(bottom: 64);
+      tester.view.viewPadding = const FakeViewPadding(bottom: 64);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPadding);
+      addTearDown(tester.view.resetViewPadding);
+      AuthState.instance.update(accessToken: 'test');
+      addTearDown(AuthState.instance.clear);
+      addTearDown(UserPreferenceStore.instance.clear);
+      await tester.pumpWidget(
+        ScreenUtilPlusInit(
+          designSize: const Size(390, 844),
+          builder: (_, _) => MaterialApp(
+            home: SeeMoreScreen(
+              type: SeeMoreType.myTaste,
+              tasteService: _TasteService(programCount: 8),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final list = find.byType(CustomScrollView);
+      final scrollable = find.descendant(
+        of: list,
+        matching: find.byType(Scrollable),
+      );
+      final position = tester.state<ScrollableState>(scrollable).position;
+      // The first jump lays out the tail of the sliver; the second reaches its final extent.
+      position.jumpTo(position.maxScrollExtent);
+      await tester.pumpAndSettle();
+      position.jumpTo(position.maxScrollExtent);
+      await tester.pumpAndSettle();
+
+      final bottom = defaultTargetPlatform == TargetPlatform.android
+          ? 780.0
+          : 844.0;
+      final lastCard = find.ancestor(
+        of: find.text('프로그램 8'),
+        matching: find.byType(HorizontalCard),
+      );
+      expect(tester.getRect(list).bottom, closeTo(bottom, 0.1));
+      expect(tester.getRect(lastCard).bottom, closeTo(bottom - 24, 0.1));
+      final button = find.byType(ScrollToTopButton);
+      expect(tester.getRect(button).bottom, closeTo(bottom - 24, 0.1));
+      await tester.tap(button);
+      await tester.pumpAndSettle();
+      expect(position.pixels, 0);
+    },
+    variant: TargetPlatformVariant({
+      TargetPlatform.android,
+      TargetPlatform.iOS,
+    }),
+  );
+
   testWidgets('header opens the full taste list even with no preview', (
     tester,
   ) async {
@@ -161,6 +349,17 @@ void main() {
       await tester.pumpAndSettle();
       expect(service.chips.length, greaterThan(before));
       expect(find.text('새 키워드'), findsOneWidget);
+      expect(
+        find.ancestor(
+          of: find.text('새 키워드'),
+          matching: find.byWidgetPredicate((widget) {
+            final decoration = widget is Container ? widget.decoration : null;
+            return decoration is BoxDecoration &&
+                decoration.borderRadius == BorderRadius.circular(999);
+          }),
+        ),
+        findsOneWidget,
+      );
       final edit = find.text('더 찾아보기');
       await tester.tap(edit);
       final screen = observer.lastRoute!.builder(tester.element(edit));

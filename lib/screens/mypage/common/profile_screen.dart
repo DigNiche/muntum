@@ -452,6 +452,7 @@ class _AdminMenuSection extends StatelessWidget {
               text: '프로그램 관리',
               onTap: () => pushToScreen(context, ProgramManageScreen()),
             ),
+            const ProfileMenuItem(text: '에디터픽 관리', onTap: null),
             ProfileMenuItem(
               text: '사용자 제보 관리',
               onTap: () => pushToScreen(context, ProgramReportManageScreen()),

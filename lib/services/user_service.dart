@@ -69,22 +69,6 @@ class UserService {
     await TokenStore.instance.saveProfile(nickname: nickname);
   }
 
-  Future<void> updateTermsConsent(Map<String, dynamic> consent) async {
-    await _client.patch(
-      ApiEndpoints.termsConsent,
-      authorized: true,
-      body: consent,
-    );
-  }
-
-  Future<void> updateLocationTermsConsent(bool agreed) async {
-    await updateTermsConsent({
-      'terms': [
-        {'termType': 'LOCATION_TERMS', 'agreed': agreed},
-      ],
-    });
-  }
-
   Future<void> changePassword({
     required String currentPassword,
     required String newPassword,

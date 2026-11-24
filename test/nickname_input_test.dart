@@ -7,6 +7,7 @@ import 'package:muntum/models/user_profile_model.dart';
 import 'package:muntum/screens/mypage/common/nickname_change_screen.dart';
 import 'package:muntum/screens/onboarding/sign_up_screens/nickname_screen.dart';
 import 'package:muntum/services/user_service.dart';
+import 'package:muntum/api/api_exception.dart';
 
 void main() {
   Future<void> pumpScreen(WidgetTester tester, Widget screen) async {
@@ -38,6 +39,22 @@ void main() {
     service.finishUpdate();
   });
 
+  testWidgets('reserved U002 nickname error is not shown as a duplicate', (
+    tester,
+  ) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await pumpScreen(
+      tester,
+      NicknameScreen(service: _ReservedNicknameService()),
+    );
+    await tester.enterText(find.byType(TextField), '익명의 큐레이터');
+    await tester.tap(find.text('다음으로'));
+    await tester.pump();
+    expect(find.text('사용할 수 없는 닉네임입니다.'), findsOneWidget);
+    expect(find.text('중복되는 닉네임 입니다.'), findsNothing);
+  });
+
   testWidgets('onboarding accepts a nickname containing a space', (
     tester,
   ) async {
@@ -55,6 +72,17 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
     service.finishUpdate();
   });
+}
+
+class _ReservedNicknameService extends UserService {
+  @override
+  Future<void> updateNickname(String nickname) async {
+    throw const ApiException(
+      statusCode: 400,
+      code: 'U002',
+      message: '사용할 수 없는 닉네임입니다',
+    );
+  }
 }
 
 class _RecordingUserService extends UserService {

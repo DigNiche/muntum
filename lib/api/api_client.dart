@@ -14,7 +14,7 @@ class ApiClient {
 
   final HttpClient _httpClient;
   final TokenStore _tokenStore;
-  bool _isRefreshing = false;
+  static Future<bool>? _refreshInFlight;
 
   Uri _uri(String path, [Map<String, dynamic>? queryParameters]) {
     final uri = Uri.parse('${ApiConfig.baseUrl}$path');
@@ -198,11 +198,14 @@ class ApiClient {
     final response = await request.close();
     final statusCode = response.statusCode;
     final responseBody = await utf8.decodeStream(response);
+    final decoded = _decode(responseBody);
 
-    if (statusCode == 401 &&
-        authorized &&
-        retryOnUnauthorized &&
-        await _refreshToken()) {
+    if (await _shouldRefresh(
+      statusCode,
+      decoded,
+      authorized,
+      retryOnUnauthorized,
+    )) {
       return _sendMultipart(
         method,
         path,
@@ -215,7 +218,6 @@ class ApiClient {
       );
     }
 
-    final decoded = _decode(responseBody);
     if (statusCode < 200 || statusCode >= 300) {
       throw ApiException(
         statusCode: statusCode,
@@ -271,11 +273,14 @@ class ApiClient {
     final response = await request.close();
     final statusCode = response.statusCode;
     final responseBody = await utf8.decodeStream(response);
+    final decoded = _decode(responseBody);
 
-    if (statusCode == 401 &&
-        authorized &&
-        retryOnUnauthorized &&
-        await _refreshToken()) {
+    if (await _shouldRefresh(
+      statusCode,
+      decoded,
+      authorized,
+      retryOnUnauthorized,
+    )) {
       return _send(
         method,
         path,
@@ -286,7 +291,6 @@ class ApiClient {
       );
     }
 
-    final decoded = _decode(responseBody);
     if (statusCode < 200 || statusCode >= 300) {
       throw ApiException(
         statusCode: statusCode,
@@ -305,9 +309,30 @@ class ApiClient {
     return {'data': decoded};
   }
 
-  Future<bool> _refreshToken() async {
-    if (_isRefreshing) return false;
-    _isRefreshing = true;
+  Future<bool> _shouldRefresh(
+    int statusCode,
+    Map<String, dynamic> response,
+    bool authorized,
+    bool retryOnUnauthorized,
+  ) async {
+    if (!authorized || statusCode != 401) return false;
+    if (response['error'] == 'WITHDRAWN_TOKEN') {
+      await _tokenStore.clear();
+      return false;
+    }
+    // Password and social-token failures are not expired MUNTUM JWTs.
+    return retryOnUnauthorized &&
+        response['error'] == 'A007' &&
+        await _refreshToken();
+  }
+
+  Future<bool> _refreshToken() {
+    return _refreshInFlight ??= _performRefresh().whenComplete(() {
+      _refreshInFlight = null;
+    });
+  }
+
+  Future<bool> _performRefresh() async {
     try {
       final refreshToken = await _tokenStore.readRefreshToken();
       if (refreshToken == null || refreshToken.isEmpty) return false;
@@ -321,6 +346,9 @@ class ApiClient {
       final auth = AuthSession.fromJson(
         response['data'] as Map<String, dynamic>? ?? const {},
       );
+      if (auth.accessToken.isEmpty || auth.refreshToken.isEmpty) {
+        throw const FormatException('재발급 인증 정보를 확인할 수 없습니다.');
+      }
       await _tokenStore.saveTokens(
         accessToken: auth.accessToken,
         refreshToken: auth.refreshToken,
@@ -330,11 +358,15 @@ class ApiClient {
         role: auth.role,
       );
       return true;
-    } catch (_) {
-      await _tokenStore.clear();
+    } on ApiException catch (error) {
+      if (error.statusCode == 401 ||
+          (error.statusCode == 404 && error.code == 'A002')) {
+        await _tokenStore.clear();
+      }
       return false;
-    } finally {
-      _isRefreshing = false;
+    } catch (_) {
+      // A temporary network failure must not erase a usable refresh token.
+      return false;
     }
   }
 }

@@ -63,8 +63,12 @@ class ReportModel {
   final String id;
   final String? informerId;
   final String? informerNickname;
-  final String? reviewedById;
-  final String? reviewedByNickname;
+
+  /// The current reviewer ID, or null for a withdrawn reviewer.
+  final String? reviewerId;
+
+  /// The reviewer display name supplied by the server, including "문틈".
+  final String? reviewerNickname;
   final DateTime? reviewedAt;
   final String programName;
   final String reason;
@@ -77,8 +81,8 @@ class ReportModel {
     required this.id,
     this.informerId,
     this.informerNickname,
-    this.reviewedById,
-    this.reviewedByNickname,
+    this.reviewerId,
+    this.reviewerNickname,
     this.reviewedAt,
     required this.programName,
     required this.reason,
@@ -93,8 +97,8 @@ class ReportModel {
       id: '${json['id'] ?? ''}',
       informerId: json['informerId'] as String?,
       informerNickname: json['informerNickname'] as String?,
-      reviewedById: json['reviewedById'] as String?,
-      reviewedByNickname: json['reviewedByNickname'] as String?,
+      reviewerId: json['reviewerId'] as String?,
+      reviewerNickname: json['reviewerNickname'] as String?,
       reviewedAt: DateTime.tryParse(json['reviewedAt'] as String? ?? ''),
       programName: json['programName'] as String? ?? '',
       reason: json['reason'] as String? ?? '',

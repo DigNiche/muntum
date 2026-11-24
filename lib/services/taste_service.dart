@@ -19,10 +19,11 @@ class TasteService {
   }
 
   Future<TasteKeywordResult> saveMyKeywords(List<String> keywordNames) async {
+    final uniqueNames = keywordNames.toSet().toList();
     final response = await _client.post(
       ApiEndpoints.myTasteKeywords,
       authorized: true,
-      body: {'selectKeywords': keywordNames},
+      body: {'selectKeywords': uniqueNames},
     );
     return ApiResponse.fromJson(response, TasteKeywordResult.fromJson).data;
   }

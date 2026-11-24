@@ -18,16 +18,17 @@ class SocialLoginRequest {
   const SocialLoginRequest({
     required this.provider,
     required this.token,
-    required this.authorizationCode,
-    required this.nonce,
+    this.authorizationCode = '',
+    this.nonce = '',
   });
 
   Map<String, dynamic> toJson() {
     return {
       'provider': provider.apiValue,
       'token': token,
-      'authorizationCode': authorizationCode,
-      'nonce': nonce,
+      if (provider == SocialAuthProvider.apple)
+        'authorizationCode': authorizationCode,
+      if (provider == SocialAuthProvider.apple) 'nonce': nonce,
     };
   }
 }
@@ -90,10 +91,14 @@ class SignupResult {
   final String email;
   final DateTime? createdAt;
 
+  /// Authentication returned with the new account; no second login is needed.
+  final AuthSession? authentication;
+
   const SignupResult({
     required this.userId,
     required this.email,
     this.createdAt,
+    this.authentication,
   });
 
   factory SignupResult.fromJson(Map<String, dynamic> json) {
@@ -101,7 +106,59 @@ class SignupResult {
       userId: json['userId'] as String? ?? '',
       email: json['email'] as String? ?? '',
       createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
+      authentication: json['authentication'] is Map
+          ? AuthSession.fromJson({
+              ...Map<String, dynamic>.from(json['authentication'] as Map),
+              'userId': json['userId'],
+              'email': json['email'],
+            })
+          : null,
     );
+  }
+}
+
+/// The two distinct outcomes of social preparation, before signup consent.
+class SocialPrepareResult {
+  /// Creates an existing-member login result.
+  const SocialPrepareResult.login(this.authentication)
+    : signupTicket = null,
+      expiresIn = null;
+
+  /// Creates an expiring signup-ticket result without storing a login session.
+  const SocialPrepareResult.signup({
+    required this.signupTicket,
+    required this.expiresIn,
+  }) : authentication = null;
+
+  /// The JWT session, only for an existing member.
+  final AuthSession? authentication;
+
+  /// The one-use server ticket, only for a new member.
+  final String? signupTicket;
+
+  /// The ticket's lifetime in seconds, not JWT milliseconds.
+  final int? expiresIn;
+
+  /// Parses the status discriminator without treating a ticket as a session.
+  factory SocialPrepareResult.fromJson(Map<String, dynamic> json) {
+    if (json['status'] == 'LOGIN_COMPLETE' && json['authentication'] is Map) {
+      return SocialPrepareResult.login(
+        AuthSession.fromJson(
+          Map<String, dynamic>.from(json['authentication'] as Map),
+        ),
+      );
+    }
+    if (json['status'] == 'SIGNUP_REQUIRED' &&
+        json['signupTicket'] is String &&
+        (json['signupTicket'] as String).isNotEmpty &&
+        json['expiresIn'] is num &&
+        (json['expiresIn'] as num) > 0) {
+      return SocialPrepareResult.signup(
+        signupTicket: json['signupTicket'] as String,
+        expiresIn: (json['expiresIn'] as num).toInt(),
+      );
+    }
+    throw const FormatException('소셜 인증 결과를 확인할 수 없습니다.');
   }
 }
 

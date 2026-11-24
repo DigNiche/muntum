@@ -8,6 +8,7 @@ import 'package:muntum/api/api_exception.dart';
 import 'package:muntum/api/api_response.dart';
 import 'package:muntum/components/content_skeleton.dart';
 import 'package:muntum/components/program_curator_badge.dart';
+import 'package:muntum/components/retrying_network_image.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
 import 'package:muntum/models/program_model.dart';
@@ -18,6 +19,7 @@ import 'package:muntum/services/program_service.dart';
 import 'package:muntum/services/taste_service.dart';
 import 'package:muntum/stores/auth_state.dart';
 import 'package:muntum/stores/user_preference_store.dart';
+import 'package:muntum/utils/tablet_text_layout.dart';
 
 /// Shows a swipeable preview of the existing taste recommendations.
 class ExploreTasteSection extends StatefulWidget {
@@ -34,7 +36,8 @@ class ExploreTasteSection extends StatefulWidget {
 class _ExploreTasteSectionState extends State<ExploreTasteSection>
     with AutomaticKeepAliveClientMixin {
   static const _previewLimit = 8;
-  late Future<PageResponse<ProgramModel>> _programs;
+  static const _sectionTitle = '내 취향 모아보기';
+  Future<PageResponse<ProgramModel>>? _programs;
 
   @override
   bool get wantKeepAlive => true;
@@ -42,17 +45,28 @@ class _ExploreTasteSectionState extends State<ExploreTasteSection>
   @override
   void initState() {
     super.initState();
-    _programs = _load();
+    if (AuthState.instance.isLoggedIn) _programs = _load();
+    AuthState.instance.addListener(_handleAuthChange);
     UserPreferenceStore.instance.addListener(_refresh);
   }
 
   @override
   void dispose() {
+    AuthState.instance.removeListener(_handleAuthChange);
     UserPreferenceStore.instance.removeListener(_refresh);
     super.dispose();
   }
 
+  void _handleAuthChange() {
+    if (AuthState.instance.isLoggedIn == (_programs != null)) return;
+    final request = AuthState.instance.isLoggedIn ? _load() : null;
+    setState(() {
+      _programs = request;
+    });
+  }
+
   void _refresh() {
+    if (!AuthState.instance.isLoggedIn) return;
     final request = _load();
     setState(() {
       _programs = request;
@@ -83,63 +97,84 @@ class _ExploreTasteSectionState extends State<ExploreTasteSection>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    final request = _programs;
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 20.w),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SectionHeader1(
-            text: '내 취향 모아보기',
-            buttonName: '전체보기',
-            onButtonTap: _openAllPrograms,
-            horizontalPadding: 0,
-            verticalPadding: 0,
-          ),
+          if (request == null)
+            SizedBox(
+              height: TabletTextLayout.lineHeight(
+                context,
+                _sectionTitle,
+                AppTypography.title3,
+              ),
+            )
+          else
+            SectionHeader1(
+              text: _sectionTitle,
+              buttonName: '전체보기',
+              onButtonTap: _openAllPrograms,
+              horizontalPadding: 0,
+              verticalPadding: 0,
+            ),
           SizedBox(height: 16.h),
-          FutureBuilder<PageResponse<ProgramModel>>(
-            future: _programs,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState != ConnectionState.done) {
-                return Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 520),
-                    child: AspectRatio(
-                      aspectRatio: 350 / 430,
-                      child: Semantics(
-                        label: '추천 프로그램 불러오는 중',
-                        child: SkeletonBlock(height: 430.h, radius: 12.r),
-                      ),
+          if (request == null)
+            const _TastePreviewFrame(child: SizedBox.shrink())
+          else
+            FutureBuilder<PageResponse<ProgramModel>>(
+              future: request,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState != ConnectionState.done) {
+                  return _TastePreviewFrame(
+                    child: Semantics(
+                      label: '추천 프로그램 불러오는 중',
+                      child: SkeletonBlock(height: 430.h, radius: 12.r),
                     ),
-                  ),
+                  );
+                }
+                if (snapshot.hasError) {
+                  return TextButton(
+                    onPressed: _refresh,
+                    child: const Text('추천을 불러오지 못했어요. 다시 시도'),
+                  );
+                }
+                final result = snapshot.data;
+                if (result == null || result.content.isEmpty) {
+                  return Text(
+                    '아직 추천 프로그램이 없어요.',
+                    style: AppTypography.caption1.copyWith(
+                      color: AppColors.gray600,
+                    ),
+                  );
+                }
+                return _TastePager(
+                  key: ObjectKey(result),
+                  programs: result.content.take(_previewLimit).toList(),
+                  total: math.max(result.totalElements, result.content.length),
+                  onSeeAll: _openAllPrograms,
                 );
-              }
-              if (snapshot.hasError) {
-                return TextButton(
-                  onPressed: _refresh,
-                  child: const Text('추천을 불러오지 못했어요. 다시 시도'),
-                );
-              }
-              final result = snapshot.data;
-              if (result == null || result.content.isEmpty) {
-                return Text(
-                  '아직 추천 프로그램이 없어요.',
-                  style: AppTypography.caption1.copyWith(
-                    color: AppColors.gray600,
-                  ),
-                );
-              }
-              return _TastePager(
-                key: ObjectKey(result),
-                programs: result.content.take(_previewLimit).toList(),
-                total: math.max(result.totalElements, result.content.length),
-                onSeeAll: _openAllPrograms,
-              );
-            },
-          ),
+              },
+            ),
         ],
       ),
     );
   }
+}
+
+class _TastePreviewFrame extends StatelessWidget {
+  const _TastePreviewFrame({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 520),
+      child: AspectRatio(aspectRatio: 350 / 430, child: child),
+    ),
+  );
 }
 
 class _TastePager extends StatefulWidget {
@@ -196,82 +231,73 @@ class _TastePagerState extends State<_TastePager> {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 520),
-        child: AspectRatio(
-          aspectRatio: 350 / 430,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12.r),
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                // Follow the swipe without moving the background or rounding each page.
-                AnimatedBuilder(
-                  animation: _controller,
-                  builder: _buildBackground,
-                ),
-                ColoredBox(color: AppColors.black.withValues(alpha: 0.25)),
-                PageView.builder(
-                  controller: _controller,
-                  onPageChanged: (index) => setState(() {
-                    _currentPage = index;
-                  }),
-                  itemCount: widget.programs.length + 1,
-                  itemBuilder: (context, index) {
-                    if (index == widget.programs.length) {
-                      return Center(
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: widget.onSeeAll,
-                          child: _TasteSummary(total: widget.total),
-                        ),
-                      );
-                    }
-                    final program = widget.programs[index];
-                    return _TasteCard(
-                      program: program,
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute<void>(
-                          builder: (_) => ProgramDetailScreen(
-                            program: program,
-                            entrySource: 'my_taste',
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                if (_currentPage < widget.programs.length)
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 32.r,
-                    child: IgnorePointer(
-                      child: Text.rich(
-                        TextSpan(
-                          text: '${_currentPage + 1}',
-                          children: [
-                            TextSpan(
-                              text: '/${widget.programs.length}',
-                              style: TextStyle(
-                                color: AppColors.white.withValues(alpha: 0.30),
-                              ),
-                            ),
-                          ],
-                        ),
-                        textAlign: TextAlign.center,
-                        style: AppTypography.caption1.copyWith(
-                          color: AppColors.white,
-                          fontFeatures: const [FontFeature.tabularFigures()],
-                        ),
+    return _TastePreviewFrame(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12.r),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Follow the swipe without moving the background or rounding each page.
+            AnimatedBuilder(animation: _controller, builder: _buildBackground),
+            ColoredBox(color: AppColors.black.withValues(alpha: 0.25)),
+            PageView.builder(
+              controller: _controller,
+              onPageChanged: (index) => setState(() {
+                _currentPage = index;
+              }),
+              itemCount: widget.programs.length + 1,
+              itemBuilder: (context, index) {
+                if (index == widget.programs.length) {
+                  return Center(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: widget.onSeeAll,
+                      child: _TasteSummary(total: widget.total),
+                    ),
+                  );
+                }
+                final program = widget.programs[index];
+                return _TasteCard(
+                  program: program,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute<void>(
+                      builder: (_) => ProgramDetailScreen(
+                        program: program,
+                        entrySource: 'my_taste',
                       ),
                     ),
                   ),
-              ],
+                );
+              },
             ),
-          ),
+            if (_currentPage < widget.programs.length)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 32.r,
+                child: IgnorePointer(
+                  child: Text.rich(
+                    TextSpan(
+                      text: '${_currentPage + 1}',
+                      children: [
+                        TextSpan(
+                          text: '/${widget.programs.length}',
+                          style: TextStyle(
+                            color: AppColors.white.withValues(alpha: 0.30),
+                          ),
+                        ),
+                      ],
+                    ),
+                    textAlign: TextAlign.center,
+                    style: AppTypography.caption1.copyWith(
+                      color: AppColors.white,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );
@@ -429,10 +455,6 @@ class _Poster extends StatelessWidget {
   final BoxFit fit;
 
   @override
-  Widget build(BuildContext context) {
-    const fallback = ColoredBox(color: AppColors.gray800);
-    final source = url;
-    if (source == null || source.isEmpty) return fallback;
-    return Image.network(source, fit: fit, errorBuilder: (_, _, _) => fallback);
-  }
+  Widget build(BuildContext context) =>
+      RetryingNetworkImage(url: url, fit: fit);
 }

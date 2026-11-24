@@ -22,7 +22,12 @@ void main() {
     'statusInfo': {'status': 'PENDING'},
   });
 
-  Future<void> pumpReview(WidgetTester tester, AdminUserService users) async {
+  Future<void> pumpReview(
+    WidgetTester tester,
+    AdminUserService users, {
+    CuratorApplicationModel? selectedApplication,
+  }) async {
+    final selected = selectedApplication ?? application;
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     await tester.pumpWidget(
@@ -30,9 +35,9 @@ void main() {
         designSize: const Size(390, 844),
         builder: (_, _) => MaterialApp(
           home: CuratorApplicationReviewScreen(
-            applicationId: application.id,
-            initialApplication: application,
-            service: _FakeApplicationService(application),
+            applicationId: selected.id,
+            initialApplication: selected,
+            service: _FakeApplicationService(selected),
             userService: users,
           ),
         ),
@@ -93,6 +98,45 @@ void main() {
       isNull,
     );
   });
+
+  testWidgets(
+    'withdrawn applicant remains readable but cannot open a user profile',
+    (tester) async {
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final users = _FakeUserService();
+      await pumpReview(
+        tester,
+        users,
+        selectedApplication: CuratorApplicationModel.fromJson({
+          'id': 'application-withdrawn',
+          'applicant': {
+            'userId': null,
+            'email': null,
+            'nickname': '익명의 큐레이터',
+            'role': 'CURATOR',
+            'status': null,
+            'joinedAt': null,
+          },
+          'portfolio': {
+            'programName': '남아 있는 지원서',
+            'tagline': '한줄',
+            'curation': '본문',
+          },
+          'statusInfo': {'status': 'APPROVED'},
+          'reviewer': {'nickname': '문틈'},
+        }),
+      );
+      expect(find.text('익명의 큐레이터'), findsOneWidget);
+      expect(find.text('남아 있는 지원서'), findsOneWidget);
+      final profile = tester.widget<InkWell>(
+        find.byKey(const ValueKey('application-applicant-profile')),
+      );
+      expect(profile.onTap, isNull);
+      expect(users.searchedEmail, isNull);
+      expect(find.byType(BottomSheet), findsNothing);
+    },
+  );
 }
 
 class _FakeApplicationService extends CuratorApplicationService {

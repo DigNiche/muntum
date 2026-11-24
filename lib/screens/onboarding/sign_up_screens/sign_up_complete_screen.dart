@@ -5,15 +5,15 @@ import 'package:lottie/lottie.dart';
 import 'package:muntum/components/button_solid.dart';
 import 'package:muntum/constants/colors.dart';
 import 'package:muntum/constants/typography.dart';
-import 'package:muntum/screens/onboarding/login_screen.dart';
+import 'package:muntum/screens/onboarding/sign_up_screens/nickname_screen.dart';
 
 class SignUpCompleteScreen extends StatelessWidget {
   const SignUpCompleteScreen({super.key});
 
-  void _goToLogin(BuildContext context) {
+  void _goToNickname(BuildContext context) {
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
+      MaterialPageRoute(builder: (context) => const NicknameScreen()),
       (route) => false,
     );
   }
@@ -52,7 +52,7 @@ class SignUpCompleteScreen extends StatelessWidget {
                   ),
                   SizedBox(height: 8.h),
                   Text(
-                    '가입한 계정 정보로\n다시 로그인을 진행해주세요.',
+                    '닉네임과 취향 키워드를 설정하고\n나에게 맞는 프로그램을 만나보세요.',
                     textAlign: TextAlign.center,
                     style: AppTypography.body2.copyWith(
                       color: AppColors.gray500,
@@ -60,10 +60,10 @@ class SignUpCompleteScreen extends StatelessWidget {
                   ),
                   const Spacer(),
                   ButtonSolid(
-                    text: '로그인하기',
+                    text: '취향 설정하기',
                     textColor: AppColors.gray900,
                     boxColor: AppColors.primary400,
-                    onTap: () => _goToLogin(context),
+                    onTap: () => _goToNickname(context),
                     padding: EdgeInsets.symmetric(vertical: 13.h),
                   ),
                 ],

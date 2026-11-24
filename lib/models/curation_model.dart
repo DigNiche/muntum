@@ -16,12 +16,16 @@ class PublicCurationModel {
     required this.images,
     this.createdAt,
     this.like = const CurationLikeModel(),
+    this.hasCuratorDetails = true,
   });
 
   final String id;
   final String programId;
   final String? curatorId;
-  final String curatorRole;
+  final String? curatorRole;
+
+  /// Whether this response supplies author fields, including explicit nulls.
+  final bool hasCuratorDetails;
   final String curatorName;
   final String? curatorImageUrl;
   final String tagline;
@@ -45,12 +49,16 @@ class PublicCurationModel {
       PublicCurationModel(
         id: id,
         programId: details.programId.isEmpty ? programId : details.programId,
-        curatorId: details.curatorId ?? curatorId,
-        curatorRole: details.curatorRole,
+        curatorId: details.hasCuratorDetails ? details.curatorId : curatorId,
+        curatorRole: details.hasCuratorDetails
+            ? details.curatorRole
+            : curatorRole,
         curatorName: details.curatorName == '큐레이터'
             ? curatorName
             : details.curatorName,
-        curatorImageUrl: details.curatorImageUrl ?? curatorImageUrl,
+        curatorImageUrl: details.hasCuratorDetails
+            ? details.curatorImageUrl
+            : curatorImageUrl,
         tagline: details.tagline.isEmpty ? tagline : details.tagline,
         thumbnailUrl:
             thumbnailUrl ??
@@ -81,7 +89,10 @@ class PublicCurationModel {
       id: json['id']?.toString() ?? '',
       programId: json['programId']?.toString() ?? '',
       curatorId: curator['curatorId']?.toString(),
-      curatorRole: curator['role']?.toString() ?? 'CURATOR',
+      curatorRole: curator.containsKey('role')
+          ? curator['role']?.toString()
+          : 'CURATOR',
+      hasCuratorDetails: json['curator'] is Map,
       curatorName: curator['nickname']?.toString() ?? '큐레이터',
       curatorImageUrl: imageUrl(curator['profileImageUrl']),
       tagline: json['tagline']?.toString() ?? '',

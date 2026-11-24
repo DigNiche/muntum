@@ -38,6 +38,8 @@ import 'package:muntum/stores/program_scrap_store.dart';
 import 'package:muntum/stores/user_preference_store.dart';
 import 'package:muntum/utils/program_keyword_match.dart';
 import 'package:muntum/utils/program_query.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'support/terms_fixtures.dart';
 
 void main() {
   group('api config', () {
@@ -260,8 +262,9 @@ void main() {
   });
 
   group('social login contract', () {
-    test('uses the social login endpoint', () {
-      expect(ApiEndpoints.socialLogin, '/api/v1/auth/social/login');
+    test('uses the separate social prepare and signup endpoints', () {
+      expect(ApiEndpoints.socialPrepare, '/api/v1/auth/social/prepare');
+      expect(ApiEndpoints.socialSignup, '/api/v1/auth/social/signup');
     });
 
     test('serializes every Apple verification field', () {
@@ -295,6 +298,7 @@ void main() {
       () async {
         final client = _RecordingAuthApiClient();
         final service = AuthService(client: client);
+        SharedPreferences.setMockInitialValues({});
 
         final timing = await service.requestSignupEmailCode('user@example.com');
         final verification = await service.verifySignupEmailCode(
@@ -305,6 +309,7 @@ void main() {
           email: 'user@example.com',
           password: 'Password!1',
           signupToken: verification.signupToken,
+          signupConsent: testSignupConsent(),
         );
 
         expect(timing.expiresIn, 300);
@@ -1098,7 +1103,10 @@ void main() {
       ScreenUtilPlusInit(
         designSize: const Size(390, 844),
         builder: (context, child) => MaterialApp(home: child),
-        child: SignUpScreen(authService: _FakeSignupAuthService()),
+        child: SignUpScreen(
+          authService: _FakeSignupAuthService(),
+          signupConsent: testSignupConsent(),
+        ),
       ),
     );
 
@@ -1132,7 +1140,10 @@ void main() {
       ScreenUtilPlusInit(
         designSize: const Size(390, 844),
         builder: (context, child) => MaterialApp(home: child),
-        child: SignUpScreen(authService: _FakeSignupAuthService()),
+        child: SignUpScreen(
+          authService: _FakeSignupAuthService(),
+          signupConsent: testSignupConsent(),
+        ),
       ),
     );
 
@@ -1271,6 +1282,10 @@ class _RecordingAuthApiClient extends ApiClient {
           'userId': 'user-id',
           'email': 'user@example.com',
           'createdAt': '2026-08-05T00:00:00Z',
+          'authentication': {
+            'accessToken': 'test-access',
+            'refreshToken': 'test-refresh',
+          },
         },
       },
       _ => {'message': '', 'data': <String, dynamic>{}},

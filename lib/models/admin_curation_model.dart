@@ -12,13 +12,13 @@ class AdminCuratorModel {
   final String id;
   final String nickname;
   final String? profileImageUrl;
-  final String role;
+  final String? role;
 
   factory AdminCuratorModel.fromJson(Map<String, dynamic> json) {
     return AdminCuratorModel(
       id: json['curatorId']?.toString() ?? '',
       nickname: json['nickname']?.toString() ?? '익명의 큐레이터',
-      role: json['role']?.toString() ?? 'CURATOR',
+      role: json['role']?.toString(),
       profileImageUrl: normalizeOptionalImageUrl(json['profileImageUrl']),
     );
   }

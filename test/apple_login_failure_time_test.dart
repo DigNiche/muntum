@@ -46,7 +46,7 @@ void main() {
       final log = logs.singleWhere(
         (value) => value.startsWith('[muntum.apple_login]'),
       );
-      expect(log, contains('stage=social_login code=A001 http=409'));
+      expect(log, contains('stage=social_prepare code=A001 http=409'));
       final date = RegExp(r'occurredAt=(\S+)').firstMatch(log)!.group(1)!;
       final occurredAt = DateTime.parse(date);
       expect(occurredAt.isBefore(before), isFalse);
@@ -91,7 +91,7 @@ class _AppleAuthorization extends AppleAuthService {
 
 class _FailingAuthService extends AuthService {
   @override
-  Future<AuthSession> socialLogin(SocialLoginRequest request) async {
+  Future<SocialPrepareResult> prepareSocial(SocialLoginRequest request) async {
     throw const ApiException(
       statusCode: 409,
       code: 'A001',

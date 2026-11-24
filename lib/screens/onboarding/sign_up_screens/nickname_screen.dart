@@ -8,6 +8,7 @@ import 'package:muntum/constants/typography.dart';
 import 'package:muntum/screens/onboarding/components/text_field_widget.dart';
 import 'package:muntum/screens/onboarding/sign_up_screens/keyword_screen.dart';
 import 'package:muntum/services/user_service.dart';
+import 'package:muntum/api/api_exception.dart';
 
 class NicknameScreen extends StatefulWidget {
   const NicknameScreen({super.key, this.service});
@@ -22,6 +23,7 @@ class _NicknameScreenState extends State<NicknameScreen> {
   final TextEditingController _controller = TextEditingController();
   bool _isLoading = false;
   bool _isError = false;
+  String _errorText = '중복되는 닉네임 입니다.';
 
   @override
   void initState() {
@@ -91,7 +93,7 @@ class _NicknameScreenState extends State<NicknameScreen> {
                               isError: _isError,
                               errorText: (_controller.text.length > 50)
                                   ? '닉네임이 50자를 초과합니다.'
-                                  : '중복되는 닉네임 입니다.',
+                                  : _errorText,
                             ),
                             SizedBox(height: 8.h),
                             Text(
@@ -128,7 +130,10 @@ class _NicknameScreenState extends State<NicknameScreen> {
     if (_isLoading) return;
     final nickname = _controller.text;
     if (nickname.trim().isEmpty || nickname.length > 50) {
-      setState(() => _isError = true);
+      setState(() {
+        _isError = true;
+        _errorText = '닉네임을 입력해주세요.';
+      });
       return;
     }
 
@@ -145,7 +150,14 @@ class _NicknameScreenState extends State<NicknameScreen> {
       );
     } catch (error) {
       if (!mounted) return;
-      setState(() => _isError = true);
+      setState(() {
+        _isError = true;
+        _errorText = error is ApiException && error.code == 'U002'
+            ? '사용할 수 없는 닉네임입니다.'
+            : error is ApiException
+            ? error.message
+            : '닉네임을 저장하지 못했어요. 다시 시도해주세요.';
+      });
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
