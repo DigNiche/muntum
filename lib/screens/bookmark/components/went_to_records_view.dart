@@ -314,6 +314,9 @@ class _WentToRecordCard extends StatelessWidget {
                   child: Column(
                     children: [
                       GestureDetector(
+                        key: ValueKey(
+                          'visit-program-image-${record.program.id}',
+                        ),
                         behavior: HitTestBehavior.opaque,
                         onTap: onTap,
                         child: ClipRRect(
@@ -346,21 +349,25 @@ class _WentToRecordCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: onTap,
-                        child: Container(
-                          padding: EdgeInsets.all(16.r),
-                          decoration: BoxDecoration(
-                            color: AppColors.gray50,
-                            borderRadius: BorderRadius.circular(
-                              AppBorderRadius.radius_8,
-                            ),
+                      Container(
+                        key: ValueKey('visit-record-body-${record.program.id}'),
+                        padding: EdgeInsets.all(16.r),
+                        decoration: BoxDecoration(
+                          color: AppColors.gray50,
+                          borderRadius: BorderRadius.circular(
+                            AppBorderRadius.radius_8,
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            GestureDetector(
+                              key: ValueKey(
+                                'visit-program-title-${record.program.id}',
+                              ),
+                              behavior: HitTestBehavior.opaque,
+                              onTap: onTap,
+                              child: Text(
                                 record.program.title,
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
@@ -368,22 +375,43 @@ class _WentToRecordCard extends StatelessWidget {
                                   color: AppColors.gray900,
                                 ),
                               ),
-                              SizedBox(height: 20.h),
-                              _ReactionLabel(reaction: record.reaction),
-                              if (record.comment?.trim().isNotEmpty ==
-                                  true) ...[
-                                SizedBox(height: 8.h),
-                                _ExpandableRecordComment(
-                                  key: ValueKey(
-                                    'visit-comment-${record.program.id}',
-                                  ),
-                                  programId: record.program.id,
-                                  text: record.comment!,
-                                  availableWidth: commentWidth,
+                            ),
+                            SizedBox(height: 20.h),
+                            GestureDetector(
+                              key: ValueKey(
+                                'edit-visit-reaction-${record.program.id}',
+                              ),
+                              behavior: HitTestBehavior.opaque,
+                              onTap: onEdit,
+                              child: SizedBox(
+                                width: double.infinity,
+                                child: _ReactionLabel(
+                                  reaction: record.reaction,
                                 ),
-                              ],
+                              ),
+                            ),
+                            if (record.comment?.trim().isNotEmpty == true) ...[
+                              SizedBox(height: 8.h),
+                              GestureDetector(
+                                key: ValueKey(
+                                  'edit-visit-comment-${record.program.id}',
+                                ),
+                                behavior: HitTestBehavior.opaque,
+                                onTap: onEdit,
+                                child: SizedBox(
+                                  width: double.infinity,
+                                  child: _ExpandableRecordComment(
+                                    key: ValueKey(
+                                      'visit-comment-${record.program.id}',
+                                    ),
+                                    programId: record.program.id,
+                                    text: record.comment!,
+                                    availableWidth: commentWidth,
+                                  ),
+                                ),
+                              ),
                             ],
-                          ),
+                          ],
                         ),
                       ),
                       SizedBox(height: 8.h),

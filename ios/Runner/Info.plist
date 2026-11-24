@@ -24,11 +24,21 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>$(KAKAO_LOGIN_SCHEME)</string>
+			</array>
+		</dict>
+	</array>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>sms</string>
 		<string>tel</string>
 		<string>mailto</string>
+		<string>kakaokompassauth</string>
 	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>

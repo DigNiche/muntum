@@ -15,7 +15,7 @@ import 'support/terms_fixtures.dart';
 
 void main() {
   testWidgets(
-    'shows the Kakao button without a login action or old terms footer',
+    'shows the connected Kakao button without the old terms footer',
     (tester) async {
       await _pumpLogin(tester);
 
@@ -29,7 +29,7 @@ void main() {
           'assets/icons/kakao_login.svg',
         ),
       );
-      expect(kakao.onTap, isNull);
+      expect(kakao.onTap, isNotNull);
       expect(find.text('회원가입 시 문틈의 정책 및 약관에 동의합니다.'), findsNothing);
       expect(find.text('서비스 이용약관'), findsNothing);
       expect(find.text('개인정보 처리방침'), findsNothing);

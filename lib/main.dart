@@ -6,9 +6,11 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_naver_map/flutter_naver_map.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
+import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 import 'package:muntum/components/keyboard_dismiss_actions.dart';
 import 'package:muntum/constants/app_theme.dart';
 import 'package:muntum/constants/app_scroll_behavior.dart';
+import 'package:muntum/constants/kakao_config.dart';
 import 'package:muntum/gates/auth_gate.dart';
 import 'package:muntum/gates/update_gate.dart';
 import 'package:muntum/firebase_options.dart';
@@ -20,6 +22,9 @@ Future<void> main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await FirebaseAnalytics.instance.setAnalyticsCollectionEnabled(true);
   await dotenv.load(fileName: ".env");
+  if (KakaoConfig.isConfigured) {
+    await KakaoSdk.init(nativeAppKey: KakaoConfig.nativeAppKey);
+  }
   final clientId = dotenv.env['NAVER_MAP_CLIENT_ID'] ?? '';
 
   await FlutterNaverMap().init(

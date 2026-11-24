@@ -96,8 +96,11 @@ class _TermsSettingsScreenState extends State<TermsSettingsScreen> {
     Navigator.push<void>(
       context,
       MaterialPageRoute(
-        builder: (_) =>
-            TermsDetailScreen(title: document.title, content: document.content),
+        builder: (_) => TermsDetailScreen(
+          title: document.title,
+          content: document.content,
+          termType: document.type,
+        ),
       ),
     );
   }

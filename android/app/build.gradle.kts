@@ -17,6 +17,17 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+val clientEnvironment = Properties()
+val clientEnvironmentFile = rootProject.file("../.env")
+if (clientEnvironmentFile.exists()) {
+    clientEnvironmentFile.inputStream().use { clientEnvironment.load(it) }
+}
+val kakaoNativeAppKey = clientEnvironment.getProperty("KAKAO_NATIVE_APP_KEY", "")
+    .trim().removeSurrounding("\"").removeSurrounding("'")
+require(kakaoNativeAppKey.isEmpty() || kakaoNativeAppKey.matches(Regex("[0-9a-fA-F]{32}"))) {
+    "KAKAO_NATIVE_APP_KEY must be a 32-character hexadecimal client key in .env"
+}
+
 android {
     namespace = "co.digniche.muntum"
     compileSdk = 36
@@ -28,6 +39,8 @@ android {
     }
 
     defaultConfig {
+        manifestPlaceholders["kakaoLoginScheme"] =
+            if (kakaoNativeAppKey.isEmpty()) "kakaounconfigured" else "kakao$kakaoNativeAppKey"
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "co.digniche.muntum"
         // You can update the following values to match your application needs.

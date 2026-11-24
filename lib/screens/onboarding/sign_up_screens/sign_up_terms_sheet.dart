@@ -208,8 +208,11 @@ class _ConsentRow extends StatelessWidget {
     Navigator.push<void>(
       context,
       MaterialPageRoute(
-        builder: (_) =>
-            TermsDetailScreen(title: term.title, content: term.content),
+        builder: (_) => TermsDetailScreen(
+          title: term.title,
+          content: term.content,
+          termType: term.type,
+        ),
       ),
     );
   }

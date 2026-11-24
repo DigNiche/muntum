@@ -18,6 +18,7 @@ import 'package:muntum/screens/onboarding/sign_up_screens/sign_up.dart';
 import 'package:muntum/screens/onboarding/sign_up_screens/sign_up_terms_sheet.dart';
 import 'package:muntum/services/apple_auth_service.dart';
 import 'package:muntum/services/auth_service.dart';
+import 'package:muntum/services/kakao_auth_service.dart';
 import 'package:muntum/services/taste_service.dart';
 import 'package:muntum/stores/program_scrap_store.dart';
 import 'package:muntum/stores/user_preference_store.dart';
@@ -28,6 +29,7 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 class InitialScreen extends StatefulWidget {
   final bool showBackButton;
   final AppleAuthService? appleAuthService;
+  final KakaoAuthService? kakaoAuthService;
   final AuthService? authService;
 
   /// The injectable published-terms service used before account creation.
@@ -37,6 +39,7 @@ class InitialScreen extends StatefulWidget {
     super.key,
     this.showBackButton = false,
     this.appleAuthService,
+    this.kakaoAuthService,
     this.authService,
     this.termsService,
   });
@@ -46,7 +49,10 @@ class InitialScreen extends StatefulWidget {
 }
 
 class _InitialScreenState extends State<InitialScreen> {
-  bool _isAppleLoading = false;
+  SocialAuthProvider? _activeSocialProvider;
+
+  bool get _isAppleLoading => _activeSocialProvider == SocialAuthProvider.apple;
+  bool get _isKakaoLoading => _activeSocialProvider == SocialAuthProvider.kakao;
 
   @override
   Widget build(BuildContext context) {
@@ -133,13 +139,14 @@ class _InitialScreenState extends State<InitialScreen> {
                     text: _isAppleLoading ? 'Apple 로그인 중...' : 'Apple로 시작하기',
                     textColor: AppColors.black,
                     boxColor: AppColors.white,
-                    onTap: _loginWithApple,
+                    onTap: _activeSocialProvider == null
+                        ? _loginWithApple
+                        : null,
                   ),
                 ],
                 SizedBox(height: 12.h),
-                // 로그인 API가 준비되면 동작을 연결한다.
                 ButtonSolid(
-                  text: '카카오 로그인',
+                  text: _isKakaoLoading ? '카카오 로그인 중...' : '카카오 로그인',
                   textColor: AppColors.black,
                   boxColor: const Color(0xFFFEE500),
                   leading: SvgPicture.asset(
@@ -147,6 +154,7 @@ class _InitialScreenState extends State<InitialScreen> {
                     width: 16.r,
                     height: 16.r,
                   ),
+                  onTap: _activeSocialProvider == null ? _loginWithKakao : null,
                 ),
                 SizedBox(height: 24.h),
                 Row(
@@ -200,15 +208,26 @@ class _InitialScreenState extends State<InitialScreen> {
     );
   }
 
-  Future<void> _loginWithApple() async {
-    if (_isAppleLoading) return;
-    setState(() => _isAppleLoading = true);
-    var stage = 'apple_authorization';
+  Future<void> _loginWithApple() => _loginWithSocial(SocialAuthProvider.apple);
+
+  Future<void> _loginWithKakao() => _loginWithSocial(SocialAuthProvider.kakao);
+
+  Future<void> _loginWithSocial(SocialAuthProvider provider) async {
+    if (_activeSocialProvider != null) return;
+    setState(() => _activeSocialProvider = provider);
+    final providerName = provider == SocialAuthProvider.apple ? 'Apple' : '카카오';
+    var stage = provider == SocialAuthProvider.apple
+        ? 'apple_authorization'
+        : 'kakao_authorization';
     AppleIdentityDiagnostics? appleDiagnostics;
     try {
-      final request = await (widget.appleAuthService ?? AppleAuthService())
-          .authorize();
-      appleDiagnostics = appleIdentityDiagnostics(request.token);
+      final request = provider == SocialAuthProvider.apple
+          ? await (widget.appleAuthService ?? AppleAuthService()).authorize()
+          : await (widget.kakaoAuthService ?? KakaoAuthService()).authorize();
+      if (!mounted) return;
+      if (provider == SocialAuthProvider.apple) {
+        appleDiagnostics = appleIdentityDiagnostics(request.token);
+      }
       stage = 'social_prepare';
       final auth = widget.authService ?? AuthService();
       final prepared = await auth.prepareSocial(request);
@@ -222,12 +241,15 @@ class _InitialScreenState extends State<InitialScreen> {
       await _routeAfterLogin(session.nickname);
     } on SignInWithAppleAuthorizationException catch (error) {
       if (!mounted || error.code == AuthorizationErrorCode.canceled) return;
-      _showAppleLoginFailure(
+      _showSocialLoginFailure(
+        provider: provider,
         message: 'Apple 로그인에 실패했습니다. 다시 시도해주세요.',
         code: error.code.name,
         stage: stage,
         appleDiagnostics: appleDiagnostics,
       );
+    } on KakaoLoginCanceledException {
+      return;
     } catch (error) {
       if (!mounted) return;
       final message = switch (error) {
@@ -238,19 +260,29 @@ class _InitialScreenState extends State<InitialScreen> {
         ApiException(code: 'A004') => '비활성화된 계정입니다.',
         ApiException(code: 'A001') => '이미 사용 중인 이메일입니다.',
         ApiException(code: 'T005') => '게시된 약관이 존재하지 않습니다.',
+        ApiException(statusCode: 404 || 405)
+            when provider == SocialAuthProvider.kakao &&
+                (stage == 'social_prepare' || stage == 'social_signup') =>
+          '카카오 로그인 서버가 아직 준비되지 않았어요. 잠시 후 다시 시도해주세요.',
+        KakaoLoginException(:final message) => message,
         ApiException(message: final message) when message.isNotEmpty => message,
         ApiException(code: 'E001') => '서버 오류가 발생했습니다.',
-        _ => 'Apple 로그인에 실패했습니다. 다시 시도해주세요.',
+        _ => '$providerName 로그인에 실패했습니다. 다시 시도해주세요.',
       };
-      _showAppleLoginFailure(
+      _showSocialLoginFailure(
+        provider: provider,
         message: message,
-        code: error is ApiException ? error.code : null,
+        code: switch (error) {
+          ApiException(:final code) => code,
+          KakaoLoginException(:final code) => code,
+          _ => null,
+        },
         statusCode: error is ApiException ? error.statusCode : null,
         stage: stage,
         appleDiagnostics: appleDiagnostics,
       );
     } finally {
-      if (mounted) setState(() => _isAppleLoading = false);
+      if (mounted) setState(() => _activeSocialProvider = null);
     }
   }
 
@@ -267,9 +299,12 @@ class _InitialScreenState extends State<InitialScreen> {
       );
       if (!mounted || consent == null) return null;
       if (!DateTime.now().isBefore(deadline)) {
-        throw const ApiException(
+        final providerName = provider == SocialAuthProvider.apple
+            ? 'Apple'
+            : '카카오';
+        throw ApiException(
           code: 'A026',
-          message: '소셜 회원가입 인증이 만료되었어요. Apple 로그인부터 다시 시도해주세요.',
+          message: '소셜 회원가입 인증이 만료되었어요. $providerName 로그인부터 다시 시도해주세요.',
         );
       }
       try {
@@ -288,6 +323,37 @@ class _InitialScreenState extends State<InitialScreen> {
       }
     }
     return null;
+  }
+
+  void _showSocialLoginFailure({
+    required SocialAuthProvider provider,
+    required String message,
+    required String stage,
+    String? code,
+    int? statusCode,
+    AppleIdentityDiagnostics? appleDiagnostics,
+  }) {
+    if (provider == SocialAuthProvider.apple) {
+      _showAppleLoginFailure(
+        message: message,
+        stage: stage,
+        code: code,
+        statusCode: statusCode,
+        appleDiagnostics: appleDiagnostics,
+      );
+      return;
+    }
+    if (kDebugMode) {
+      debugPrint(
+        '[muntum.kakao_login] stage=$stage code=${code ?? "unknown"} '
+        'http=${statusCode ?? "unknown"}',
+      );
+    }
+    showAppToast(
+      context,
+      '${code == null ? "" : "[$code] "}$message',
+      isError: true,
+    );
   }
 
   void _showAppleLoginFailure({

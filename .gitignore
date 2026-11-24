@@ -13,6 +13,7 @@
 migrate_working_dir/
 # Local environment values (keep placeholder templates shareable).
 .env
+/ios/Flutter/Kakao.local.xcconfig
 .env.*
 !.env.example
 !.env.sample

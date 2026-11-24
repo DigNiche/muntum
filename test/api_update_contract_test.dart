@@ -234,6 +234,45 @@ void main() {
     expect(TokenStore.instance.accessToken, isNull);
   });
 
+  test(
+    'existing Kakao member stores MUNTUM tokens with the Kakao provider',
+    () async {
+      final client = _Client({
+        'data': {'status': 'LOGIN_COMPLETE', 'authentication': _session},
+      });
+      final result = await AuthService(client: client).prepareSocial(
+        const SocialLoginRequest(
+          provider: SocialAuthProvider.kakao,
+          token: 'kakao-access-token',
+        ),
+      );
+      expect(result.signupTicket, isNull);
+      expect(client.calls, hasLength(1));
+      expect(client.calls.single['path'], ApiEndpoints.socialPrepare);
+      expect(TokenStore.instance.accessToken, 'access-token');
+      expect(await TokenStore.instance.readAuthProvider(), 'KAKAO');
+    },
+  );
+
+  test(
+    'Kakao signup stores MUNTUM session without resending SDK tokens',
+    () async {
+      final client = _Client({'data': _session});
+      await AuthService(client: client).signupSocial(
+        signupTicket: 'kakao-signup-ticket',
+        provider: SocialAuthProvider.kakao,
+        signupConsent: testSignupConsent(),
+      );
+      expect(client.calls.single['path'], ApiEndpoints.socialSignup);
+      expect(client.calls.single['body'], {
+        'signupTicket': 'kakao-signup-ticket',
+        'signupConsent': testSignupConsent().toJson(),
+      });
+      expect(TokenStore.instance.accessToken, 'access-token');
+      expect(await TokenStore.instance.readAuthProvider(), 'KAKAO');
+    },
+  );
+
   test('existing social member stores JWT without requiring signup', () async {
     final client = _Client({
       'data': {'status': 'LOGIN_COMPLETE', 'authentication': _session},

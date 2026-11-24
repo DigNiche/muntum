@@ -1,0 +1,2 @@
+KAKAO_LOGIN_SCHEME = kakaounconfigured
+#include? "Kakao.local.xcconfig"
